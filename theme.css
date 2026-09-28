@@ -133,3 +133,21 @@
   .modal-card{width:100%;max-height:92dvh;padding:20px}
   .modal-wide{width:100%;max-height:92dvh}
 }
+
+/* Role-aware landing access selector */
+.access-picker{margin-top:22px;display:flex;align-items:center;justify-content:space-between;gap:18px;max-width:590px;padding:14px 16px;border:1px solid #ffffff18;border-radius:13px;background:#ffffff08}
+.access-picker>div{min-width:0}
+.access-picker small{display:block;color:#71d99a;font-size:8px;letter-spacing:.15em;font-weight:800}
+.access-picker b{display:block;margin-top:5px;font-size:12px}
+.access-picker span{display:block;color:#81958a;font-size:9px;line-height:1.45;margin-top:4px}
+.access-picker select{min-width:190px;border:1px solid #ffffff1c;border-radius:9px;background:#10221a;color:#e8f5ed;padding:10px 12px;outline:none}
+.profile .signout{border:1px solid #dbe5de;border-radius:8px;padding:7px 9px;background:#fff;color:#416051;font-weight:700}
+.profile .signout:hover{background:#f1f6f2}
+@media(max-width:560px){
+  .access-picker{align-items:stretch;flex-direction:column;gap:10px}
+  .access-picker select{width:100%;min-width:0}
+}
+@media(max-width:480px){
+  .profile div:not(.avatar){display:none}
+  .profile .signout{display:inline-block;padding:7px 8px;font-size:8px}
+}
