@@ -339,7 +339,10 @@ function updateLiveKpis(items){
 }
 function renderLiveRows(rows){
   const tb=document.querySelector(".workspace-table tbody");if(!tb)return;
-  tb.innerHTML=rows.map((r,i)=>'<tr><td><input class="row-check" type="checkbox" '+(state.selected.has(r.id)?"checked":"")+' onchange="toggleRow('+JSON.stringify(r.id)+',this.checked)"></td><td><b>'+esc(r.id||("DEMO-"+i))+'</b></td><td><button class="row-link" data-live-action="view" data-live-id="'+esc(r.id)+'">'+esc(r.title||r.payload?.name||"Demo record")+'</button></td><td>Desa Pilot</td><td>'+status(r.status||"DEMO")+'</td><td>'+esc(r.priority||"NORMAL")+'</td><td><button class="row-action" data-live-action="view" data-live-id="'+esc(r.id)+'">View</button> <button class="row-action" data-live-action="update" data-live-id="'+esc(r.id)+'">Update</button></td></tr>').join("");
+  tb.innerHTML=rows.map((r,i)=>{
+    const rid=JSON.stringify(String(r.id||""));
+    return '<tr><td><input class="row-check" type="checkbox" '+(state.selected.has(r.id)?"checked":"")+' onchange="toggleRow('+rid+',this.checked)"></td><td><b>'+esc(r.id||("DEMO-"+i))+'</b></td><td><button type="button" class="row-link" onclick="window.__liveView('+rid+')">'+esc(r.title||r.payload?.name||"Demo record")+'</button></td><td>Desa Pilot</td><td>'+status(r.status||"DEMO")+'</td><td>'+esc(r.priority||"NORMAL")+'</td><td><button type="button" class="row-action live-view-btn" onclick="window.__liveView('+rid+')">View</button><button type="button" class="row-action live-update-btn" onclick="window.__liveUpdate('+rid+')">Update</button></td></tr>';
+  }).join("");
   const foot=document.querySelector(".table-foot span");if(foot)foot.textContent=rows.length+" live records";
 }
 
