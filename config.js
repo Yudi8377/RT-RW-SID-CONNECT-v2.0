@@ -1,0 +1,1 @@
+window.APP_CONFIG={supabaseUrl:"https://pkpmmtjggqfnrdxahkfi.supabase.co",supabasePublishableKey:""};
