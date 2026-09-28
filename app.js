@@ -311,7 +311,7 @@ function updateLiveKpis(items){
 }
 function renderLiveRows(rows){
   const tb=document.querySelector(".workspace-table tbody");if(!tb)return;
-  tb.innerHTML=rows.map((r,i)=>'<tr><td><input class="row-check" type="checkbox"></td><td><b>'+esc(r.id||("DEMO-"+i))+'</b></td><td>'+esc(r.title||r.payload?.name||"Demo record")+'</td><td>Desa Pilot</td><td>'+status(r.status||"DEMO")+'</td><td>'+esc(r.priority||"NORMAL")+'</td><td><button class="row-action" onclick="toast('Demo record: live Supabase')">View</button></td></tr>').join("");
+  tb.innerHTML=rows.map((r,i)=>'<tr><td><input class="row-check" type="checkbox"></td><td><b>'+esc(r.id||("DEMO-"+i))+'</b></td><td>'+esc(r.title||r.payload?.name||"Demo record")+'</td><td>Desa Pilot</td><td>'+status(r.status||"DEMO")+'</td><td>'+esc(r.priority||"NORMAL")+'</td><td><button class="row-action" onclick="toast(&quot;Demo record: live Supabase&quot;)">View</button></td></tr>').join("");
   const foot=document.querySelector(".table-foot span");if(foot)foot.textContent=rows.length+" live records";
 }
 
