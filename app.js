@@ -279,11 +279,51 @@ async function refreshLiveWorkspace(){
     if(rows.length)renderLiveRows(rows);
   }catch(e){console.warn("live workspace",e)}
 }
+const liveRowCache=new Map();
 async function demoRows(module_code,submenu_code){
   if(!sb)return[];
-  let q=sb.from("demo_operational_records").select("id,title,status,priority,classification,payload,created_at").eq("territory_id",liveDemoScope()).eq("module_code",module_code);
+  let q=sb.from("demo_operational_records").select("id,territory_id,module_code,submenu_code,record_type,title,status,priority,classification,payload,created_at,updated_at").eq("territory_id",liveDemoScope()).eq("module_code",module_code);
   if(submenu_code)q=q.eq("submenu_code",submenu_code);
-  const r=await q.order("created_at",{ascending:false}).limit(50); return r.error?[]:(r.data||[]);
+  const r=await q.order("created_at",{ascending:false}).limit(50);
+  const rows=r.error?[]:(r.data||[]);
+  rows.forEach(x=>liveRowCache.set(x.id,x));
+  return rows;
+}
+function liveFieldRows(record){
+  const payload=record?.payload&&typeof record.payload==="object"?record.payload:{};
+  const entries=Object.entries(payload);
+  return entries.length?entries.map(([k,v])=>'<tr><th>'+esc(k)+'</th><td>'+esc(typeof v==="object"?JSON.stringify(v):String(v??""))+'</td></tr>').join(""):'<tr><th>Payload</th><td>Tidak ada field tambahan.</td></tr>';
+}
+function openLiveRecord(id){
+  const r=liveRowCache.get(id);
+  if(!r){toast("Record live tidak ditemukan");return}
+  const html='<div class="detail-grid"><div><small>ID RECORD</small><b>'+esc(r.id)+'</b></div><div><small>STATUS</small><b>'+esc(r.status||"-")+'</b></div><div><small>MODULE</small><b>'+esc(r.module_code||"-")+'</b></div><div><small>SUBMENU</small><b>'+esc(r.submenu_code||"-")+'</b></div><div><small>CLASSIFICATION</small><b>'+esc(r.classification||"-")+'</b></div><div><small>PRIORITY</small><b>'+esc(r.priority||"-")+'</b></div></div><h4 style="margin:20px 0 8px">Data Record</h4><div class="table-wrap"><table><tbody>'+liveFieldRows(r)+'</tbody></table></div><div class="form-actions"><button class="btn" onclick="closeModal()">Tutup</button><button class="btn primary" onclick="openLiveUpdate(undefined)">✎ Update</button></div>';
+  modal("Detail · "+(r.title||r.id),html,true);
+}
+function openLiveUpdate(id){
+  const r=liveRowCache.get(id);
+  if(!r){toast("Record live tidak ditemukan");return}
+  const payload=r.payload&&typeof r.payload==="object"?r.payload:{};
+  const fields=Object.entries(payload);
+  let html='<p class="form-context">Perubahan akan disimpan ke <b>demo_operational_records</b> pada Supabase untuk user yang memiliki role dan scope yang sesuai.</p><div class="context-form">';
+  html+='<label>Judul Record<small>title</small><input id="live_title" value="'+esc(r.title||"")+'"></label>';
+  html+='<label>Status<small>workflow status</small><select id="live_status">'+["DRAFT","SUBMITTED","RT_VERIFIED","RW_REVIEW","VILLAGE_REVIEW","VILLAGE_VALIDATED","AUTHORIZED","CORRECTION_REQUIRED","REJECTED","APPROVED","ACTIVE","MONITORING","SIGNED","TTE_REQUESTED"].map(x=>'<option '+(x===r.status?"selected":"")+'>'+x+'</option>').join("")+'</select></label>';
+  html+='<label>Prioritas<small>priority</small><input id="live_priority" value="'+esc(r.priority||"")+'"></label>';
+  fields.forEach(([k,v],i)=>{const idf="live_payload_"+i;html+='<label>'+esc(k)+'<small>payload</small><textarea id="'+idf+'">'+esc(typeof v==="object"?JSON.stringify(v):String(v??""))+'</textarea></label>'});
+  html+='</div><div class="form-actions"><button class="btn" onclick="closeModal()">Batal</button><button class="btn primary" onclick="saveLiveUpdate('+JSON.stringify(id)+')">Simpan ke Database</button></div>';
+  modal("Update · "+(r.title||r.id),html,true);
+}
+async function saveLiveUpdate(id){
+  if(!sb){toast("Supabase belum tersambung");return}
+  const r=liveRowCache.get(id);if(!r){toast("Record live tidak ditemukan");return}
+  const payload=r.payload&&typeof r.payload==="object"?{...r.payload}:{};
+  Object.keys(payload).forEach((k,i)=>{const el=document.getElementById("live_payload_"+i);if(el){const raw=el.value;try{payload[k]=JSON.parse(raw)}catch{payload[k]=raw}}});
+  const patch={title:document.getElementById("live_title")?.value||r.title,status:document.getElementById("live_status")?.value||r.status,priority:document.getElementById("live_priority")?.value||null,payload,updated_at:new Date().toISOString()};
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user){toast("Login diperlukan untuk menyimpan perubahan ke database");return}
+  const resp=await sb.from("demo_operational_records").update(patch).eq("id",id).select("id,title,status,priority,classification,payload,updated_at").single();
+  if(resp.error){toast("Update gagal: "+resp.error.message);return}
+  liveRowCache.set(id,{...r,...resp.data});closeModal();await refreshLiveWorkspace();toast("Data berhasil diupdate di Supabase");
 }
 function updateLiveKpis(items){
   const box=document.querySelector(".module-kpis");if(!box)return;
@@ -291,7 +331,7 @@ function updateLiveKpis(items){
 }
 function renderLiveRows(rows){
   const tb=document.querySelector(".workspace-table tbody");if(!tb)return;
-  tb.innerHTML=rows.map((r,i)=>'<tr><td><input class="row-check" type="checkbox"></td><td><b>'+esc(r.id||("DEMO-"+i))+'</b></td><td>'+esc(r.title||r.payload?.name||"Demo record")+'</td><td>Desa Pilot</td><td>'+status(r.status||"DEMO")+'</td><td>'+esc(r.priority||"NORMAL")+'</td><td><button class="row-action" onclick="toast(&quot;Demo record: live Supabase&quot;)">View</button></td></tr>').join("");
+  tb.innerHTML=rows.map((r,i)=>'<tr><td><input class="row-check" type="checkbox" '+(state.selected.has(r.id)?"checked":"")+' onchange="toggleRow('+JSON.stringify(r.id)+',this.checked)"></td><td><b>'+esc(r.id||("DEMO-"+i))+'</b></td><td><button class="row-link" onclick="openLiveRecord('+JSON.stringify(r.id)+')">'+esc(r.title||r.payload?.name||"Demo record")+'</button></td><td>Desa Pilot</td><td>'+status(r.status||"DEMO")+'</td><td>'+esc(r.priority||"NORMAL")+'</td><td><button class="row-action" onclick="openLiveRecord('+JSON.stringify(r.id)+')">View</button> <button class="row-action" onclick="openLiveUpdate('+JSON.stringify(r.id)+')">Update</button></td></tr>').join("");
   const foot=document.querySelector(".table-foot span");if(foot)foot.textContent=rows.length+" live records";
 }
 
