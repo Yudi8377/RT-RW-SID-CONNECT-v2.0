@@ -28,6 +28,7 @@ const active=()=>{const t=trial();return!!(t&&Date.now()<t.expiresAt)};
 const current=async()=>sb?(await sb.auth.getUser()).data.user||null:null;
 const key=()=>state.view+":"+state.sub;
 const subTitle=()=>modules[state.view]?.[2].find(x=>x[0]===state.sub)?.[1]||"Workspace";
+const contextDescription=()=>{const d={rt:"Workspace operasional RT untuk pencatatan, verifikasi, pelayanan, kegiatan, dan kontribusi data desa.",warga:"Portal layanan dan data komunitas untuk warga.",rw:"Workspace koordinasi, review, dan konsolidasi antar-RT.",desa:"Workspace validasi, pelayanan, pembangunan, dan tata kelola desa.",smart:"Workspace intelligence untuk indikator dan pemantauan Smart Village.",kegiatan:"Workspace kegiatan, musyawarah, presensi, arisan, dan kas komunitas.",layanan:"Workspace pelayanan, permohonan, pengaduan, tracking, dan SLA.",dokumen:"Workspace dokumen, approval, TTE, verifikasi, dan arsip."};return d[state.view]||("Workspace operasional "+(modules[state.view]?.[0]||"platform")+" · "+subTitle()+".");};
 const status=t=>'<span class="status '+String(t).toLowerCase().replaceAll("_","-")+'">'+esc(String(t).replaceAll("_"," "))+"</span>";
 function startTrial(){const n=Date.now();localStorage.setItem(KEY,JSON.stringify({startedAt:n,expiresAt:n+DAYS*86400000,mode:"anonymous_trial"}));render()}
 function closeModal(e){if(!e||e.target===e.currentTarget||!e.target.closest?.(".modal-card"))document.getElementById("modal")?.remove()}
