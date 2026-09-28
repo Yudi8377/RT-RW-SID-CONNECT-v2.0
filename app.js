@@ -300,7 +300,8 @@ function liveFieldRows(record){
 function openLiveRecord(id){
   const r=liveRowCache.get(id);
   if(!r){toast("Record live tidak ditemukan");return}
-  const html='<div class="detail-grid"><div><small>ID RECORD</small><b>'+esc(r.id)+'</b></div><div><small>STATUS</small><b>'+esc(r.status||"-")+'</b></div><div><small>MODULE</small><b>'+esc(r.module_code||"-")+'</b></div><div><small>SUBMENU</small><b>'+esc(r.submenu_code||"-")+'</b></div><div><small>CLASSIFICATION</small><b>'+esc(r.classification||"-")+'</b></div><div><small>PRIORITY</small><b>'+esc(r.priority||"-")+'</b></div></div><h4 style="margin:20px 0 8px">Data Record</h4><div class="table-wrap"><table><tbody>'+liveFieldRows(r)+'</tbody></table></div><div class="form-actions"><button class="btn" onclick="closeModal()">Tutup</button><button class="btn primary" onclick="openLiveUpdate(undefined)">✎ Update</button></div>';
+  const safeId=JSON.stringify(r.id);
+  const html='<div class="detail-grid"><div><small>ID RECORD</small><b>'+esc(r.id)+'</b></div><div><small>STATUS</small><b>'+esc(r.status||"-")+'</b></div><div><small>MODULE</small><b>'+esc(r.module_code||"-")+'</b></div><div><small>SUBMENU</small><b>'+esc(r.submenu_code||"-")+'</b></div><div><small>CLASSIFICATION</small><b>'+esc(r.classification||"-")+'</b></div><div><small>PRIORITY</small><b>'+esc(r.priority||"-")+'</b></div></div><h4 style="margin:20px 0 8px">Data Record</h4><div class="table-wrap"><table><tbody>'+liveFieldRows(r)+'</tbody></table></div><div class="form-actions"><button class="btn" onclick="closeModal()">Tutup</button><button class="btn primary" onclick="openLiveUpdate('+safeId+')">✎ Update</button></div>';
   modal("Detail · "+(r.title||r.id),html,true);
 }
 function openLiveUpdate(id){
@@ -321,12 +322,16 @@ async function saveLiveUpdate(id){
   const r=liveRowCache.get(id);if(!r){toast("Record live tidak ditemukan");return}
   const payload=r.payload&&typeof r.payload==="object"?{...r.payload}:{};
   Object.keys(payload).forEach((k,i)=>{const el=document.getElementById("live_payload_"+i);if(el){const raw=el.value;try{payload[k]=JSON.parse(raw)}catch{payload[k]=raw}}});
-  const patch={title:document.getElementById("live_title")?.value||r.title,status:document.getElementById("live_status")?.value||r.status,priority:document.getElementById("live_priority")?.value||null,payload,updated_at:new Date().toISOString()};
+  const patch={title:document.getElementById("live_title")?.value?.trim()||r.title,status:document.getElementById("live_status")?.value||r.status,priority:document.getElementById("live_priority")?.value?.trim()||null,payload,updated_at:new Date().toISOString()};
   const {data:{user}}=await sb.auth.getUser();
-  if(!user){toast("Login diperlukan untuk menyimpan perubahan ke database");return}
-  const resp=await sb.from("demo_operational_records").update(patch).eq("id",id).select("id,title,status,priority,classification,payload,updated_at").single();
+  if(!user){toast("Silakan Sign In untuk menyimpan perubahan ke database");return}
+  const resp=await sb.from("demo_operational_records").update(patch).eq("id",id).select("id,territory_id,module_code,submenu_code,record_type,title,status,priority,classification,payload,created_at,updated_at").single();
   if(resp.error){toast("Update gagal: "+resp.error.message);return}
-  liveRowCache.set(id,{...r,...resp.data});closeModal();await refreshLiveWorkspace();toast("Data berhasil diupdate di Supabase");
+  liveRowCache.set(id,{...r,...resp.data});
+  state.selected.delete(id);
+  closeModal();
+  await refreshLiveWorkspace();
+  toast("✓ Data berhasil diupdate di Supabase");
 }
 function updateLiveKpis(items){
   const box=document.querySelector(".module-kpis");if(!box)return;
