@@ -37,3 +37,6 @@ Hatchable v13 is frozen as a reference only. Do not delete its project or data u
 
 Auth → real CRUD → progressive verification → Admin Center → Document Engine → GPFFE exchange → GIS → Smart Village → testing → pilot.
 
+
+
+Deployment trigger verified: main branch is configured for GitHub Pages Actions.
