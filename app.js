@@ -195,7 +195,8 @@ const contextOverrides={
 "jolie:inventory":[["Nama Produk/Barang","text","Nama produk/barang"],["SKU","text","SKU/kode barang"],["Kategori","text","Kategori"],["Jumlah Stok","number","Stok"],["Satuan","text","Satuan"],["Reorder Level","number","Batas reorder"],["Status","select","ACTIVE|LOW_STOCK|OUT_OF_STOCK"]],
 "desa:validation":[["Dataset","text","Dataset yang divalidasi"],["Record/Batch","text","Identitas record/batch"],["Temuan","textarea","Temuan validasi"],["Keputusan","select","VALIDATED|CORRECTION_REQUIRED|REJECTED"],["Catatan","textarea","Catatan validator"]],
 "sid:validation":[["Dataset","text","Dataset untuk pre-sync validation"],["Mapping","text","Mapping field"],["Issue","textarea","Temuan validasi"],["Keputusan","select","READY|BLOCKED|CORRECTION_REQUIRED"],["Catatan","textarea","Catatan validasi"]],
-"admin:templates":[["Template","text","Nama template"],["Document Type","text","Jenis dokumen"],["Version","text","Version"],["Branding/Scope","text","Tenant/Desa/RT/RW"],["Status","select","Draft|Active|Archived"]]
+"admin:templates":[["Template","text","Nama template"],["Document Type","text","Jenis dokumen"],["Version","text","Version"],["Branding/Scope","text","Tenant/Desa/RT/RW"],["Status","select","Draft|Active|Archived"]],
+"rt:inventory":[["Nama Barang/Aset","text","Nama inventaris"],["Kode Inventaris","text","Kode inventaris"],["Kategori","select","Dokumen|Peralatan|Elektronik|Perlengkapan|Lainnya"],["Jumlah","number","Jumlah"],["Kondisi","select","Baik|Perlu Perbaikan|Rusak"],["Lokasi Simpan","text","Lokasi"],["Penanggung Jawab","text","Nama"],["Tanggal Perolehan","date","Tanggal"],["Catatan","textarea","Keterangan"]]
 };
 function contextDescription(){
  const descriptions={
