@@ -158,7 +158,10 @@ templates:[["Template","text","Nama template"],["Document Type","text","Jenis do
 security:[["Control","text","Security control"],["Owner","text","Owner"],["Status","select","Pass|Review|Fail"],["Evidence","textarea","Evidence"]],
 audit:[["Action","text","Action"],["Actor","text","Actor"],["Entity","text","Entity"],["Reason","textarea","Reason"]],
 backup:[["Backup","text","Backup ID"],["Scope","text","Scope"],["Created","datetime-local",""],["Status","select","Success|Failed|Testing"]],
-health:[["Service","text","Service"],["Latency","number","ms"],["Status","select","Healthy|Warning|Down"],["Last Check","datetime-local",""]]
+health:[["Service","text","Service"],["Latency","number","ms"],["Status","select","Healthy|Warning|Down"],["Last Check","datetime-local",""]],
+"social-events":[["Nama Kegiatan","text","Nama kegiatan sosial"],["Tanggal","date","Tanggal"],["Lokasi","text","Lokasi"],["Sasaran","text","Warga/kelompok sasaran"],["Keterangan","textarea","Keterangan kegiatan"],["Status","select","DRAFT|SUBMITTED|SELESAI"]],
+"other-events":[["Jenis Kegiatan","text","Jenis kegiatan"],["Nama Kegiatan","text","Nama kegiatan"],["Tanggal","date","Tanggal"],["Lokasi","text","Lokasi"],["Penanggung Jawab","text","Penanggung jawab"],["Keterangan","textarea","Keterangan"],["Status","select","DRAFT|SUBMITTED|SELESAI"]],
+"economic-analysis":[["Periode","month","Periode analisis"],["Wilayah","text","RT/RW/Desa"],["Dimensi","select","Pendapatan|Pekerjaan|Usaha|Pendidikan|Perlindungan Sosial|Kerentanan"],["Indikator","text","Indikator yang dianalisis"],["Catatan Analisis","textarea","Temuan/hipotesis analisis"],["Status","select","DRAFT|REVIEW|VALIDATED|AUTHORIZED"]]
 };
 const defaults={registry:["REC-001","Siti Rahma","Perempuan","081234567890","Tetap","RT 001","RW 001"],household:["KK-001","Budi Santoso","Jl. Desa No. 1","001/001","Aktif"]};
 
@@ -186,6 +189,27 @@ const contextOverrides={
 "rt:security":[["Jenis Kejadian","select","Poskamling|Gangguan|Darurat|Lainnya"],["Tanggal","date",""],["Lokasi","text","Lokasi"],["Laporan","textarea","Uraian"]],
 "admin:security":[["Control","text","Security control"],["Owner","text","Owner"],["Status","select","Pass|Review|Fail"],["Evidence","textarea","Evidence"]]
 };
+function contextDescription(){
+ const descriptions={
+  dashboard:"Command Center untuk memantau operasi, approval, task, dan audit platform.",
+  warga:"Workspace data warga dan layanan komunitas pada scope yang sedang aktif.",
+  rt:"Workspace operasional RT untuk pencatatan, verifikasi, pelayanan, kegiatan, dan kontribusi data desa.",
+  rw:"Workspace RW untuk konsolidasi, review, koordinasi, keamanan, dan indikator antar-RT.",
+  kegiatan:"Workspace kegiatan komunitas, presensi, notulen, arisan, kas, dan notifikasi.",
+  layanan:"Workspace pelayanan dan pengaduan dengan status, SLA, tindak lanjut, dan eskalasi.",
+  desa:"Workspace Desa untuk validasi, pelayanan, pembangunan, aset, regulasi, dan transparansi.",
+  dokumen:"Workspace dokumen untuk pembuatan, approval, TTE, verifikasi QR, arsip, dan retensi.",
+  dataquality:"Workspace kualitas data untuk scoring, queue, duplicate, consistency, dan correction.",
+  smart:"Workspace Smart Village untuk indikator, intelligence, evidence, dan insight.",
+  jolie:"Workspace Jolie Business OS untuk CRM, customer, supplier, inventory, sales, purchasing, accounting, marketplace, dan BI.",
+  gis:"Workspace GIS untuk peta, layer, aset, geofence, analisis spasial, dan privacy masking.",
+  whatsapp:"Workspace WhatsApp Gateway untuk referensi percakapan, template, notification queue, delivery, consent, dan broadcast governance.",
+  sid:"Workspace SID Bridge untuk mapping, synchronization, validation, conflict resolution, dan integration logs.",
+  gpffe:"Workspace GPFFE Data Exchange untuk catalog, access request, approved export, audit, dan data contract.",
+  admin:"Workspace Admin & Governance untuk tenant, wilayah, user, role, policy, template, security, audit, backup, dan health."
+ };
+ return descriptions[state.view]||"Workspace operasional terkontrol dengan role, scope, purpose, classification, dan audit trail.";
+}
 function schemaFor(){return contextOverrides[key()]||((state.view==="rt"&&rtAdditionalSchemas[state.sub])?rtAdditionalSchemas[state.sub]:schemas[state.sub])||[["Nama","text","Nama/objek"],["Scope","text","RT/RW/Desa"],["Status","select","Draft|Submitted|Review|Approved|Rejected"],["Catatan","textarea","Catatan"]]}
 function seedRows(){const k=key();if(state.rows[k])return;const s=schemaFor();const a=defaults[state.sub]||s.map((x,i)=>i===0?subTitle()+" · REC-001":i===s.length-2?"Desa Demo":"");state.rows[k]=[{id:"REC-"+String(Math.floor(Math.random()*900)+100),values:a,status:"VERIFIED",updated:"Baru"} ,{id:"REC-"+String(Math.floor(Math.random()*900)+100),values:s.map((x,i)=>i===0?subTitle()+" · REC-002":i===s.length-2?"RT 001":""),status:"PENDING",updated:"Review"}]}
 function openForm(mode="insert",id=null){
