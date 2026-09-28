@@ -310,11 +310,20 @@ function openLiveUpdate(id){
   if(!r){toast("Record live tidak ditemukan");return}
   const payload=r.payload&&typeof r.payload==="object"?r.payload:{};
   const fields=Object.entries(payload);
-  let html='<p class="form-context">Perubahan akan disimpan ke <b>demo_operational_records</b> pada Supabase untuk user yang memiliki role dan scope yang sesuai.</p><div class="context-form">';
+  const ro=(label,key,value)=>'<div class="detail-field"><small>'+label+'</small><b>'+esc(value??"-")+'</b><span>'+key+'</span></div>';
+  let html='<p class="form-context">Form detail record terpilih. Perubahan yang disimpan akan masuk ke <b>demo_operational_records</b> pada Supabase sesuai role dan scope pengguna.</p>';
+  html+='<div class="detail-grid update-meta">';
+  html+=ro("ID RECORD","id",r.id);
+  html+=ro("MODULE","module_code",r.module_code);
+  html+=ro("SUBMENU","submenu_code",r.submenu_code);
+  html+=ro("RECORD TYPE","record_type",r.record_type);
+  html+=ro("CLASSIFICATION","classification",r.classification);
+  html+=ro("CREATED","created_at",r.created_at);
+  html+='</div><div class="context-form">';
   html+='<label>Judul Record<small>title</small><input id="live_title" value="'+esc(r.title||"")+'"></label>';
   html+='<label>Status<small>workflow status</small><select id="live_status">'+["DRAFT","SUBMITTED","RT_VERIFIED","RW_REVIEW","VILLAGE_REVIEW","VILLAGE_VALIDATED","AUTHORIZED","CORRECTION_REQUIRED","REJECTED","APPROVED","ACTIVE","MONITORING","SIGNED","TTE_REQUESTED"].map(x=>'<option '+(x===r.status?"selected":"")+'>'+x+'</option>').join("")+'</select></label>';
   html+='<label>Prioritas<small>priority</small><input id="live_priority" value="'+esc(r.priority||"")+'"></label>';
-  fields.forEach(([k,v],i)=>{const idf="live_payload_"+i;html+='<label>'+esc(k)+'<small>payload</small><textarea id="'+idf+'">'+esc(typeof v==="object"?JSON.stringify(v):String(v??""))+'</textarea></label>';});
+  fields.forEach(([k,v],i)=>{const idf="live_payload_"+i;html+='<label>'+esc(k)+'<small>payload · dapat diperbaiki</small><textarea id="'+idf+'">'+esc(typeof v==="object"?JSON.stringify(v):String(v??""))+'</textarea></label>';});
   html+='</div><div class="form-actions"><button type="button" class="btn" data-live-modal-close>Batal</button><button type="button" class="btn primary" data-live-modal-save>Simpan ke Database</button></div>';
   modal("Update · "+(r.title||r.id),html,true);
   document.querySelector("[data-live-modal-close]")?.addEventListener("click",closeModal);
