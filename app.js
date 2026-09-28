@@ -199,7 +199,6 @@ const contextOverrides={
 "admin:templates":[["Template","text","Nama template"],["Document Type","text","Jenis dokumen"],["Version","text","Version"],["Branding/Scope","text","Tenant/Desa/RT/RW"],["Status","select","Draft|Active|Archived"]],
 "rt:inventory":[["Nama Barang/Aset","text","Nama inventaris"],["Kode Inventaris","text","Kode inventaris"],["Kategori","select","Dokumen|Peralatan|Elektronik|Perlengkapan|Lainnya"],["Jumlah","number","Jumlah"],["Kondisi","select","Baik|Perlu Perbaikan|Rusak"],["Lokasi Simpan","text","Lokasi"],["Penanggung Jawab","text","Nama"],["Tanggal Perolehan","date","Tanggal"],["Catatan","textarea","Keterangan"]]
 };
-function subTitle(){const m=modules[state.view];return (m&&m[2]||[]).find(x=>x[0]===state.sub)?.[1]||"Workspace";}
 function contextDescription(){
  const descriptions={
   dashboard:"Command Center untuk memantau operasi, approval, task, dan audit platform.",
