@@ -187,7 +187,15 @@ const contextOverrides={
 "gpffe:audit":[["Event","text","Audit event"],["Actor","text","Actor"],["Entity","text","Entity"],["Reason","textarea","Reason"]],
 "admin:audit":[["Action","text","Action"],["Actor","text","Actor"],["Entity","text","Entity"],["Reason","textarea","Reason"]],
 "rt:security":[["Jenis Kejadian","select","Poskamling|Gangguan|Darurat|Lainnya"],["Tanggal","date",""],["Lokasi","text","Lokasi"],["Laporan","textarea","Uraian"]],
-"admin:security":[["Control","text","Security control"],["Owner","text","Owner"],["Status","select","Pass|Review|Fail"],["Evidence","textarea","Evidence"]]
+"admin:security":[["Control","text","Security control"],["Owner","text","Owner"],["Status","select","Pass|Review|Fail"],["Evidence","textarea","Evidence"]],
+"warga:services":[["Jenis Layanan","select","Surat Pengantar|Perubahan Data|Domisili|Keterangan Usaha|Pengaduan"],["Pemohon","text","Nama pemohon"],["Keperluan","textarea","Uraian keperluan"],["Prioritas","select","Normal|Mendesak"]],
+"desa:services":[["Jenis Pelayanan Desa","select","Administrasi Desa|Pelayanan Sosial|Pembangunan|Informasi Desa|Lainnya"],["Pemohon","text","Nama pemohon"],["Keperluan","textarea","Uraian pelayanan"],["Status","select","SUBMITTED|REVIEW|APPROVED|REJECTED"]],
+"smart:economy":[["Program/Indikator","text","Indikator Smart Economy"],["Periode","month","Periode"],["UMKM/Aktivitas","number","Jumlah aktivitas/UMKM"],["Transaksi/Output","number","Output agregat"],["Insight","textarea","Temuan agregat"],["Status","select","DRAFT|REVIEW|VALIDATED|AUTHORIZED"]],
+"smart:environment":[["Indikator Lingkungan","text","Indikator lingkungan"],["Periode","month","Periode"],["Issue Terverifikasi","number","Jumlah issue terverifikasi"],["Kondisi","select","Baik|Perlu Perhatian|Kritis"],["Insight","textarea","Temuan agregat"],["Status","select","DRAFT|REVIEW|VALIDATED|AUTHORIZED"]],
+"jolie:inventory":[["Nama Produk/Barang","text","Nama produk/barang"],["SKU","text","SKU/kode barang"],["Kategori","text","Kategori"],["Jumlah Stok","number","Stok"],["Satuan","text","Satuan"],["Reorder Level","number","Batas reorder"],["Status","select","ACTIVE|LOW_STOCK|OUT_OF_STOCK"]],
+"desa:validation":[["Dataset","text","Dataset yang divalidasi"],["Record/Batch","text","Identitas record/batch"],["Temuan","textarea","Temuan validasi"],["Keputusan","select","VALIDATED|CORRECTION_REQUIRED|REJECTED"],["Catatan","textarea","Catatan validator"]],
+"sid:validation":[["Dataset","text","Dataset untuk pre-sync validation"],["Mapping","text","Mapping field"],["Issue","textarea","Temuan validasi"],["Keputusan","select","READY|BLOCKED|CORRECTION_REQUIRED"],["Catatan","textarea","Catatan validasi"]],
+"admin:templates":[["Template","text","Nama template"],["Document Type","text","Jenis dokumen"],["Version","text","Version"],["Branding/Scope","text","Tenant/Desa/RT/RW"],["Status","select","Draft|Active|Archived"]]
 };
 function contextDescription(){
  const descriptions={
