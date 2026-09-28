@@ -248,6 +248,73 @@ async function rwReviewLoad(){const host=document.getElementById("rw-review-item
 async function rwAction(entity_type,entity_id,territory_id,action){const reason=action==="RW_CORRECT"?prompt("Alasan koreksi RW:"):null;if(action==="RW_CORRECT"&&!reason)return;try{const resp=await sb.functions.invoke("workflow-transition",{body:{entity_type,entity_id,territory_id,action,reason}});if(resp.error||!resp.data?.ok)throw Error(resp.data?.error||resp.error?.message||"Workflow gagal");toast(action==="RW_APPROVE"?"Data diteruskan ke Desa":"Data dikembalikan untuk koreksi");rwReviewLoad();}catch(e){toast("Workflow gagal: "+e.message);}}
 function rwReviewWorkspace(){setTimeout(rwReviewLoad,50);return '<div class="module-head"><div><div class="eyebrow dark">COMMUNITY / RW REVIEW</div><h2>RW Review Center</h2><p>Queue verifikasi dari RT berdasarkan scope wilayah dan audit trail.</p></div><button class="primary compact" onclick="rwReviewLoad()">↻ Refresh</button></div><div class="module-kpis"><div><small>ROLE</small><strong>RW REVIEWER</strong><span>Scoped authorization</span></div><div><small>FLOW</small><strong>RT → RW → DESA</strong><span>Progressive verification</span></div><div><small>AUDIT</small><strong>ENABLED</strong><span>Every transition logged</span></div></div><section class="panel"><div class="panel-head"><div><small>APPROVAL QUEUE</small><h3>Data RT menunggu review</h3></div><span class="status-chip">LIVE</span></div><div id="rw-review-items"><div class="module-note">Memuat...</div></div></section>';}
 function commandCenterWorkspace(){const cfg={overview:["Ringkasan Operasional","Pantau status warga, layanan, verifikasi dan aktivitas platform dalam satu ringkasan."],approvals:["Approval Center","Daftar keputusan yang membutuhkan otorisasi manusia sebelum data diteruskan atau dipublikasikan."],tasks:["Task & Follow-up","Kelola pekerjaan tertunda, koreksi data, tindak lanjut layanan dan eskalasi."],activity:["Audit Activity","Jejak aktivitas operasional berdasarkan aktor, waktu, modul, scope dan tindakan."]}[state.sub]||["Command Center","Workspace operasional"];const cards={overview:[["DATA WARGA","1,284","Data terstruktur"],["VERIFIKASI","17","Menunggu tindakan"],["LAYANAN","48","Layanan aktif"],["AKTIVITAS","24","Aktivitas hari ini"]],approvals:[["RT → RW","0","Menunggu review"],["RW → DESA","0","Menunggu validasi"],["DOKUMEN","0","Menunggu approval"],["SENSITIVE","0","Menunggu otorisasi"]],tasks:[["OPEN","0","Task terbuka"],["DUE TODAY","0","Jatuh tempo hari ini"],["CORRECTION","0","Perlu koreksi"],["ESCALATED","0","Perlu eskalasi"]],activity:[["LOGIN","0","Aktivitas autentikasi"],["DATA","0","Perubahan data"],["WORKFLOW","0","Transisi workflow"],["AUDIT","0","Event tercatat"]]}[state.sub]||[];return '<div class="module-head"><div><div class="eyebrow dark">COMMAND CENTER / '+esc(state.sub.toUpperCase())+'</div><h2>'+esc(cfg[0])+'</h2><p>'+esc(cfg[1])+'</p></div><button class="primary compact" onclick="render()">↻ Refresh</button></div><div class="module-kpis">'+cards.map(x=>'<div><small>'+esc(x[0])+'</small><strong>'+esc(x[1])+'</strong><span>'+esc(x[2])+'</span></div>').join("")+'</div><section class="panel"><div class="panel-head"><div><small>OPERATIONAL WORKSPACE</small><h3>'+esc(cfg[0])+'</h3></div><span class="status-chip">READY</span></div><div class="command-actions"><button class="btn primary" onclick="openForm()">＋ Tambah / Catat</button><button class="btn" onclick="exportData()">⇩ Export</button><button class="btn" onclick="printWorkspace()">⎙ Print</button></div><div class="module-note"><b>Governance aktif.</b><span>Setiap tindakan mengikuti scope, role, klasifikasi data dan audit trail. Angka 0 pada pilot berarti belum ada transaksi pada scope ini, bukan error.</span></div></section>';}
+
+function liveDemoScope(){return "f06b8420-54f5-4ee4-b487-bacc7b374dd2"}
+async function liveCount(table,filters={}){
+  if(!sb)return 0;
+  let q=sb.from(table).select("id",{count:"exact",head:true});
+  for(const [k,v] of Object.entries(filters)){if(v!==undefined&&v!==null)q=q.eq(k,v)}
+  const r=await q; return r.error?0:(r.count||0);
+}
+async function refreshLiveWorkspace(){
+  if(!sb)return;
+  const host=document.querySelector(".workspace-table"); if(!host)return;
+  const scope=liveDemoScope(), module=state.view.toUpperCase(), sub=state.sub;
+  try{
+    let rows=[];
+    if(state.view==="warga"){
+      const [portal,people,households]=await Promise.all([
+        liveCount("demo_portal_items",{territory_id:scope}),
+        liveCount("persons",{status:"ACTIVE"}),
+        liveCount("households",{status:"ACTIVE"})
+      ]);
+      updateLiveKpis([["PORTAL ITEMS",portal,"Data demo portal"],["WARGA",people,"Canonical person records"],["KK",households,"Canonical household records"]]);
+      rows=await demoRows("WARGA_PORTAL",sub);
+    }else if(state.view==="rt"){
+      const [demo,people,households]=await Promise.all([
+        liveCount("demo_operational_records",{territory_id:scope,module_code:"RT_DIGITAL",submenu_code:sub}),
+        liveCount("persons"),liveCount("households")
+      ]);
+      updateLiveKpis([["SUBMENU",demo,"Demo records"],["WARGA",people,"Canonical data"],["KK",households,"Canonical data"]]);
+      rows=await demoRows("RT_DIGITAL",sub);
+    }else if(state.view==="rw"){
+      rows=await demoRows("RW_DIGITAL",sub);
+      updateLiveKpis([["RW RECORDS",rows.length,"Demo operational records"],["STATUS",rows.filter(x=>x.status==="APPROVED").length,"Approved"],["PENDING",rows.filter(x=>x.status==="SUBMITTED").length,"Needs review"]]);
+    }else if(state.view==="desa"){
+      rows=await demoRows("DESA_DIGITAL",sub);
+      updateLiveKpis([["DESA RECORDS",rows.length,"Demo operational records"],["VALIDATED",rows.filter(x=>x.status==="VILLAGE_VALIDATED").length,"Validated"],["SUBMITTED",rows.filter(x=>x.status==="SUBMITTED").length,"Needs action"]]);
+    }else if(state.view==="smart"){
+      rows=await demoRows("SMART_VILLAGE",sub);
+      updateLiveKpis([["INDICATORS",rows.length,"Demo indicator records"],["ACTIVE",rows.filter(x=>x.status==="ACTIVE").length,"Active"],["MONITORING",rows.filter(x=>x.status==="MONITORING").length,"Monitoring"]]);
+    }else if(state.view==="dokumen"){
+      rows=await demoRows("DOC_TTE",sub);
+      updateLiveKpis([["DOCUMENTS",rows.length,"Demo document workflow"],["SIGNED",rows.filter(x=>x.status==="SIGNED").length,"Signed"],["PENDING",rows.filter(x=>x.status==="TTE_REQUESTED").length,"Awaiting TTE"]]);
+    }else if(state.view==="kegiatan"){
+      const ev=await liveCount("community_events",{territory_id:scope});
+      updateLiveKpis([["KEGIATAN",ev,"Community events"],["ARISAN",await liveCount("arisan_groups",{territory_id:scope}),"Active/demo groups"],["KAS",await liveCount("rt_rw_cash_transactions",{reference:"DEMO-SEED"}),"Demo cash transactions"]]);
+    }else if(state.view==="layanan"){
+      rows=await demoRows("LAYANAN",sub);
+      updateLiveKpis([["LAYANAN",rows.length,"Demo service records"],["SUBMITTED",rows.filter(x=>x.status==="SUBMITTED").length,"Submitted"],["RESOLVED",rows.filter(x=>x.status==="RESOLVED").length,"Resolved"]]);
+    }
+    if(rows.length)renderLiveRows(rows);
+  }catch(e){console.warn("live workspace",e)}
+}
+async function demoRows(module_code,submenu_code){
+  if(!sb)return[];
+  let q=sb.from("demo_operational_records").select("id,title,status,priority,classification,payload,created_at").eq("territory_id",liveDemoScope()).eq("module_code",module_code);
+  if(submenu_code)q=q.eq("submenu_code",submenu_code);
+  const r=await q.order("created_at",{ascending:false}).limit(50); return r.error?[]:(r.data||[]);
+}
+function updateLiveKpis(items){
+  const box=document.querySelector(".module-kpis");if(!box)return;
+  box.innerHTML=items.map(x=>'<div><small>'+esc(x[0])+'</small><strong>'+esc(x[1])+'</strong><span>'+esc(x[2])+'</span></div>').join("");
+}
+function renderLiveRows(rows){
+  const tb=document.querySelector(".workspace-table tbody");if(!tb)return;
+  tb.innerHTML=rows.map((r,i)=>'<tr><td><input class="row-check" type="checkbox"></td><td><b>'+esc(r.id||("DEMO-"+i))+'</b></td><td>'+esc(r.title||r.payload?.name||"Demo record")+'</td><td>Desa Pilot</td><td>'+status(r.status||"DEMO")+'</td><td>'+esc(r.priority||"NORMAL")+'</td><td><button class="row-action" onclick="toast("Demo record: live Supabase")">View</button></td></tr>').join("");
+  const foot=document.querySelector(".table-foot span");if(foot)foot.textContent=rows.length+" live records";
+}
+
 function workspace(){if(state.view==='rw'&&state.sub==='review')return rwReviewWorkspace();if(state.view==='smart'&&state.sub==='command')return intelligenceDashboard();
  seedRows();const m=modules[state.view],s=state.rows[key()]||[],title=subTitle();
  const subHtml=m[2].map(x=>'<button class="'+(state.sub===x[0]?"active":"")+'" onclick="go('+JSON.stringify(state.view)+','+JSON.stringify(x[0])+')">'+esc(x[1])+'</button>').join("");
