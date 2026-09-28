@@ -314,7 +314,7 @@ function openLiveUpdate(id){
   html+='<label>Judul Record<small>title</small><input id="live_title" value="'+esc(r.title||"")+'"></label>';
   html+='<label>Status<small>workflow status</small><select id="live_status">'+["DRAFT","SUBMITTED","RT_VERIFIED","RW_REVIEW","VILLAGE_REVIEW","VILLAGE_VALIDATED","AUTHORIZED","CORRECTION_REQUIRED","REJECTED","APPROVED","ACTIVE","MONITORING","SIGNED","TTE_REQUESTED"].map(x=>'<option '+(x===r.status?"selected":"")+'>'+x+'</option>').join("")+'</select></label>';
   html+='<label>Prioritas<small>priority</small><input id="live_priority" value="'+esc(r.priority||"")+'"></label>';
-  fields.forEach(([k,v],i)=>{const idf="live_payload_"+i;html+='<label>'+esc(k)+'<small>payload</small><textarea id="'+idf+'">'+esc(typeof v==="object"?JSON.stringify(v):String(v??""))+'</textarea></label>});
+  fields.forEach(([k,v],i)=>{const idf="live_payload_"+i;html+='<label>'+esc(k)+'<small>payload</small><textarea id="'+idf+'">'+esc(typeof v==="object"?JSON.stringify(v):String(v??""))+'</textarea></label>';});
   html+='</div><div class="form-actions"><button type="button" class="btn" data-live-modal-close>Batal</button><button type="button" class="btn primary" data-live-modal-save>Simpan ke Database</button></div>';
   modal("Update · "+(r.title||r.id),html,true);
   document.querySelector("[data-live-modal-close]")?.addEventListener("click",closeModal);
