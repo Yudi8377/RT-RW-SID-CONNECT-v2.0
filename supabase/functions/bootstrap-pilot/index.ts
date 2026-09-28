@@ -1,0 +1,28 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json",...cors}});
+Deno.serve(async (req: Request) => {
+  if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
+  if(req.method!=="POST") return json({error:"Method not allowed"},405);
+  const authHeader=req.headers.get("Authorization");
+  if(!authHeader) return json({error:"Authorization required"},401);
+  const url=Deno.env.get("SUPABASE_URL")!;
+  const anonKey=Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+  const serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const userClient=createClient(url,anonKey,{global:{headers:{Authorization:authHeader}}});
+  const {data:{user},error:userError}=await userClient.auth.getUser();
+  if(userError||!user) return json({error:"Invalid session"},401);
+  const admin=createClient(url,serviceKey);
+  const {data:existing,error:existingError}=await admin.from("role_assignments").select("id").eq("user_id",user.id).eq("active",true).limit(1);
+  if(existingError) return json({error:existingError.message},500);
+  if(existing?.length) return json({status:"already_assigned"});
+  const {data:role,error:roleError}=await admin.from("roles").select("id").eq("role_code","PILOT_VIEWER").single();
+  const {data:territory,error:territoryError}=await admin.from("territories").select("id").eq("code","PILOT-DESA").single();
+  const {data:org,error:orgError}=await admin.from("organizations").select("id").eq("name","Desa Pilot").single();
+  if(roleError||territoryError||orgError) return json({error:"Pilot seed is incomplete"},500);
+  const {error:insertError}=await admin.from("role_assignments").insert({user_id:user.id,role_id:role.id,scope_territory_id:territory.id,organization_id:org.id,active:true,starts_at:new Date().toISOString()});
+  if(insertError) return json({error:insertError.message},500);
+  await admin.from("audit_logs").insert({actor_user_id:user.id,action:"PILOT_ROLE_BOOTSTRAP",entity_type:"role_assignment",scope_territory_id:territory.id,reason:"First authenticated pilot bootstrap",source:"bootstrap-pilot",authority:"PILOT"});
+  return json({status:"assigned",role:"PILOT_VIEWER",scope:"Desa Pilot"});
+});
