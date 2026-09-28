@@ -134,7 +134,31 @@ backup:[["Backup","text","Backup ID"],["Scope","text","Scope"],["Created","datet
 health:[["Service","text","Service"],["Latency","number","ms"],["Status","select","Healthy|Warning|Down"],["Last Check","datetime-local",""]]
 };
 const defaults={registry:["REC-001","Siti Rahma","Perempuan","081234567890","Tetap","RT 001","RW 001"],household:["KK-001","Budi Santoso","Jl. Desa No. 1","001/001","Aktif"]};
-function schemaFor(){return schemas[state.sub]||[["Nama","text","Nama/objek"],["Scope","text","RT/RW/Desa"],["Status","select","Draft|Submitted|Review|Approved|Rejected"],["Catatan","textarea","Catatan"]]}
+
+const contextOverrides={
+"warga:complaints":[["Pelapor","text","Nama pelapor"],["Kategori","select","Infrastruktur|Sosial|Keamanan|Pelayanan|Lingkungan"],["Uraian","textarea","Isi pengaduan"],["Lokasi","text","Lokasi kejadian"]],
+"rt:verification":[["Record","text","Nomor record"],["Verifier","text","Nama verifikator"],["Keputusan","select","VERIFIED|CORRECTION_REQUIRED|REJECTED"],["Catatan","textarea","Catatan verifikasi"]],
+"rt:security":[["Jenis Kejadian","select","Poskamling|Gangguan|Darurat|Lainnya"],["Tanggal","date",""],["Lokasi","text","Lokasi"],["Laporan","textarea","Uraian"]],
+"rw:security":[["Kejadian","select","Keamanan RW|Gangguan|Darurat|Lainnya"],["Lokasi","text","Lokasi"],["Tanggal","date",""],["Tindak Lanjut","textarea","Tindak lanjut"]],
+"layanan:queue":[["Layanan","text","Jenis layanan"],["Pemohon","text","Nama"],["Prioritas","select","Normal|Mendesak"],["SLA","text","Jam"]],
+"dataquality:queue":[["Issue","text","Masalah kualitas"],["Dataset","text","Dataset"],["Severity","select","Low|Medium|High"],["Action","select","Review|Repair|Ignore"]],
+"layanan:requests":[["Nomor Permohonan","text","Nomor"],["Pemohon","text","Nama"],["Layanan","text","Jenis"],["Status","select","Submitted|Review|Approved|Rejected"]],
+"gpffe:requests":[["Request","text","Nomor request"],["Consumer","text","Consumer system"],["Purpose","text","Purpose"],["Status","select","Pending|Approved|Rejected"]],
+"warga:verification":[["Kode","text","Kode verifikasi"],["Nomor Dokumen","text","Nomor"],["Hasil","select","Valid|Invalid|Revoked"]],
+"rt:letters":[["Jenis Surat","select","Pengantar|Keterangan|Domisili|Usaha"],["Pemohon","text","Nama"],["Keperluan","textarea","Keperluan surat"],["Nomor","text","Nomor surat"]],
+"dokumen:verification":[["Kode QR","text","Kode verifikasi"],["Nomor Dokumen","text","Nomor"],["Hasil","select","Valid|Invalid|Revoked"]],
+"dokumen:inbox":[["Nomor Dokumen","text","Nomor"],["Judul","text","Judul"],["Pengirim","text","Pengirim"],["Status","select","Received|Review|Archived"]],
+"whatsapp:inbox":[["Conversation","text","Referensi percakapan"],["Channel","select","WhatsApp|Internal"],["Scope","text","RT/RW/Desa"],["Status","select","Open|Closed"]],
+"desa:assets":[["Aset","text","Nama aset"],["Kategori","select","Tanah|Bangunan|Jalan|Fasilitas|Lainnya"],["Lokasi","text","Lokasi"],["Kondisi","select","Baik|Perlu Perbaikan|Rusak"]],
+"gis:assets":[["Asset","text","Aset spasial"],["Type","text","Rumah/Fasilitas"],["Latitude","text","Latitude"],["Longitude","text","Longitude"]],
+"dokumen:templates":[["Template","text","Nama template"],["Document Type","text","Jenis dokumen"],["Version","text","Version"],["Status","select","Draft|Active|Archived"]],
+"whatsapp:templates":[["Template","text","Nama template"],["Event","text","Event"],["Content","textarea","Isi pesan"],["Status","select","Draft|Active"]],
+"gpffe:audit":[["Event","text","Audit event"],["Actor","text","Actor"],["Entity","text","Entity"],["Reason","textarea","Reason"]],
+"admin:audit":[["Action","text","Action"],["Actor","text","Actor"],["Entity","text","Entity"],["Reason","textarea","Reason"]],
+"rt:security":[["Jenis Kejadian","select","Poskamling|Gangguan|Darurat|Lainnya"],["Tanggal","date",""],["Lokasi","text","Lokasi"],["Laporan","textarea","Uraian"]],
+"admin:security":[["Control","text","Security control"],["Owner","text","Owner"],["Status","select","Pass|Review|Fail"],["Evidence","textarea","Evidence"]]
+};
+function schemaFor(){return contextOverrides[key()]||schemas[state.sub]||[["Nama","text","Nama/objek"],["Scope","text","RT/RW/Desa"],["Status","select","Draft|Submitted|Review|Approved|Rejected"],["Catatan","textarea","Catatan"]]}
 function seedRows(){const k=key();if(state.rows[k])return;const s=schemaFor();const a=defaults[state.sub]||s.map((x,i)=>i===0?subTitle()+" · REC-001":i===s.length-2?"Desa Demo":"");state.rows[k]=[{id:"REC-"+String(Math.floor(Math.random()*900)+100),values:a,status:"VERIFIED",updated:"Baru"} ,{id:"REC-"+String(Math.floor(Math.random()*900)+100),values:s.map((x,i)=>i===0?subTitle()+" · REC-002":i===s.length-2?"RT 001":""),status:"PENDING",updated:"Review"}]}
 function openForm(mode="insert",id=null){const s=schemaFor(),row=id?state.rows[key()].find(r=>r.id===id):null;const vals=row?.values||[];let html='<p class="form-context">Form '+esc(subTitle())+' — field disusun khusus sesuai konteks submenu ini.</p><div class="context-form">';s.forEach((f,i)=>{const v=vals[i]||"";html+='<label>'+esc(f[0])+'<small>context: '+esc(f[2])+'</small>';if(f[1]==="textarea")html+='<textarea id="f'+i+'" placeholder="'+esc(f[2])+'">'+esc(v)+"</textarea>";else if(f[1]==="select")html+='<select id="f'+i+'">'+f[2].split("|").map(o=>'<option '+(o===v?"selected":"")+'>'+esc(o)+"</option>").join("")+"</select>";else html+='<input id="f'+i+'" type="'+f[1]+'" placeholder="'+esc(f[2])+'" value="'+esc(v)+'">';html+="</label>"});html+='</div><div class="form-actions"><button class="btn" onclick="closeModal()">Batal</button><button class="btn" onclick="saveForm(\''+mode+"','"+(id||"")+'\')\">"+(mode==="update"?"Update":"Insert")+"</button></div>";modal((mode==="update"?"Update ":"Insert ")+subTitle(),html,true)}
 function saveForm(mode,id){const s=schemaFor(),values=s.map((_,i)=>document.getElementById("f"+i)?.value||"");if(!values[0]){toast("Field utama wajib diisi");return}seedRows();if(mode==="update"){const r=state.rows[key()].find(x=>x.id===id);if(r){r.values=values;r.updated="Updated";r.status="PENDING"}}else state.rows[key()].unshift({id:"REC-"+Date.now(),values,status:"DRAFT",updated:"Inserted"});persist();closeModal();state.selected.clear();render();toast(mode==="update"?"Data berhasil diupdate":"Data berhasil diinsert")}
