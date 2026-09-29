@@ -73,28 +73,33 @@ F-1.09 mapping: PASS
 Project: `Yudi8377's Project` (`gzdusguveeeflmlvvmwe`)
 `rt-transaction`: ACTIVE, version 4, verify_jwt=true
 `workflow-transition`: ACTIVE, version 2, verify_jwt=true
-Deployed runtime source: retrieved and reconciled into GitHub branch.
+Deployed runtime source: retrieved and reconciled into GitHub.
 
 ### GitHub source reconciliation
-The deployed Edge Function sources are now stored at:
+The deployed Edge Function sources are stored at:
 - `supabase/functions/rt-transaction/index.ts`
 - `supabase/functions/workflow-transition/index.ts`
 
-Branch:
-`feature/government-form-compliance-20260929`
+### Authenticated test readiness — verified 2026-09-29
+Current database inspection confirms:
+- 2 active role assignments exist.
+- `dwahyudi8377@gmail.com` has an active `PLATFORM_ADMIN` assignment.
+- `panaungan22@gmail.com` has an active `RT_OPERATOR` assignment.
+- Pilot territory `PILOT-DESA` exists.
+- There are currently 0 records in `AUTHORIZED_PROCESSING` carrying `result_form_code=F-1.09`.
 
 ### Actual authenticated E2E
-Status: BLOCKED — test identity/role assignment is not yet present.
+Status: **BLOCKED AT AUTHENTICATED SESSION EXECUTION**.
 
-Current database inspection found:
-- 2 Auth users exist.
-- 0 active `role_assignments` currently exist.
-- Pilot territories exist, including `PILOT-DESA`.
-- No E2E transaction has been inserted.
+The runtime contract itself is deployed and JWT-protected. However, this verification environment does not have an authenticated browser session or a user credential/session token for either test identity. No credential, password, or token is being invented or stored to bypass that boundary.
 
-The existing `bootstrap-pilot` function can assign `PILOT_VIEWER` after an authenticated session, but `PILOT_VIEWER` is intentionally not authorized for the workflow actions `RT_VERIFY`, `RW_REVIEW`, `RW_APPROVE`, `VILLAGE_VALIDATE`, or `AUTHORIZE`.
+Therefore the final E2E acceptance remains intentionally **NOT PASS** until the following real session sequence is executed:
+1. Authenticate as `panaungan22@gmail.com` (RT_OPERATOR) and submit a synthetic F-1.02 household transaction in `PILOT-DESA`.
+2. Authenticate as an authorized workflow authority and execute `RT_VERIFY`, `RW_REVIEW`, `RW_APPROVE`, `VILLAGE_VALIDATE`, and `AUTHORIZE`.
+3. Verify the final record is `AUTHORIZED_PROCESSING` and contains `result_form_code=F-1.09` plus `result_form_mapping`.
+4. Verify workflow transitions and audit evidence exist for the same synthetic transaction.
 
-Therefore the final E2E acceptance cannot honestly be marked PASS until an authenticated test identity with the required scoped workflow roles is available.
+No direct SQL insertion is being used as a substitute for this authenticated E2E, because that would not prove the JWT, role, scope, and Edge Function authorization boundary.
 
 ## Security / performance observation
 Supabase security advisor currently reports one warning: leaked-password protection is disabled for Auth.
@@ -103,6 +108,7 @@ Performance advisor reports existing informational findings, including unindexed
 
 ## Exit criteria
 Tahap E2E dinyatakan PASS hanya setelah satu transaksi nyata dibuktikan:
+
 F-1.02 SUBMITTED → RT VERIFIED → RW REVIEWED → DESA VALIDATED → AUTHORIZED PROCESSING → F-1.09 mapped.
 
 No production citizen transaction has been inserted during this verification step.
