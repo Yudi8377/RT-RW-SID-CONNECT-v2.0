@@ -386,9 +386,33 @@ function openForm(mode="insert",id=null){
  html+='</div><div class="form-actions"><button class="btn" onclick="closeModal()">Batal</button><button class="btn primary" onclick="saveForm('+jm+','+ji+')">'+(mode==="update"?"Update":"Insert")+'</button></div>';
  modal((mode==="update"?"Update ":"Insert ")+subTitle(),html,true);
 }
-async function saveForm(mode,id){const s=schemaFor(),values=s.map((_,i)=>document.getElementById("f"+i)?.value||"");if(!values[0]){toast("Field utama wajib diisi");return}
-if(state.view==="rt"&&mode!=="update"&&sb){try{const {data:{user}}=await sb.auth.getUser();if(user){const {data:ra}=await sb.from("role_assignments").select("scope_territory_id").eq("user_id",user.id).eq("active",true).limit(1).maybeSingle();const territory_id=ra?.scope_territory_id;if(territory_id){const payload={};s.forEach((f,i)=>{payload[f[0]]=values[i]});const service_type=({deaths:"DEATH",letters:"LETTER",births:"BIRTH",moves:"MOVE",domicile:"DOMICILE",marriage:"MARRIAGE",residents:"PERSON",households:"HOUSEHOLD",verification:"VERIFICATION",complaints:"COMPLAINT",security:"SECURITY",activities:"ACTIVITY",social:"SOCIAL",health:"HEALTH",education:"EDUCATION",economy:"BUSINESS",employment:"EMPLOYMENT",trade:"TRADE",security:"SECURITY",environment:"ENVIRONMENT",infrastructure:"INFRASTRUCTURE",organizations:"ORGANIZATION",volunteers:"VOLUNTEER",dues:"DUES",planning:"PLANNING",disaster:"DISASTER",dataquality:"DATAQUALITY",gis:"GIS",intelligence:"RT_INTELLIGENCE",smart:"SMART_VILLAGE",inventory:"INVENTORY",reports:"REPORT",dashboard:"RT_REPORT"})[state.sub]||state.sub.toUpperCase();const resp=await sb.functions.invoke("rt-transaction",{body:{service_type,territory_id,payload:{...payload,full_name:payload["Nama Lengkap"]||payload["Nama Warga"]||payload["Nama"],national_id:payload["NIK"]||payload["NIK Almarhum/Almarhumah"]||payload["NIK Pemohon"],date_of_death:payload["Tanggal Kematian"],place_of_death:payload["Tempat Kematian"],cause_category:payload["Penyebab Kematian"],source_document_path:payload["Dokumen Keterangan Kematian"]}}});if(resp.error||!resp.data?.ok)throw new Error(resp.data?.error||resp.error?.message||"Gagal menyimpan");seedRows();state.rows[key()].unshift({id:resp.data.record?.request_number||resp.data.record?.id||"SYNC-"+Date.now(),values,status:resp.data.record?.status||"SUBMITTED",updated:"Supabase"});persist();closeModal();state.selected.clear();render();toast("Data RT tersimpan dan masuk workflow");return}}}catch(e){toast("Gagal sinkron: "+e.message);return}}
-seedRows();if(mode==="update"){const r=state.rows[key()].find(x=>x.id===id);if(r){r.values=values;r.updated="Updated";r.status="PENDING"}}else state.rows[key()].unshift({id:"REC-"+Date.now(),values,status:"DRAFT",updated:"Inserted"});persist();closeModal();state.selected.clear();render();toast(mode==="update"?"Data berhasil diupdate":"Data berhasil diinsert")}
+async function saveForm(mode,id){
+ const s=schemaFor(),values=s.map((_,i)=>document.getElementById("f"+i)?.value||"");
+ if(!values[0]){toast("Field utama wajib diisi");return}
+ const operationalInsert=(mode!=="update"&&(state.view==="rt"||state.view==="warga"));
+ if(operationalInsert&&sb){
+  try{
+   const {data:{user},error:userError}=await sb.auth.getUser();
+   if(userError||!user)throw new Error("Sesi login tidak tersedia. Silakan Sign In ulang.");
+   const {data:ra,error:raError}=await sb.from("role_assignments").select("scope_territory_id").eq("user_id",user.id).eq("active",true).limit(1).maybeSingle();
+   if(raError)throw new Error("Gagal membaca scope wilayah: "+raError.message);
+   const territory_id=ra?.scope_territory_id;
+   if(!territory_id)throw new Error("Scope wilayah aktif belum tersedia untuk akun ini.");
+   const payload={};s.forEach((f,i)=>{payload[f[0]]=values[i]});
+   const rtMap={deaths:"DEATH",letters:"LETTER",births:"BIRTH",moves:"MOVE",domicile:"DOMICILE",marriage:"MARRIAGE",residents:"PERSON",households:"HOUSEHOLD",verification:"VERIFICATION",complaints:"COMPLAINT",security:"SECURITY",activities:"ACTIVITY",social:"SOCIAL",health:"HEALTH",education:"EDUCATION",economy:"BUSINESS",employment:"EMPLOYMENT",trade:"TRADE",environment:"ENVIRONMENT",infrastructure:"INFRASTRUCTURE",organizations:"ORGANIZATION",volunteers:"VOLUNTEER",dues:"DUES",planning:"PLANNING",disaster:"DISASTER",dataquality:"DATAQUALITY",gis:"GIS",intelligence:"RT_INTELLIGENCE",smart:"SMART_VILLAGE",inventory:"INVENTORY",reports:"REPORT",dashboard:"RT_REPORT"};
+   const wargaMap={address:"DOMICILE",services:"SERVICE_REQUEST",complaints:"COMPLAINT"};
+   const service_type=(state.view==="rt"?rtMap[state.sub]:wargaMap[state.sub])||state.sub.toUpperCase();
+   const resp=await sb.functions.invoke("rt-transaction",{body:{service_type,territory_id,payload:{...payload,full_name:payload["Nama Lengkap"]||payload["Nama Warga"]||payload["Nama"],national_id:payload["NIK"]||payload["NIK Almarhum/Almarhumah"]||payload["NIK Pemohon"],date_of_death:payload["Tanggal Kematian"],place_of_death:payload["Tempat Kematian"],cause_category:payload["Penyebab Kematian"],source_document_path:payload["Dokumen Keterangan Kematian"]}}});
+   if(resp.error||!resp.data?.ok)throw new Error(resp.data?.error||resp.error?.message||"Gagal menyimpan melalui workflow");
+   seedRows();state.rows[key()].unshift({id:resp.data.record?.request_number||resp.data.record?.id||"SYNC-"+Date.now(),values,status:resp.data.record?.status||"SUBMITTED",updated:"Supabase"});
+   persist();closeModal();state.selected.clear();await render();toast("✓ Data tersimpan di Supabase dan masuk workflow · "+service_type);return;
+  }catch(e){toast("Gagal menyimpan: "+(e?.message||"Kesalahan tidak diketahui"));return}
+ }
+ seedRows();
+ if(mode==="update"){const r=state.rows[key()].find(x=>x.id===id);if(r){r.values=values;r.updated="Updated";r.status="PENDING"}}
+ else state.rows[key()].unshift({id:"REC-"+Date.now(),values,status:"DRAFT",updated:"Inserted"});
+ persist();closeModal();state.selected.clear();await render();toast(mode==="update"?"Data berhasil diupdate":"Data berhasil diinsert");
+}
 function persist(){try{localStorage.setItem("rtrw_records_v2",JSON.stringify(state.rows))}catch{}}
 function loadPersist(){try{Object.assign(state.rows,JSON.parse(localStorage.getItem("rtrw_records_v2")||"{}"))}catch{}}
 function deleteSelected(){seedRows();const ids=[...state.selected];if(!ids.length){toast("Pilih minimal satu record");return}modal("Konfirmasi Delete",'<p>'+ids.length+" record akan dihapus dari workspace pilot lokal. Untuk data resmi, penghapusan kritis tetap membutuhkan approval.</p><div class=\"form-actions\"><button class=\"btn\" onclick=\"closeModal()\">Batal</button><button class=\"btn danger\" onclick=\"confirmDelete()\">Delete</button></div>")}
