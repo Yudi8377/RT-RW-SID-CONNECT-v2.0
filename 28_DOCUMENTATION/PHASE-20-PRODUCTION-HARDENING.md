@@ -33,6 +33,14 @@ These are tracked, not blindly changed. Index changes should be based on actual 
 
 Synthetic pilot/demo records exist in the database. They are not real resident data and must remain clearly separated from real operational onboarding.
 
+## UI data-boundary hardening — 2026-09-29
+
+- [x] Dashboard KPI labels explicitly identify the figures as synthetic/demo pilot data.
+- [x] Landing/preview copy identifies the pilot as synthetic demo data.
+- [x] Authenticated administrator UI is no longer mislabeled as `ADMIN PREVIEW`; preview and authenticated admin states are distinguished.
+- [x] Generic workspace copy explicitly states that local Insert/Update/Delete/Export/Print controls are pilot/demo UI and are not official production transactions.
+- [x] No authorization, RLS, or Supabase Edge Function bypass was introduced by this UI hardening pass.
+
 ## Final acceptance gates
 
 - [ ] Public browser smoke test
