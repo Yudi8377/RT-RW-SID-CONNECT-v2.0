@@ -216,7 +216,103 @@ const contextOverrides={
 };
 function schemaFor(){return contextOverrides[key()]||((state.view==="rt"&&rtAdditionalSchemas[state.sub])?rtAdditionalSchemas[state.sub]:schemas[state.sub])||[["Nama","text","Nama/objek"],["Scope","text","RT/RW/Desa"],["Status","select","Draft|Submitted|Review|Approved|Rejected"],["Catatan","textarea","Catatan"]]}
 function seedRows(){const k=key();if(state.rows[k])return;const s=schemaFor();const a=defaults[state.sub]||s.map((x,i)=>i===0?subTitle()+" · REC-001":i===s.length-2?"Desa Demo":"");state.rows[k]=[{id:"REC-"+String(Math.floor(Math.random()*900)+100),values:a,status:"VERIFIED",updated:"Baru"} ,{id:"REC-"+String(Math.floor(Math.random()*900)+100),values:s.map((x,i)=>i===0?subTitle()+" · REC-002":i===s.length-2?"RT 001":""),status:"PENDING",updated:"Review"}]}
+function householdMemberTemplate(index,data={}){
+ const v=(k)=>data[k]??"";
+ const opts=(arr,key)=>arr.map(x=>'<option value="'+esc(x)+'" '+(x===v(key)?"selected":"")+'>'+esc(x)+'</option>').join("");
+ return '<div class="household-member" data-member-index="'+index+'"><div class="member-head"><b>Anggota Keluarga '+(index+1)+'</b><button type="button" class="btn danger-outline" data-remove-member="'+index+'">Hapus</button></div><div class="member-grid">'+
+ '<label>No. Urut<small>F-1.01</small><input name="member_no" type="number" value="'+esc(v("member_no")||index+1)+'" min="1"></label>'+
+ '<label>Nama Lengkap<small>sesuai dokumen identitas</small><input name="full_name" required value="'+esc(v("full_name"))+'" placeholder="Nama lengkap"></label>'+
+ '<label>Gelar Depan<small>opsional</small><input name="title_front" value="'+esc(v("title_front"))+'"></label>'+
+ '<label>Gelar Belakang<small>opsional</small><input name="title_back" value="'+esc(v("title_back"))+'"></label>'+
+ '<label>NIK<small>jika sudah memiliki</small><input name="nik" inputmode="numeric" value="'+esc(v("nik"))+'" maxlength="16"></label>'+
+ '<label>Nomor Paspor<small>WNA bila ada</small><input name="passport_no" value="'+esc(v("passport_no"))+'"></label>'+
+ '<label>Tgl Berakhir Paspor<small>WNA bila ada</small><input name="passport_expiry" type="date" value="'+esc(v("passport_expiry"))+'"></label>'+
+ '<label>Nama Sponsor<small>WNA ITAS/ITAP</small><input name="sponsor_name" value="'+esc(v("sponsor_name"))+'"></label>'+
+ '<label>Tipe Sponsor<small>F-1.01</small><select name="sponsor_type">'+opts(["Tidak Ada","Organisasi Internasional","Pemerintah","Perusahaan","Perorangan","Tanpa Sponsor"],"sponsor_type")+'</select></label>'+
+ '<label>Jenis Kelamin<small>F-1.01</small><select name="gender">'+opts(["Laki-laki","Perempuan"],"gender")+'</select></label>'+
+ '<label>Tempat Lahir<small>kabupaten/kota</small><input name="birth_place" value="'+esc(v("birth_place"))+'"></label>'+
+ '<label>Tanggal Lahir<small>DD-MM-YYYY</small><input name="birth_date" type="date" value="'+esc(v("birth_date"))+'"></label>'+
+ '<label>Kewarganegaraan<small>WNI/WNA</small><input name="citizenship" value="'+esc(v("citizenship")||"WNI")+'"></label>'+
+ '<label>SK Penetapan WNI<small>jika relevan</small><input name="wni_decree" value="'+esc(v("wni_decree"))+'"></label>'+
+ '<label>Akta Kelahiran<small>F-1.01</small><select name="birth_cert">'+opts(["Tidak Ada","Ada"],"birth_cert")+'</select></label>'+
+ '<label>Nomor Akta Kelahiran<small>jika ada</small><input name="birth_cert_no" value="'+esc(v("birth_cert_no"))+'"></label>'+
+ '<label>Golongan Darah<small>F-1.01</small><select name="blood_type">'+opts(["A","B","AB","O","A+","A-","B+","B-","AB+","AB-","O+","O-","Tidak Tahu"],"blood_type")+'</select></label>'+
+ '<label>Agama<small>F-1.01</small><select name="religion">'+opts(["Islam","Kristen","Katolik","Hindu","Buddha","Kong Hu Cu","Lainnya"],"religion")+'</select></label>'+
+ '<label>Organisasi Kepercayaan<small>jika relevan</small><input name="belief_org" value="'+esc(v("belief_org"))+'"></label>'+
+ '<label>Status Perkawinan<small>F-1.01</small><select name="marital_status">'+opts(["Belum Kawin","Kawin Tercatat","Kawin Belum Tercatat","Cerai Hidup Tercatat","Cerai Hidup Belum Tercatat","Cerai Mati"],"marital_status")+'</select></label>'+
+ '<label>Akta Perkawinan<small>F-1.01</small><select name="marriage_cert">'+opts(["Tidak Ada","Ada"],"marriage_cert")+'</select></label>'+
+ '<label>Nomor Akta Perkawinan/Buku Nikah<small>jika ada</small><input name="marriage_cert_no" value="'+esc(v("marriage_cert_no"))+'"></label>'+
+ '<label>Tanggal Perkawinan<small>jika relevan</small><input name="marriage_date" type="date" value="'+esc(v("marriage_date"))+'"></label>'+
+ '<label>Akta Perceraian/Surat Cerai<small>F-1.01</small><select name="divorce_cert">'+opts(["Tidak Ada","Ada"],"divorce_cert")+'</select></label>'+
+ '<label>Nomor Akta Perceraian<small>jika ada</small><input name="divorce_cert_no" value="'+esc(v("divorce_cert_no"))+'"></label>'+
+ '<label>Tanggal Perceraian<small>jika relevan</small><input name="divorce_date" type="date" value="'+esc(v("divorce_date"))+'"></label>'+
+ '<label>Status Hubungan Dalam Keluarga<small>SHDK</small><select name="family_relation">'+opts(["Kepala Keluarga","Suami","Istri","Anak","Menantu","Cucu","Orang Tua","Mertua","Famili Lain","Pembantu","Lainnya"],"family_relation")+'</select></label>'+
+ '<label>Kelainan Fisik/Mental<small>F-1.01</small><select name="disability_status">'+opts(["Tidak Ada","Ada"],"disability_status")+'</select></label>'+
+ '<label>Jenis Penyandang Disabilitas<small>jika ada</small><select name="disability_type">'+opts(["Tidak Ada","Fisik","Netra/Buta","Rungu/Wicara","Mental/Jiwa","Fisik dan Mental","Lainnya"],"disability_type")+'</select></label>'+
+ '<label>Pendidikan Terakhir<small>F-1.01</small><select name="education">'+opts(["Tidak/Belum Sekolah","Belum Tamat SD/Sederajat","Tamat SD/Sederajat","SLTP/Sederajat","SLTA/Sederajat","Diploma I/II","Akademi/Diploma III/Sarjana Muda","Diploma IV/Strata I","Strata II","Strata III"],"education")+'</select></label>'+
+ '<label>Jenis Pekerjaan<small>mengikuti referensi pekerjaan Dukcapil</small><input name="occupation" value="'+esc(v("occupation"))+'" placeholder="Contoh: Pedagang, Guru, ASN, Wiraswasta"></label>'+
+ '<label>NIK Ibu<small>jika sudah memiliki</small><input name="mother_nik" inputmode="numeric" value="'+esc(v("mother_nik"))+'"></label>'+
+ '<label>Nama Lengkap Ibu<small>sesuai dokumen</small><input name="mother_name" value="'+esc(v("mother_name"))+'"></label>'+
+ '<label>NIK Ayah<small>jika sudah memiliki</small><input name="father_nik" inputmode="numeric" value="'+esc(v("father_nik"))+'"></label>'+
+ '<label>Nama Lengkap Ayah<small>sesuai dokumen</small><input name="father_name" value="'+esc(v("father_name"))+'"></label>'+
+ '</div></div>';
+}
+function openHouseholdForm(mode="insert",id=null){
+ const existing=liveRowCache.get(id)||null;
+ let members=existing?.payload?.members;
+ if(!Array.isArray(members)||!members.length)members=[{member_no:1,family_relation:"Kepala Keluarga",citizenship:"WNI"}];
+ const p=existing?.payload||{};
+ const field=(label,name,type="text",value="",hint="")=>'<label>'+label+'<small>'+hint+'</small><input id="hh_'+name+'" type="'+type+'" value="'+esc(value??"")+'"></label>';
+ let html='<div class="official-form-banner"><b>F-1.01 · Biodata Keluarga</b><span>Form elektronik RT Digital mengacu pada struktur formulir administrasi kependudukan terbaru. Ini adalah pengumpulan/verifikasi awal; penerbitan dokumen kependudukan tetap oleh instansi berwenang.</span></div>';
+ html+='<div class="form-section"><h4>Data Kepala Keluarga & Wilayah</h4><div class="member-grid">';
+ html+=field("Nama Kepala Keluarga","head_name","text",p.head_name||"","Nama lengkap");
+ html+=field("Nomor KK","household_number","text",p.household_number||"","Jika sudah diterbitkan");
+ html+=field("Alamat","address","text",p.address||"","Jalan/kampung/dusun + nomor rumah");
+ html+=field("Kode Pos","postal_code","text",p.postal_code||"","Wajib untuk alamat domestik");
+ html+=field("RT","rt","text",p.rt||"","Kode RT");
+ html+=field("RW","rw","text",p.rw||"","Kode RW");
+ html+=field("Jumlah Anggota Keluarga","member_count","number",p.member_count||members.length,"Termasuk kepala keluarga");
+ html+=field("Telepon","phone","tel",p.phone||"","Nomor kepala keluarga");
+ html+=field("Email","email","email",p.email||"","Email kepala keluarga");
+ html+=field("Provinsi","province","text",p.province||"","Wilayah domisili");
+ html+=field("Kabupaten/Kota","regency","text",p.regency||"","Wilayah domisili");
+ html+=field("Kecamatan","district","text",p.district||"","Wilayah domisili");
+ html+=field("Desa/Kelurahan","village","text",p.village||"Desa Pilot","Wilayah domisili");
+ html+=field("Dusun/Dukuh/Kampung","hamlet","text",p.hamlet||"","Wilayah domisili");
+ html+='</div></div>';
+ html+='<div class="form-section"><div class="section-title-row"><div><h4>Data Anggota Keluarga</h4><p class="form-help">Struktur mengikuti F-1.01; satu kartu keluarga dapat berisi beberapa anggota.</p></div><button type="button" class="btn" data-add-member>＋ Tambah Anggota</button></div><div id="household-members">'+members.map((m,i)=>householdMemberTemplate(i,m)).join("")+'</div></div>';
+ html+='<div class="form-section"><h4>Dokumen Pendukung & Verifikasi RT</h4><div class="member-grid">';
+ html+=field("Dokumen KK Lama","old_kk_document","text",p.old_kk_document||"","Path/metadata dokumen, bila ada");
+ html+=field("Dasar Pengajuan","request_reason","text",p.request_reason||"Pembentukan/perubahan data keluarga","Contoh: KK baru, perubahan data, pisah KK");
+ html+=field("Catatan Verifikasi RT","verification_note","textarea",p.verification_note||"","Catatan petugas");
+ html+='</div></div>';
+ html+='<div class="form-actions"><button type="button" class="btn" data-live-modal-close>Batal</button><button type="button" class="btn primary" data-household-save>'+(mode==="update"?"Update KK":"Simpan Pengajuan KK")+'</button></div>';
+ modal((mode==="update"?"Update ":"Tambah ")+"KK · F-1.01",html,true);
+ const root=document.getElementById("modal");
+ root?.querySelector("[data-add-member]")?.addEventListener("click",()=>{const box=root.querySelector("#household-members");const i=box.querySelectorAll(".household-member").length;box.insertAdjacentHTML("beforeend",householdMemberTemplate(i,{}));bindHouseholdMemberEvents(root);});
+ bindHouseholdMemberEvents(root);
+ root?.querySelector("[data-live-modal-close]")?.addEventListener("click",closeModal);
+ root?.querySelector("[data-household-save]")?.addEventListener("click",()=>saveHouseholdForm(mode,id));
+}
+function bindHouseholdMemberEvents(root){
+ root?.querySelectorAll("[data-remove-member]").forEach(btn=>{btn.onclick=()=>{const box=root.querySelector("#household-members");if(box.querySelectorAll(".household-member").length<=1){toast("Minimal satu anggota keluarga");return}btn.closest(".household-member")?.remove();}});
+}
+async function saveHouseholdForm(mode,id){
+ if(!sb){toast("Supabase belum tersambung");return}
+ const root=document.getElementById("modal"),payload={members:[]};
+ root.querySelectorAll("[id^='hh_']").forEach(el=>{payload[el.id.slice(3)]=el.value.trim()});
+ root.querySelectorAll(".household-member").forEach((row,i)=>{const m={};row.querySelectorAll("input,select").forEach(el=>m[el.name]=el.value);m.member_no=i+1;payload.members.push(m)});
+ payload.member_count=payload.members.length;
+ if(!payload.head_name||!payload.address||!payload.rt||!payload.rw){toast("Nama kepala keluarga, alamat, RT dan RW wajib diisi");return}
+ const {data:{user}}=await sb.auth.getUser();if(!user){toast("Silakan Sign In untuk menyimpan");return}
+ const {data:ra,error:raError}=await sb.from("role_assignments").select("scope_territory_id").eq("user_id",user.id).eq("active",true).limit(1).maybeSingle();
+ if(raError||!ra?.scope_territory_id){toast("Scope wilayah RT belum tersedia untuk akun ini");return}
+ const resp=await sb.functions.invoke("rt-transaction",{body:{service_type:"HOUSEHOLD",territory_id:ra.scope_territory_id,payload:{...payload,full_name:payload.head_name,household_number:payload.household_number}}});
+ if(resp.error||!resp.data?.ok){toast("Gagal menyimpan KK: "+(resp.data?.error||resp.error?.message||"Unknown error"));return}
+ closeModal();state.selected.clear();await render();toast("✓ Pengajuan KK F-1.01 tersimpan dan masuk workflow verifikasi");
+}
 function openForm(mode="insert",id=null){
+ if(state.view==="rt"&&state.sub==="households"){openHouseholdForm(mode,id);return}
  const s=schemaFor(),rows=state.rows[key()]||[],row=id?rows.find(r=>r.id===id):null,vals=row?.values||[];
  let html='<p class="form-context">Form '+esc(subTitle())+' — field disusun khusus sesuai konteks submenu ini.</p><div class="context-form">';
  s.forEach((f,i)=>{const v=vals[i]||"";html+='<label>'+esc(f[0])+'<small>context: '+esc(f[2])+'</small>';if(f[1]==="textarea")html+='<textarea id="f'+i+'" placeholder="'+esc(f[2])+'">'+esc(v)+'</textarea>';else if(f[1]==="select")html+='<select id="f'+i+'">'+f[2].split("|").map(o=>'<option value="'+esc(o)+'" '+(o===v?"selected":"")+'>'+esc(o)+'</option>').join("")+'</select>';else html+='<input id="f'+i+'" type="'+esc(f[1])+'" placeholder="'+esc(f[2])+'" value="'+esc(v)+'">';html+='</label>'});
@@ -382,6 +478,6 @@ function lastPage(){toast("Sudah di halaman terakhir")}
 function intelligenceDashboard(){return '<section class="panel intelligence-dashboard"><div class="panel-head"><div><span class="eyebrow">COMMUNITY INTELLIGENCE</span><h2>Analisis Ekonomi & Kesejahteraan</h2><p>Data terverifikasi - indikator - analisis AI - validasi manusia - GPFFE.</p></div><div class="status-chip">GOVERNED AI</div></div><div class="metric-grid"><article class="metric-card"><span>Kas RT/RW</span><strong>Rp 0</strong><small>Cash-in / cash-out approved</small></article><article class="metric-card"><span>Arisan</span><strong>Rp 0</strong><small>Iuran dan pencairan</small></article><article class="metric-card"><span>Kerentanan</span><strong>0 KK</strong><small>Perlu review</small></article><article class="metric-card"><span>GPFFE Signal</span><strong>0</strong><small>Dataset agregat siap analisis</small></article></div><div class="analysis-grid"><article class="analysis-card"><h3>Cashflow RT/RW</h3><div class="mini-bars"><i></i><i></i><i></i><i></i><i></i><i></i></div><p>Perputaran kas ditampilkan berdasarkan transaksi yang telah disetujui.</p></article><article class="analysis-card"><h3>Household Vulnerability</h3><div class="signal-row"><span>Data terverifikasi</span><b>0%</b></div><div class="signal-row"><span>Evidence tersedia</span><b>0%</b></div><div class="signal-row"><span>Perlu validasi</span><b>0 KK</b></div></article><article class="analysis-card"><h3>GPFFE Needs Profile</h3><p>Profil agregat dapat dikirim melalui Data Exchange setelah quality check, purpose, scope, classification, lineage dan approval.</p></article></div></section>'}
 async function render(){loadPersist();const u=ADMIN_PREVIEW?{id:"admin-preview",email:"administrator@preview.local",email_confirmed_at:new Date().toISOString()}:await getCurrentUser();if(u&&!verified(u)&&!ADMIN_PREVIEW){await sb.auth.signOut({scope:"local"});document.getElementById("app").innerHTML="";landing();renderLandingRole();return}access=ADMIN_PREVIEW?{code:"PLATFORM_ADMIN",source:"admin_preview"}:await resolveAccess(u);if(!u){document.getElementById("app").innerHTML="";landing();renderLandingRole();return}const ti=trialInfo(u);if(ti&&!ti.active&&!access.assigned?.length){document.getElementById("app").innerHTML="";landing();renderLandingRole();modal("Trial Berakhir",'<p>Masa trial 7 hari akun ini telah berakhir. Silakan hubungi admin untuk melanjutkan akses.</p><button class="primary" onclick="signOut()">Kembali ke Landing Page</button>');return}if(!roleAllowedModule(access.code,state.view)){state.view="dashboard";state.sub="overview";state.selected.clear()}document.getElementById("landing").innerHTML="";document.getElementById("app").innerHTML='<div class="app-shell"><div class="sidebar-overlay" data-sidebar-toggle="close" aria-hidden="true"></div><aside class="sidebar"><div class="sidebrand"><button class="sidebar-close" type="button" data-sidebar-toggle="close" aria-label="Tutup menu">×</button><b>RS</b><div><strong>RT/RW–SID</strong><small>CONNECT · v2.0</small></div></div><div class="tenant-card"><span>AKSES AKTIF</span><strong>'+esc(roleLabel(access.code))+'</strong><small>'+(ADMIN_PREVIEW?"ADMIN PREVIEW · DEMO DATA ONLY":"Role + Scope + Permission + RLS")+'</small></div><nav>'+nav()+'</nav><div class="side-foot"><span class="online-dot"></span><div><b>Core online</b><small>Supabase · Free-first pilot</small></div></div></aside><main class="app-main"><header class="topbar"><button class="mobile-menu" type="button" data-sidebar-toggle="open" aria-label="Buka menu">☰</button><div class="crumb"><small>COMMUNITY DATA OS</small><b>'+esc(modules[state.view][0])+'</b></div><div class="top-actions"><button class="icon-btn" onclick="toast(&#39;Search workspace aktif&#39;)">⌕</button><button class="icon-btn" onclick="toast(&#39;Notifications aktif&#39;)">◌</button><div class="profile"><div class="avatar">'+(u?(u.email||"U")[0].toUpperCase():"T")+'</div><div><b>'+esc((u?.email||"Trial").split("@")[0])+'</b><small>'+esc(roleLabel(access.code))+(ADMIN_PREVIEW?" · PREVIEW ADMIN":" · Desa Demo")+'</small></div>'+((u||active())?"<button class='signout' onclick='signOut()'>"+(u?"Sign out":"Keluar Trial")+"</button>":"")+'</div></div></header><div class="workspace-bar"><div class="workspace-crumb">'+esc(subTitle())+'</div><div class="view-tools"><button onclick="back()">← Kembali</button><button onclick="next()">Lanjut →</button></div></div><div class="content">'+(state.view==="dashboard"&&state.sub==="overview"?dashboard():state.view==="dashboard"?commandCenterWorkspace():workspace())+"</div></main></div>"}
 
-window.rwReviewLoad=rwReviewLoad;window.rwAction=rwAction;window.signIn=signIn;window.signUp=signUp;window.submitSignUp=submitSignUp;window.submitSignIn=submitSignIn;window.resendConfirmation=resendConfirmation;window.startTrial=()=>signUp();window.setSelectedRole=setSelectedRole;window.renderLandingRole=renderLandingRole;window.signOut=signOut;window.submitSignIn=submitSignIn;window.closeModal=closeModal;window.go=go;window.back=back;window.next=next;window.openForm=openForm;window.saveForm=saveForm;window.updateSelected=updateSelected;window.deleteSelected=deleteSelected;window.confirmDelete=confirmDelete;window.toggleAll=toggleAll;window.toggleRow=toggleRow;window.exportData=exportData;window.printWorkspace=printWorkspace;window.firstPage=firstPage;window.lastPage=lastPage;
+window.rwReviewLoad=rwReviewLoad;window.rwAction=rwAction;window.signIn=signIn;window.signUp=signUp;window.submitSignUp=submitSignUp;window.submitSignIn=submitSignIn;window.resendConfirmation=resendConfirmation;window.startTrial=()=>signUp();window.setSelectedRole=setSelectedRole;window.renderLandingRole=renderLandingRole;window.signOut=signOut;window.submitSignIn=submitSignIn;window.closeModal=closeModal;window.go=go;window.back=back;window.next=next;window.openForm=openForm;window.openHouseholdForm=openHouseholdForm;window.saveHouseholdForm=saveHouseholdForm;window.saveForm=saveForm;window.updateSelected=updateSelected;window.deleteSelected=deleteSelected;window.confirmDelete=confirmDelete;window.toggleAll=toggleAll;window.toggleRow=toggleRow;window.exportData=exportData;window.printWorkspace=printWorkspace;window.firstPage=firstPage;window.lastPage=lastPage;
 if(C.supabasePublishableKey&&window.supabase)sb=window.__RT_RW_SUPABASE_CLIENT||(window.__RT_RW_SUPABASE_CLIENT=supabase.createClient(C.supabaseUrl,C.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}));
 if(sb)sb.auth.onAuthStateChange(()=>{render();setTimeout(refreshLiveWorkspace,500)});render();setTimeout(refreshLiveWorkspace,700);
