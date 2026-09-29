@@ -244,6 +244,16 @@ const OFFICIAL_FORM_MAPPINGS={
   ["Tanda tangan/Cap Jempol","result_signature","Instansi penerbit","Hasil","SIM RT/RW hanya menyimpan metadata hasil bila tersedia","F-1.09 footer"]
  ]
 };
+function officialFormPreview(code){
+ const isInput=code==="F-1.02";
+ const title=isInput?"FORMULIR PENDAFTARAN PERISTIWA KEPENDUDUKAN":"KARTU KELUARGA";
+ if(isInput){
+  modal("Preview · F-1.02",'<div class="official-paper"><div class="official-paper-head"><b>F-1.02</b><h2>'+title+'</h2><span>Referensi: Permendagri 109/2019 sebagaimana diubah Permendagri 6/2026</span></div><h4>I. DATA PEMOHON</h4><p>1. Nama Lengkap : __________________________________________</p><p>2. Nomor Induk Kependudukan : ______________________________</p><p>3. Nomor Kartu Keluarga : ___________________________________</p><h4>II. JENIS PERMOHONAN</h4><div class="official-grid"><div>☐ I. Kartu Keluarga<br/>☐ II. KTP-el<br/>☐ III. Kartu Identitas Anak<br/>☐ IV. Perubahan Data</div><div><b>KK</b><br/>☐ Membentuk keluarga baru<br/>☐ Pergantian kepala keluarga<br/>☐ Pisah KK<br/>☐ Pindah datang<br/>☐ WNI dari LN karena pindah<br/>☐ Rentan adminduk</div></div><h4>III. PERSYARATAN YANG DILAMPIRKAN</h4><div class="official-grid"><div>☐ KK lama / KK rusak<br/>☐ Surat keterangan / bukti perubahan<br/>☐ Buku nikah / kutipan akta perkawinan<br/>☐ SPTJM perkawinan/perceraian belum tercatat<br/>☐ Kutipan akta perceraian<br/>☐ Akta Kematian</div><div>☐ Surat keterangan pindah<br/>☐ Surat keterangan pindah luar negeri<br/>☐ Dokumen perjalanan<br/>☐ Surat kuasa pengasuhan anak<br/>☐ Kartu izin tinggal tetap</div></div><div class="official-signatures"><div>Pemohon<br/><br/>________________________</div><div>Petugas<br/><br/>________________________</div></div></div>',true);
+ }else{
+  const rows=Array.from({length:10},(_,i)=>'<tr><td>'+(i+1)+'</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join("");
+  modal("Preview · F-1.09",'<div class="official-paper wide"><div class="official-paper-head"><b>F-1.09</b><h2>'+title+'</h2><span>Hasil pelayanan; penerbitan tetap oleh instansi berwenang.</span></div><p>NO : ____________________</p><p>Nama : ____________________ &nbsp; Alamat : ______________________________</p><p>RT/RW : __________ &nbsp; Kode Pos : __________</p><p>Desa/Kelurahan : __________ &nbsp; Kecamatan : __________</p><p>Kabupaten/Kota : __________ &nbsp; Provinsi : __________</p><div class="table-wrap"><table><thead><tr><th>No</th><th>Nama Lengkap</th><th>NIK</th><th>Jenis Kelamin</th><th>Tempat Lahir</th><th>Tanggal Lahir</th><th>Agama</th><th>Pendidikan</th><th>Jenis Pekerjaan</th><th>Gol. Darah</th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="official-paper-note">Layout lanjutan F-1.09 memuat status perkawinan, hubungan keluarga, kewarganegaraan, dokumen imigrasi, dan orang tua.</p><div class="official-signatures"><div>Kepala Keluarga<br/><br/>________________________</div><div>Kepala Dinas Kependudukan dan Pencatatan Sipil<br/><br/>________________________</div></div></div>',true);
+ }
+}
 function officialMeta(){return OFFICIAL_FORM_META[key()]||null}
 function governmentFormRegistryWorkspace(){
  const rows=OFFICIAL_FORM_REGISTRY.map(r=>"<tr><td><b>"+esc(r[0])+"</b></td><td>"+esc(r[1])+"</td><td>"+esc(r[2])+"</td><td>"+esc(r[3])+"</td><td>"+status(r[4])+"</td></tr>").join("");
