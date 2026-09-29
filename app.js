@@ -247,7 +247,7 @@ function householdMemberTemplate(index,data={}){
  '<label>Nomor Akta Perceraian<small>jika ada</small><input name="divorce_cert_no" value="'+esc(v("divorce_cert_no"))+'"></label>'+
  '<label>Tanggal Perceraian<small>jika relevan</small><input name="divorce_date" type="date" value="'+esc(v("divorce_date"))+'"></label>'+
  '<label>Status Hubungan Dalam Keluarga<small>SHDK</small><select name="family_relation">'+opts(["Kepala Keluarga","Suami","Istri","Anak","Menantu","Cucu","Orang Tua","Mertua","Famili Lain","Pembantu","Lainnya"],"family_relation")+'</select></label>'+
- '<label>Kelainan Fisik/Mental<small>F-1.01</small><select name="disability_status">'+opts(["Tidak Ada","Ada"],"disability_status")+'</select></label>'+
+ '<label>Penyandang Disabilitas<small>F-1.01 · Permendagri 6/2026</small><select name="disability_status">'+opts(["Tidak Ada","Ada"],"disability_status")+'</select></label>'+
  '<label>Jenis Penyandang Disabilitas<small>jika ada</small><select name="disability_type">'+opts(["Tidak Ada","Fisik","Netra/Buta","Rungu/Wicara","Mental/Jiwa","Fisik dan Mental","Lainnya"],"disability_type")+'</select></label>'+
  '<label>Pendidikan Terakhir<small>F-1.01</small><select name="education">'+opts(["Tidak/Belum Sekolah","Belum Tamat SD/Sederajat","Tamat SD/Sederajat","SLTP/Sederajat","SLTA/Sederajat","Diploma I/II","Akademi/Diploma III/Sarjana Muda","Diploma IV/Strata I","Strata II","Strata III"],"education")+'</select></label>'+
  '<label>Jenis Pekerjaan<small>mengikuti referensi pekerjaan Dukcapil</small><input name="occupation" value="'+esc(v("occupation"))+'" placeholder="Contoh: Pedagang, Guru, ASN, Wiraswasta"></label>'+
