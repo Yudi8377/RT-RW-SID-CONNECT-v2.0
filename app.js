@@ -371,9 +371,7 @@ async function saveHouseholdForm(mode,id){
  if(payload.applicant_nik&&!/^\\d{16}$/.test(payload.applicant_nik)){toast("NIK pemohon harus 16 digit bila diisi");return}
  if(payload.members.some(m=>!m.full_name)){toast("Nama setiap anggota keluarga wajib diisi");return}
  const {data:{user}}=await sb.auth.getUser();if(!user){toast("Silakan Sign In untuk menyimpan");return}
- const {data:ra,error:raError}=await sb.from("role_assignments").select("scope_territory_id").eq("user_id",user.id).eq("active",true).limit(1).maybeSingle();
- if(raError||!ra?.scope_territory_id){toast("Scope wilayah RT belum tersedia untuk akun ini");return}
- const resp=await sb.functions.invoke("rt-transaction",{body:{service_type:"HOUSEHOLD",territory_id:ra.scope_territory_id,payload:{...payload,full_name:payload.head_name,household_number:payload.household_number}}});
+ const resp=await sb.functions.invoke("rt-transaction",{body:{service_type:"HOUSEHOLD",payload:{...payload,full_name:payload.head_name,household_number:payload.household_number}}});
  if(resp.error||!resp.data?.ok){toast("Gagal menyimpan KK: "+(resp.data?.error||resp.error?.message||"Unknown error"));return}
  closeModal();state.selected.clear();await render();toast("✓ Pengajuan KK F-1.02 tersimpan dan masuk workflow verifikasi · hasil pelayanan dipetakan ke F-1.09");
 }
