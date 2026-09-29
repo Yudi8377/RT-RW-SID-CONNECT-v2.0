@@ -394,15 +394,11 @@ async function saveForm(mode,id){
   try{
    const {data:{user},error:userError}=await sb.auth.getUser();
    if(userError||!user)throw new Error("Sesi login tidak tersedia. Silakan Sign In ulang.");
-   const {data:ra,error:raError}=await sb.from("role_assignments").select("scope_territory_id").eq("user_id",user.id).eq("active",true).limit(1).maybeSingle();
-   if(raError)throw new Error("Gagal membaca scope wilayah: "+raError.message);
-   const territory_id=ra?.scope_territory_id;
-   if(!territory_id)throw new Error("Scope wilayah aktif belum tersedia untuk akun ini.");
    const payload={};s.forEach((f,i)=>{payload[f[0]]=values[i]});
    const rtMap={deaths:"DEATH",letters:"LETTER",births:"BIRTH",moves:"MOVE",domicile:"DOMICILE",marriage:"MARRIAGE",residents:"PERSON",households:"HOUSEHOLD",verification:"VERIFICATION",complaints:"COMPLAINT",security:"SECURITY",activities:"ACTIVITY",social:"SOCIAL",health:"HEALTH",education:"EDUCATION",economy:"BUSINESS",employment:"EMPLOYMENT",trade:"TRADE",environment:"ENVIRONMENT",infrastructure:"INFRASTRUCTURE",organizations:"ORGANIZATION",volunteers:"VOLUNTEER",dues:"DUES",planning:"PLANNING",disaster:"DISASTER",dataquality:"DATAQUALITY",gis:"GIS",intelligence:"RT_INTELLIGENCE",smart:"SMART_VILLAGE",inventory:"INVENTORY",reports:"REPORT",dashboard:"RT_REPORT"};
    const wargaMap={address:"DOMICILE",services:"SERVICE_REQUEST",complaints:"COMPLAINT"};
    const service_type=(state.view==="rt"?rtMap[state.sub]:wargaMap[state.sub])||state.sub.toUpperCase();
-   const resp=await sb.functions.invoke("rt-transaction",{body:{service_type,territory_id,payload:{...payload,full_name:payload["Nama Lengkap"]||payload["Nama Warga"]||payload["Nama"],national_id:payload["NIK"]||payload["NIK Almarhum/Almarhumah"]||payload["NIK Pemohon"],date_of_death:payload["Tanggal Kematian"],place_of_death:payload["Tempat Kematian"],cause_category:payload["Penyebab Kematian"],source_document_path:payload["Dokumen Keterangan Kematian"]}}});
+   const resp=await sb.functions.invoke("rt-transaction",{body:{service_type,payload:{...payload,full_name:payload["Nama Lengkap"]||payload["Nama Warga"]||payload["Nama"],national_id:payload["NIK"]||payload["NIK Almarhum/Almarhumah"]||payload["NIK Pemohon"],date_of_death:payload["Tanggal Kematian"],place_of_death:payload["Tempat Kematian"],cause_category:payload["Penyebab Kematian"],source_document_path:payload["Dokumen Keterangan Kematian"]}}});
    if(resp.error||!resp.data?.ok)throw new Error(resp.data?.error||resp.error?.message||"Gagal menyimpan melalui workflow");
    seedRows();state.rows[key()].unshift({id:resp.data.record?.request_number||resp.data.record?.id||"SYNC-"+Date.now(),values,status:resp.data.record?.status||"SUBMITTED",updated:"Supabase"});
    persist();closeModal();state.selected.clear();await render();toast("✓ Data tersimpan di Supabase dan masuk workflow · "+service_type);return;
