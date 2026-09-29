@@ -151,3 +151,4 @@
   .profile div:not(.avatar){display:none}
   .profile .signout{display:inline-block;padding:7px 8px;font-size:8px}
 }
+\n/* Mobile navigation hardening */\n@media(max-width:800px){.sidebar-close{display:grid!important;place-items:center!important}.sidebar{width:min(86vw,320px)!important;max-width:320px!important;transform:translate3d(-105%,0,0)!important}.menu-open .sidebar{transform:translate3d(0,0,0)!important}.sidebar-overlay{display:block!important}.profile .signout{display:inline-flex!important;align-items:center;justify-content:center;padding:8px 10px;border:1px solid #dfe6e0;border-radius:8px;background:#fff;color:#315f48;font-weight:700}.app-main{width:100vw;max-width:100vw;overflow-x:hidden}}\n
