@@ -364,8 +364,12 @@ async function saveHouseholdForm(mode,id){
  root.querySelectorAll("[id^='hh_']").forEach(el=>{payload[el.id.slice(3)]=el.value.trim()});
  root.querySelectorAll(".household-member").forEach((row,i)=>{const m={};row.querySelectorAll("input,select").forEach(el=>m[el.name]=el.value);m.member_no=i+1;payload.members.push(m)});
  payload.member_count=payload.members.length;
- payload.form_code="F-1.02";payload.form_version="2026";payload.result_form_code="F-1.09";payload.request_type=payload.request_type||"KK Baru";payload.applicant_name=payload.applicant_name||payload.head_name;
- if(!payload.applicant_name||!payload.address||!payload.rt||!payload.rw){toast("Nama kepala keluarga, alamat, RT dan RW wajib diisi");return}
+ payload.form_code="F-1.02";payload.form_version="2026";payload.result_form_code="F-1.09";payload.request_type=payload.request_kk||payload.request_type||"Membentuk keluarga baru";payload.applicant_name=payload.applicant_name||payload.head_name;
+ payload.compliance={canonical_form:"F-1.02",canonical_version:"2026",result_form:"F-1.09",mapping_version:"2026-09-29"};
+ payload.workflow={type:"HOUSEHOLD",initial_status:"SUBMITTED",required_stages:["RT_VERIFICATION","RW_REVIEW","DESA_VALIDATION","AUTHORIZED_PROCESSING"],source_form:"F-1.02",result_form:"F-1.09"};
+ if(!payload.applicant_name||!payload.address||!payload.rt||!payload.rw||!payload.request_kk){toast("Nama pemohon, alamat, RT, RW dan jenis permohonan KK wajib diisi");return}
+ if(payload.applicant_nik&&!/^\\d{16}$/.test(payload.applicant_nik)){toast("NIK pemohon harus 16 digit bila diisi");return}
+ if(payload.members.some(m=>!m.full_name)){toast("Nama setiap anggota keluarga wajib diisi");return}
  const {data:{user}}=await sb.auth.getUser();if(!user){toast("Silakan Sign In untuk menyimpan");return}
  const {data:ra,error:raError}=await sb.from("role_assignments").select("scope_territory_id").eq("user_id",user.id).eq("active",true).limit(1).maybeSingle();
  if(raError||!ra?.scope_territory_id){toast("Scope wilayah RT belum tersedia untuk akun ini");return}
