@@ -33,15 +33,27 @@ Deno.serve(async(req)=>{
       if(!territory || territory.territory_type!=="VILLAGE") return json({ok:false,error:"Wilayah berbagi lokasi tidak valid"},403);
       if(accuracy!==null && (!Number.isFinite(accuracy)||accuracy<0)) return json({ok:false,error:"Akurasi lokasi tidak valid"},400);
       const minutes=Math.min(Math.max(Number(body.duration_minutes||30),5),60);
+      const priority=body.priority==="CRITICAL"?"CRITICAL":"HIGH";
+      const slaMinutes=priority==="CRITICAL"?10:20;
       await admin.from("citizen_location_events").update({active:false}).eq("user_id",user.id).eq("active",true);
       const expires=new Date(Date.now()+minutes*60000).toISOString();
-      const {data,error:insertError}=await admin.from("citizen_location_events").insert({
+      const slaDue=new Date(Date.now()+slaMinutes*60000).toISOString();
+      const {data:event,error:insertError}=await admin.from("citizen_location_events").insert({
         user_id:user.id,territory_id:territoryId,latitude:lat,longitude:lng,accuracy_m:accuracy,
         purpose:"EMERGENCY",reason:String(body.reason||"").slice(0,500)||null,expires_at:expires,active:true
       }).select("id,captured_at,expires_at,latitude,longitude,accuracy_m").single();
       if(insertError) throw insertError;
-      await admin.from("audit_logs").insert({action:"EMERGENCY_LOCATION_SHARED",actor_user_id:user.id,territory_id:territoryId,metadata:{location_event_id:data.id,expires_at:expires}});
-      return json({ok:true,event:data,message:"Lokasi darurat dibagikan selama "+minutes+" menit."});
+      const {data:caseRow,error:caseError}=await admin.from("emergency_response_cases").insert({
+        location_event_id:event.id,territory_id:territoryId,status:"OPEN",priority,sla_due_at:slaDue,escalation_level:0
+      }).select("*").single();
+      if(caseError) throw caseError;
+      await admin.from("emergency_response_events").insert({case_id:caseRow.id,status:"OPEN",note:"Kasus darurat dibuat dari lokasi warga."});
+      await admin.from("emergency_notifications").insert({
+        case_id:caseRow.id,territory_id:territoryId,target_role:"RT_OPERATOR",notification_type:"IN_APP",
+        title:"Bantuan darurat baru",body:"Kasus EMG-"+String(event.id).slice(0,8).toUpperCase()+" memerlukan respons RT."
+      });
+      await admin.from("audit_logs").insert({action:"EMERGENCY_LOCATION_SHARED",actor_user_id:user.id,territory_id:territoryId,metadata:{location_event_id:event.id,case_id:caseRow.id,expires_at:expires,priority,sla_due_at:slaDue}});
+      return json({ok:true,event,case:caseRow,message:"Lokasi darurat dibagikan selama "+minutes+" menit."});
     }
 
     if(action==="mine"){
@@ -58,27 +70,53 @@ Deno.serve(async(req)=>{
       const {data:event,error:eventError}=await admin.from("citizen_location_events").select("id,territory_id,active,expires_at").eq("id",eventId).maybeSingle();
       if(eventError) throw eventError;
       if(!event) return json({ok:false,error:"Emergency location tidak ditemukan"},404);
-      const allowed=assignments?.filter((a:any)=>a.role_code==="PLATFORM_ADMIN"||a.role_code==="RT_OPERATOR"||a.role_code==="RW_REVIEWER"||a.role_code==="VILLAGE_VALIDATOR").map((a:any)=>a.scope_territory_id).filter(Boolean)||[];
+      const allowed=assignments?.filter((a:any)=>["PLATFORM_ADMIN","RT_OPERATOR","RW_REVIEWER","VILLAGE_VALIDATOR"].includes(a.role_code)).map((a:any)=>a.scope_territory_id).filter(Boolean)||[];
       if(ownAssignment.role_code!=="PLATFORM_ADMIN"&&!allowed.includes(event.territory_id)) return json({ok:false,error:"Emergency location di luar scope"},403);
       const {data:existing,error:existingError}=await admin.from("emergency_response_cases").select("*").eq("location_event_id",eventId).maybeSingle();
       if(existingError) throw existingError;
-      let nextStatus=action==="acknowledge"?"ACKNOWLEDGED":action==="respond"?"RESPONDING":action==="resolve"?"RESOLVED":"CANCELLED";
+      if(!existing) return json({ok:false,error:"Kasus emergency belum tersedia"},409);
+      const role=ownAssignment.role_code;
+      const allowedByRole:any={acknowledge:["RT_OPERATOR","PLATFORM_ADMIN"],respond:["RW_REVIEWER","PLATFORM_ADMIN"],resolve:["VILLAGE_VALIDATOR","PLATFORM_ADMIN"],cancel:["RT_OPERATOR","RW_REVIEWER","VILLAGE_VALIDATOR","PLATFORM_ADMIN"]};
+      if(!allowedByRole[action].includes(role)) return json({ok:false,error:"Role belum berwenang untuk tindakan ini"},403);
+      const expected:any={acknowledge:"OPEN",respond:"ACKNOWLEDGED",resolve:"RESPONDING"};
+      if(action!=="cancel"&&existing.status!==expected[action]) return json({ok:false,error:"Transisi status tidak valid"},409);
+      if(action==="cancel"&&!["OPEN","ACKNOWLEDGED"].includes(existing.status)) return json({ok:false,error:"Kasus tidak dapat dibatalkan pada status ini"},409);
+      const nextStatus=action==="acknowledge"?"ACKNOWLEDGED":action==="respond"?"RESPONDING":action==="resolve"?"RESOLVED":"CANCELLED";
       const now=new Date().toISOString();
       const patch:any={status:nextStatus,updated_at:now};
       if(action==="acknowledge"){patch.acknowledged_by=user.id;patch.acknowledged_at=now}
       if(action==="respond") patch.responding_at=now;
       if(action==="resolve"){patch.resolved_by=user.id;patch.resolved_at=now;patch.resolution_note=String(body.resolution_note||"").slice(0,1000)||null}
-      if(existing){
-        const {data:updated,error:updateError}=await admin.from("emergency_response_cases").update(patch).eq("id",existing.id).select("*").single();
-        if(updateError) throw updateError;
-        await admin.from("audit_logs").insert({action:"EMERGENCY_RESPONSE_"+nextStatus,actor_user_id:user.id,territory_id:event.territory_id,metadata:{case_id:existing.id,location_event_id:eventId}});
-        return json({ok:true,case:updated});
+      const {data:updated,error:updateError}=await admin.from("emergency_response_cases").update(patch).eq("id",existing.id).select("*").single();
+      if(updateError) throw updateError;
+      await admin.from("emergency_response_events").insert({case_id:existing.id,status:nextStatus,note:action==="resolve"?String(body.resolution_note||"Kasus diselesaikan.").slice(0,1000):"Status diperbarui oleh "+role+"."});
+      if(action==="acknowledge") await admin.from("emergency_notifications").insert({case_id:existing.id,territory_id:event.territory_id,target_role:"RW_REVIEWER",notification_type:"IN_APP",title:"Emergency menunggu review RW",body:"Kasus EMG-"+String(eventId).slice(0,8).toUpperCase()+" telah di-ACK oleh RT."});
+      if(action==="respond") await admin.from("emergency_notifications").insert({case_id:existing.id,territory_id:event.territory_id,target_role:"VILLAGE_VALIDATOR",notification_type:"IN_APP",title:"Emergency menunggu validasi Desa",body:"Kasus EMG-"+String(eventId).slice(0,8).toUpperCase()+" sedang direspons."});
+      await admin.from("audit_logs").insert({action:"EMERGENCY_RESPONSE_"+nextStatus,actor_user_id:user.id,territory_id:event.territory_id,metadata:{case_id:existing.id,location_event_id:eventId}});
+      return json({ok:true,case:updated});
+    }
+
+    if(action==="command"){
+      if(!ownAssignment) return json({ok:false,error:"Role emergency belum tersedia"},403);
+      const requested=body.territory_id;
+      const roleNames=assignments?.filter((a:any)=>["RT_OPERATOR","RW_REVIEWER","VILLAGE_VALIDATOR","PLATFORM_ADMIN"].includes(a.role_code)).map((a:any)=>a.role_code)||[];
+      const isAdmin=roleNames.includes("PLATFORM_ADMIN");
+      const allowedTerritories=assignments?.filter((a:any)=>["RT_OPERATOR","RW_REVIEWER","VILLAGE_VALIDATOR","PLATFORM_ADMIN"].includes(a.role_code)).map((a:any)=>a.scope_territory_id).filter(Boolean)||[];
+      let cq=admin.from("emergency_response_cases").select("*").order("created_at",{ascending:false});
+      if(!isAdmin) cq=cq.in("territory_id",allowedTerritories);
+      if(requested) cq=cq.eq("territory_id",requested);
+      const {data:cases,error:caseError}=await cq.limit(100);
+      if(caseError) throw caseError;
+      const ids=(cases||[]).map((x:any)=>x.id);
+      let events:any[]=[]; let notifications:any[]=[];
+      if(ids.length){
+        const er=await admin.from("emergency_response_events").select("id,case_id,status,note,created_at").in("case_id",ids).order("created_at",{ascending:true});
+        if(er.error) throw er.error; events=er.data||[];
+        let nq=admin.from("emergency_notifications").select("id,case_id,territory_id,target_role,notification_type,title,body,status,created_at,read_at").in("case_id",ids).order("created_at",{ascending:false});
+        if(!isAdmin) nq=nq.in("target_role",roleNames);
+        const nr=await nq.limit(200); if(nr.error) throw nr.error; notifications=nr.data||[];
       }
-      if(action!=="acknowledge") return json({ok:false,error:"Kasus harus di-ACK terlebih dahulu"},409);
-      const {data:created,error:createError}=await admin.from("emergency_response_cases").insert({location_event_id:event.id,territory_id:event.territory_id,status:"ACKNOWLEDGED",acknowledged_by:user.id,acknowledged_at:now}).select("*").single();
-      if(createError) throw createError;
-      await admin.from("audit_logs").insert({action:"EMERGENCY_RESPONSE_ACKNOWLEDGED",actor_user_id:user.id,territory_id:event.territory_id,metadata:{case_id:created.id,location_event_id:eventId}});
-      return json({ok:true,case:created});
+      return json({ok:true,role_names:roleNames,cases:cases||[],events,notifications});
     }
 
     if(action==="active"){
