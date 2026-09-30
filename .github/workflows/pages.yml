@@ -27,6 +27,9 @@ jobs:
         with:
           enablement: true
 
+      - name: Validate website JavaScript
+        run: node --check website/app.js
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
