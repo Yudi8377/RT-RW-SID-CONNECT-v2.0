@@ -30,7 +30,7 @@
     const before=modal?.classList.contains('show');
     probe.click();
     const passed=!!modal&&!before&&modal.classList.contains('show');
-    if(passed){window.smartVillage?.openModal&&window.smartVillage.openModal('');}
+    if(passed){modal.classList.remove('show');modal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open');}
     probe.remove();
     if(!passed)installFallback();
     else window.__SMART_VILLAGE_ACTION_GUARD__='healthy';
