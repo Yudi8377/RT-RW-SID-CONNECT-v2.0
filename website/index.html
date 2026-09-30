@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Smart Village — Desa Cerdas: layanan, informasi, komunitas, berita, dan ekonomi desa dalam satu ruang digital.">
+  <title>Smart Village — Desa Cerdas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="./theme.css">
+</head>
+<body>
+<header class="site-header">
+  <nav class="navbar navbar-expand-lg">
+    <div class="container-xl">
+      <a class="navbar-brand brand" href="#home"><span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span><span>SMART VILLAGE<small>DESA CERDAS ENGINE</small></span></a>
+      <button class="navbar-toggler border-0 shadow-none" data-bs-toggle="collapse" data-bs-target="#mainNav"><i class="bi bi-list fs-2"></i></button>
+      <div id="mainNav" class="collapse navbar-collapse">
+        <ul class="navbar-nav mx-auto gap-lg-1">
+          <li><a class="nav-link active" href="#home">Beranda</a></li>
+          <li><a class="nav-link" href="#layanan">Layanan</a></li>
+          <li><a class="nav-link" href="#news">News</a></li>
+          <li><a class="nav-link" href="#ruang-warga">Ruang Warga</a></li><li><a class="nav-link" href="#agenda">Agenda</a></li>
+          <li><a class="nav-link" href="#ekonomi">Ekonomi Desa</a></li>
+          <li><a class="nav-link" href="#desa">Tentang Desa</a></li>
+        </ul>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-civic" data-action="login"><i class="bi bi-person-circle me-1"></i>Masuk</button>
+          <button class="btn btn-civic" data-action="services">Layanan Warga</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<main id="home">
+<section class="hero">
+  <div class="hero-orb orb-a"></div><div class="hero-orb orb-b"></div>
+  <div class="container-xl position-relative">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-7">
+        <span class="eyebrow"><i class="bi bi-broadcast-pin"></i> CIVIC DIGITAL EXPERIENCE</span>
+        <h1>Desa yang <em>terhubung.</em><br>Warga yang <em>terlayani.</em></h1>
+        <p class="hero-copy">Satu ruang digital untuk layanan desa, informasi publik, kegiatan warga, komunikasi komunitas, dan pertumbuhan ekonomi lokal.</p>
+        <div class="d-flex flex-wrap gap-3 mt-4">
+          <a class="btn btn-civic btn-lg px-4" href="#layanan">Jelajahi layanan <i class="bi bi-arrow-up-right ms-2"></i></a>
+          <a class="btn btn-ghost-light btn-lg px-4" href="#news">Baca kabar desa</a>
+        </div>
+        <div class="hero-proof mt-5">
+          <div><strong>RT</strong><span>Terhubung</span></div><div><strong>RW</strong><span>Terkelola</span></div><div><strong>DESA</strong><span>Tervalidasi</span></div><div><strong>SID</strong><span>Terintegrasi</span></div>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="living-map-card">
+          <div class="map-top"><span><i class="bi bi-geo-alt-fill"></i> <span id="mapTitle">Peta Kehidupan Desa</span></span><span class="d-flex align-items-center gap-2"><button class="map-area-btn" data-action="area"><i class="bi bi-sliders2"></i> Sesuaikan RT/RW</button><span class="live-dot">LIVE</span></span></div>
+          <div class="map-canvas">
+            <div class="map-road r1"></div><div class="map-road r2"></div><div class="map-road r3"></div>
+            <div class="map-river"></div>
+            <button class="map-pin p1" data-toast="RT 04 · 128 keluarga"><i class="bi bi-geo-alt-fill"></i></button>
+            <button class="map-pin p2" data-toast="Balai Desa · Pelayanan publik"><i class="bi bi-building-fill"></i></button>
+            <button class="map-pin p3" data-toast="UMKM · 24 pelaku usaha"><i class="bi bi-shop"></i></button>
+            <button class="map-pin p4" data-toast="RW 02 · 5 RT"><i class="bi bi-people-fill"></i></button>
+            <div class="map-label l1" id="mapAreaLabel">PUSAT DESA</div><div class="map-label l2">KAWASAN USAHA</div><div class="map-context" id="mapContext"><i class="bi bi-people"></i> Semua wilayah</div>
+          </div>
+          <div class="map-footer"><span><i class="bi bi-shield-check"></i> Data publik terkurasi</span><span>GIS Ready</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="quick-strip">
+  <div class="container-xl">
+    <div class="row g-0">
+      <a href="#layanan" class="quick-item"><span class="quick-icon"><i class="bi bi-file-earmark-text"></i></span><span><small>LAYANAN</small><strong>Administrasi Desa</strong></span><i class="bi bi-arrow-right"></i></a>
+      <a href="#ruang-warga" class="quick-item"><span class="quick-icon"><i class="bi bi-chat-square-dots"></i></span><span><small>KOMUNITAS</small><strong>Ruang Warga</strong></span><i class="bi bi-arrow-right"></i></a>
+      <a href="#news" class="quick-item"><span class="quick-icon"><i class="bi bi-newspaper"></i></span><span><small>INFORMASI</small><strong>Kabar Desa</strong></span><i class="bi bi-arrow-right"></i></a>
+      <a href="#ekonomi" class="quick-item"><span class="quick-icon"><i class="bi bi-shop-window"></i></span><span><small>EKONOMI</small><strong>Jolie Business OS</strong></span><i class="bi bi-arrow-right"></i></a>
+    </div>
+  </div>
+</section>
+
+<section id="layanan" class="section-pad">
+  <div class="container-xl">
+    <div class="section-head"><div><span class="eyebrow dark">LAYANAN PUBLIK</span><h2>Urusan desa, lebih <em>dekat.</em></h2></div><button class="text-link action-link" data-action="services">Lihat semua layanan <i class="bi bi-arrow-up-right"></i></button></div>
+    <div class="row g-3">
+      <div class="col-md-6 col-xl-3"><div class="service-card featured"><span class="service-number">01</span><i class="bi bi-file-earmark-person"></i><h3>Administrasi Kependudukan</h3><p>Informasi persyaratan dan alur pengajuan layanan administrasi.</p><button class="service-action" data-action="population">Mulai layanan <i class="bi bi-arrow-right"></i></button></div></div>
+      <div class="col-md-6 col-xl-3"><div class="service-card"><span class="service-number">02</span><i class="bi bi-megaphone"></i><h3>Pengaduan Warga</h3><p>Sampaikan laporan lingkungan, fasilitas, keamanan, dan layanan.</p><a href="#ruang-warga">Buat laporan <i class="bi bi-arrow-right"></i></a></div></div>
+      <div class="col-md-6 col-xl-3"><div class="service-card"><span class="service-number">03</span><i class="bi bi-calendar2-week"></i><h3>Agenda & Kegiatan</h3><p>Jadwal musyawarah, kerja bakti, pelayanan, dan kegiatan desa.</p><a href="#agenda">Lihat agenda <i class="bi bi-arrow-right"></i></a></div></div>
+      <div class="col-md-6 col-xl-3"><div class="service-card"><span class="service-number">04</span><i class="bi bi-clipboard2-check"></i><h3>Lacak Permohonan</h3><p>Pantau status proses layanan tanpa perlu datang berulang kali.</p><button class="service-action" data-action="tracking">Lacak status <i class="bi bi-arrow-right"></i></button></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="signal-section"><div class="container-xl"><div class="signal-grid"><div class="signal-main"><span class="eyebrow dark">DESA HARI INI</span><h2>Satu layar untuk melihat <em>denyut desa.</em></h2><p>Informasi publik yang ringkas, agenda yang relevan, layanan yang mudah ditemukan, dan ruang partisipasi yang tetap terhubung dengan tata kelola desa.</p></div><div class="signal-stats"><div><strong>24</strong><span>UMKM aktif</span></div><div><strong>18</strong><span>kegiatan bulan ini</span></div><div><strong>12</strong><span>layanan digital</span></div><div><strong>07</strong><span>agenda mendatang</span></div></div></div></div></section>
+
+<section id="news" class="news-section">
+  <div class="container-xl">
+    <div class="section-head light"><div><span class="eyebrow">KABAR DESA</span><h2>Yang sedang terjadi <em>di sekitar kita.</em></h2></div><button class="text-link light-link action-link" data-action="news">Semua berita <i class="bi bi-arrow-up-right"></i></button></div>
+    <div class="row g-4">
+      <div class="col-lg-7"><article class="news-feature"><div class="news-photo photo-village"><span class="news-tag">DESA</span></div><div class="news-feature-copy"><small>29 SEPTEMBER 2026 · 4 MIN BACA</small><h3>Digitalisasi desa bukan sekadar teknologi. Ia tentang membuat layanan terasa lebih dekat.</h3><p>Smart Village mempertemukan informasi, pelayanan, komunitas, dan ekonomi lokal dalam satu pengalaman digital yang mudah digunakan warga.</p><button class="news-action" data-action="article" data-title="Digitalisasi desa bukan sekadar teknologi">Baca selengkapnya <i class="bi bi-arrow-up-right"></i></button></div></article></div>
+      <div class="col-lg-5 d-flex flex-column gap-3">
+        <article class="news-row"><div class="mini-photo photo-umkm"></div><div><span>EKONOMI</span><h4>UMKM lokal menemukan ruang baru untuk tumbuh.</h4><small>28 SEP 2026</small></div></article>
+        <article class="news-row"><div class="mini-photo photo-community"></div><div><span>KOMUNITAS</span><h4>Gotong royong menjadi agenda bersama warga.</h4><small>27 SEP 2026</small></div></article>
+        <article class="news-row"><div class="mini-photo photo-service"></div><div><span>LAYANAN</span><h4>Informasi pelayanan desa kini lebih mudah ditemukan.</h4><small>26 SEP 2026</small></div></article>
+      </div>
+    </div>
+    <div class="editorial-note mt-5"><span>MEDIA LAYER</span><strong>Suara Ibukota</strong><p>Ruang editorial dapat dikembangkan sebagai lapisan media terpisah dari sistem pemerintahan desa, dengan governance dan verifikasi tersendiri.</p></div>
+  </div>
+</section>
+
+<section id="ruang-warga" class="section-pad">
+  <div class="container-xl">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-5"><span class="eyebrow dark">RUANG WARGA</span><h2>Percakapan yang punya <em>arah.</em></h2><p class="lead muted">Bukan sekadar chat. Ruang komunikasi yang menghubungkan pertanyaan, pengaduan, pengumuman, dan proses pelayanan dengan konteks yang jelas.</p><div class="chat-topics"><span><i class="bi bi-chat"></i> Tanya Desa</span><span><i class="bi bi-megaphone"></i> Pengumuman</span><span><i class="bi bi-exclamation-circle"></i> Pengaduan</span><span><i class="bi bi-people"></i> Komunitas</span></div><button class="btn btn-civic mt-4" data-action="chat">Masuk Ruang Warga <i class="bi bi-arrow-up-right ms-2"></i></button></div>
+      <div class="col-lg-7"><div class="chat-window"><div class="chat-head"><div class="avatar">SV</div><div><strong>Ruang Warga · Desa Cerdas</strong><small>Komunitas publik</small></div><span class="ms-auto online"><i class="bi bi-circle-fill"></i> Terhubung</span></div><div class="chat-body"><div class="chat-bubble incoming"><small>Warga · RT 04</small><p>Apakah jadwal kerja bakti minggu ini sudah ditetapkan?</p><time>08:42</time></div><div class="chat-bubble outgoing"><small>Informasi Desa</small><p>Ya. Kerja bakti dijadwalkan Sabtu, 07.00 WIB. Detail agenda tersedia di halaman kegiatan.</p><time>08:43</time></div><div class="chat-bubble incoming"><small>Warga · RT 04</small><p>Terima kasih. Apakah bisa mengajak warga lain?</p><time>08:44</time></div></div><div class="chat-compose"><button class="chat-input" data-action="chat">Tulis pesan atau pertanyaan...</button><button data-action="chat"><i class="bi bi-arrow-up"></i></button></div></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="ekonomi" class="economy-section">
+  <div class="container-xl">
+    <div class="row align-items-end g-4">
+      <div class="col-lg-7"><span class="eyebrow">EKONOMI DESA</span><h2>Potensi lokal menjadi <em>nilai.</em></h2><p>Jolie Business OS menjadi lapisan commerce Smart Village: membantu pelaku usaha lokal tampil, ditemukan, dan terhubung dengan ekosistem desa.</p></div>
+      <div class="col-lg-5 text-lg-end"><button class="btn btn-gold" data-action="economy">Jelajahi ekonomi desa <i class="bi bi-arrow-up-right ms-2"></i></button></div>
+    </div>
+    <div class="economy-grid mt-5"><div><small>PELAKU USAHA</small><strong>24+</strong><span>UMKM lokal</span></div><div><small>PRODUK</small><strong>86</strong><span>produk & jasa</span></div><div><small>KEGIATAN</small><strong>12</strong><span>agenda ekonomi</span></div><div class="economy-quote"><i class="bi bi-quote"></i><p>Ekonomi desa tumbuh ketika warga memiliki akses yang sama terhadap informasi dan pasar.</p></div></div>
+  </div>
+</section>
+
+<section id="agenda" class="agenda-section"><div class="container-xl"><div class="section-head"><div><span class="eyebrow dark">AGENDA WARGA</span><h2>Yang akan datang, <em>terlihat.</em></h2></div><button class="text-link action-link" data-action="agenda">Buka kalender <i class="bi bi-arrow-up-right"></i></button></div><div class="agenda-list"><div class="agenda-item"><div class="agenda-date"><strong>05</strong><span>OKT</span></div><div><span class="agenda-type">GOTONG ROYONG</span><h3>Kerja Bakti Lingkungan RT 04</h3><p>07.00 WIB · Lapangan RT 04</p></div><button class="agenda-arrow" data-action="agenda"><i class="bi bi-arrow-up-right"></i></button></div><div class="agenda-item"><div class="agenda-date"><strong>08</strong><span>OKT</span></div><div><span class="agenda-type">MUSYAWARAH</span><h3>Forum RW · Rencana Kegiatan Desa</h3><p>19.30 WIB · Balai RW 02</p></div><span class="agenda-arrow"><i class="bi bi-arrow-up-right"></i></span></div><div class="agenda-item"><div class="agenda-date"><strong>12</strong><span>OKT</span></div><div><span class="agenda-type">EKONOMI</span><h3>Pasar UMKM & Produk Lokal</h3><p>08.00 WIB · Alun-alun Desa</p></div><span class="agenda-arrow"><i class="bi bi-arrow-up-right"></i></span></div></div></div></section>
+
+<section id="desa" class="section-pad">
+  <div class="container-xl">
+    <div class="section-head"><div><span class="eyebrow dark">TRANSPARANSI & INFORMASI</span><h2>Mengenal desa, <em>lebih dalam.</em></h2></div></div>
+    <div class="row g-3">
+      <div class="col-md-4"><div class="info-card"><i class="bi bi-bar-chart-line"></i><h3>Data & Pembangunan</h3><p>Informasi publik yang aman ditampilkan: demografi ringkas, program, indikator pembangunan, dan agenda desa.</p><button class="info-action" data-action="dashboard">Lihat dashboard</button></div></div>
+      <div class="col-md-4"><div class="info-card"><i class="bi bi-map"></i><h3>Wilayah & GIS</h3><p>Peta interaktif untuk mengenal RT, RW, fasilitas publik, kegiatan, dan potensi ekonomi.</p><button class="info-action" data-action="gis">Buka peta</button></div></div>
+      <div class="col-md-4"><div class="info-card"><i class="bi bi-shield-check"></i><h3>Data Terlindungi</h3><p>Data operasional dan data pribadi tidak otomatis menjadi data publik. Akses mengikuti peran dan batas informasi.</p><button class="info-action" data-action="privacy">Pelajari prinsip data</button></div></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="footer"><div class="container-xl"><div class="row g-4 align-items-start"><div class="col-lg-5"><div class="brand footer-brand"><span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span><span>SMART VILLAGE<small>DESA CERDAS ENGINE</small></span></div><p>Public Experience Layer untuk desa yang terhubung, transparan, dan berorientasi pada warga.</p></div><div class="col-6 col-lg-2"><small>PLATFORM</small><a href="#layanan">Layanan</a><a href="#news">News</a><a href="#ruang-warga">Ruang Warga</a></div><div class="col-6 col-lg-2"><small>DESA</small><a href="#desa">Profil</a><a href="#desa">Data Publik</a><a href="#desa">GIS</a></div><div class="col-lg-3"><small>EKOSISTEM</small><a href="#ekonomi">Jolie Business OS</a><a href="#news">Suara Ibukota</a><a href="#">Smart Village Engine</a></div></div><div class="footer-trust"><span><i class="bi bi-shield-check"></i> Public Information Boundary</span><span><i class="bi bi-diagram-3"></i> RT · RW · Desa · SID</span><span><i class="bi bi-shop"></i> Jolie Business OS</span><span><i class="bi bi-newspaper"></i> Editorial Layer</span></div><div class="footer-bottom"><span>© 2026 Smart Village / Desa Cerdas Engine</span><span>Public information layer · Data boundaries apply</span></div></div></footer>
+
+<div id="actionModal" class="civic-modal" aria-hidden="true"><div class="civic-modal-backdrop" data-close-modal></div><div class="civic-modal-panel"><button class="modal-close" data-close-modal><i class="bi bi-x-lg"></i></button><div id="modalContent"></div></div></div>
+<div id="toast" class="civic-toast"><i class="bi bi-check-circle-fill"></i><span></span></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
