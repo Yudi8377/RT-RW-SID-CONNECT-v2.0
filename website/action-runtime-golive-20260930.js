@@ -1,25 +1,31 @@
 (()=>{
   const install=()=>{
-    if(window.__SMART_VILLAGE_CANONICAL_ACTION_V3__) return;
-    window.__SMART_VILLAGE_CANONICAL_ACTION_V3__=true;
+    if(window.__SMART_VILLAGE_CANONICAL_ACTION_V4__) return;
+    window.__SMART_VILLAGE_CANONICAL_ACTION_V4__=true;
     const dispatch=(e)=>{
-      const el=e.target.closest?.('[data-action]');
-      if(!el)return;
-      const action=el.dataset.action;
+      const target=e.target.closest?.('[data-action],[data-start-item],[data-dashboard-tab],[data-service-item],[data-service-start],[data-service-back],[data-form-back],[data-form-menu],[data-menu-main],[data-home],[data-area],[data-share-emergency],[data-economy-register],[data-economy-back]');
+      if(!target)return;
       const api=window.smartVillage;
-      if(api?.handleAction){e.preventDefault();e.stopImmediatePropagation();try{api.handleAction(action)}catch(err){console.error('Smart Village action failed:',err)}return;}
-      const open=api?.openModal,service=api?.serviceModal;if(!open&&!service)return;
-      e.preventDefault();e.stopImmediatePropagation();
+      if(!api)return;
       try{
-        if(action==='services'&&service){service();return;}
-        if(['population','complaint','letter','activities','tracking','public-data'].includes(action)&&service){service(action);return;}
-        const titles={news:'NEWS ENGINE',article:'ARTIKEL',dashboard:'DASHBOARD PUBLIK',gis:'GIS DESA',privacy:'PRINSIP DATA',login:'MASUK WARGA',chat:'RUANG WARGA',agenda:'AGENDA WARGA',economy:'JOLIE BUSINESS OS'};
-        const copies={news:'Berita dan informasi publik.',article:'Konten editorial lengkap.',dashboard:'Indikator publik agregat.',gis:'Peta publik dengan batas data aman.',privacy:'Transparansi sumber, klasifikasi, dan penggunaan data.',login:'Masuk ke SIM RT/RW untuk layanan personal.',chat:'Ruang komunikasi warga.',agenda:'Kalender kegiatan warga.',economy:'Direktori ekonomi lokal Smart Village.'};
-        if(open)open('<span class="eyebrow dark">SMART VILLAGE</span><h2 class="modal-title">'+(titles[action]||'SMART VILLAGE')+'</h2><p class="modal-copy">'+(copies[action]||'Ruang digital desa.')+'</p><div class="modal-cta"><button class="btn btn-outline-civic" data-menu-main>Menu utama</button><button class="btn btn-outline-civic" data-home>Home</button></div>');
-      }catch(err){console.error('Smart Village fallback action failed:',err)}
+        if(target.matches('[data-action]') && api.handleAction){e.preventDefault();e.stopImmediatePropagation();api.handleAction(target.dataset.action);return;}
+        if(target.matches('[data-start-item]') && api.startService){e.preventDefault();e.stopImmediatePropagation();api.startService(target.dataset.startItem,Number(target.dataset.itemIndex));return;}
+        if(target.matches('[data-dashboard-tab]') && api.loadDashboardTab){e.preventDefault();e.stopImmediatePropagation();document.querySelectorAll('[data-dashboard-tab]').forEach(x=>x.classList.toggle('selected',x===target));api.loadDashboardTab(target.dataset.dashboardTab);return;}
+        if(target.matches('[data-service-item]') && api.itemModal){e.preventDefault();e.stopImmediatePropagation();api.itemModal(target.dataset.serviceItem,Number(target.dataset.item));return;}
+        if(target.matches('[data-service-start]') && api.startService){e.preventDefault();e.stopImmediatePropagation();api.startService(target.dataset.serviceStart);return;}
+        if(target.matches('[data-service-back]') && api.serviceModal){e.preventDefault();e.stopImmediatePropagation();api.serviceModal(target.dataset.serviceBack);return;}
+        if(target.matches('[data-form-back]') && api.itemModal){e.preventDefault();e.stopImmediatePropagation();const [svc,idx]=target.dataset.formBack.split(':');api.itemModal(svc,Number(idx));return;}
+        if(target.matches('[data-form-menu]') && api.serviceModal){e.preventDefault();e.stopImmediatePropagation();api.serviceModal(target.dataset.formMenu);return;}
+        if(target.matches('[data-menu-main]') && api.serviceModal){e.preventDefault();e.stopImmediatePropagation();api.serviceModal();return;}
+        if(target.matches('[data-home]') && api.closeModal){e.preventDefault();e.stopImmediatePropagation();api.closeModal();window.scrollTo({top:0,behavior:'smooth'});return;}
+        if(target.matches('[data-area]') && api.applyArea){e.preventDefault();e.stopImmediatePropagation();api.applyArea(target.dataset.area);api.closeModal?.();api.showToast?.('Wilayah aktif: '+(api.areas?.[target.dataset.area]?.label||target.dataset.area));return;}
+        if(target.matches('[data-share-emergency]') && api.shareEmergencyLocation){e.preventDefault();e.stopImmediatePropagation();api.shareEmergencyLocation();return;}
+        if(target.matches('[data-economy-register]') && api.openBusinessRegistration){e.preventDefault();e.stopImmediatePropagation();api.openBusinessRegistration();return;}
+        if(target.matches('[data-economy-back]') && api.openEconomy){e.preventDefault();e.stopImmediatePropagation();api.openEconomy();return;}
+      }catch(err){console.error('Smart Village canonical action failed:',err);api.showToast?.('Tindakan tidak dapat dijalankan. Silakan coba lagi.');}
     };
     document.addEventListener('click',dispatch,true);
-    document.documentElement.dataset.smartVillageActions='ready';
+    document.documentElement.dataset.smartVillageActions='ready-v4';
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
