@@ -119,6 +119,47 @@ Deno.serve(async(req)=>{
       return json({ok:true,role_names:roleNames,cases:cases||[],events,notifications});
     }
 
+    if(action==="report"){
+      if(!ownAssignment) return json({ok:false,error:"Role emergency belum tersedia"},403);
+      const requested=body.territory_id;
+      const roleNames=assignments?.filter((a:any)=>["RT_OPERATOR","RW_REVIEWER","VILLAGE_VALIDATOR","PLATFORM_ADMIN"].includes(a.role_code)).map((a:any)=>a.role_code)||[];
+      const isAdmin=roleNames.includes("PLATFORM_ADMIN");
+      const allowedTerritories=assignments?.filter((a:any)=>["RT_OPERATOR","RW_REVIEWER","VILLAGE_VALIDATOR","PLATFORM_ADMIN"].includes(a.role_code)).map((a:any)=>a.scope_territory_id).filter(Boolean)||[];
+      let cq=admin.from("emergency_response_cases").select("*").order("created_at",{ascending:false});
+      if(!isAdmin) cq=cq.in("territory_id",allowedTerritories);
+      if(requested) cq=cq.eq("territory_id",requested);
+      const {data:cases,error:caseError}=await cq.limit(500);
+      if(caseError) throw caseError;
+      const ids=(cases||[]).map((x:any)=>x.id);
+      let events:any[]=[]; let notifications:any[]=[];
+      if(ids.length){
+        const er=await admin.from("emergency_response_events").select("id,case_id,status,note,created_at").in("case_id",ids).order("created_at",{ascending:true});
+        if(er.error) throw er.error; events=er.data||[];
+        let nq=admin.from("emergency_notifications").select("id,case_id,territory_id,target_role,notification_type,title,body,status,created_at,read_at").in("case_id",ids).order("created_at",{ascending:false});
+        if(!isAdmin) nq=nq.in("target_role",roleNames);
+        const nr=await nq.limit(1000); if(nr.error) throw nr.error; notifications=nr.data||[];
+      }
+      const now=Date.now();
+      const byStatus:any={OPEN:0,ACKNOWLEDGED:0,RESPONDING:0,RESOLVED:0,CANCELLED:0};
+      let breaches=0, escalated=0, ackTotal=0, ackCount=0, resolutionTotal=0, resolutionCount=0;
+      for(const c of (cases||[])){
+        if(byStatus[c.status]!==undefined) byStatus[c.status]++;
+        if(Number(c.escalation_level||0)>0) escalated++;
+        if(c.sla_due_at && new Date(c.sla_due_at).getTime() < (c.acknowledged_at?new Date(c.acknowledged_at).getTime():now) && !["RESOLVED","CANCELLED"].includes(c.status)) breaches++;
+        if(c.acknowledged_at){ackTotal+=new Date(c.acknowledged_at).getTime()-new Date(c.created_at).getTime();ackCount++}
+        if(c.resolved_at){resolutionTotal+=new Date(c.resolved_at).getTime()-new Date(c.created_at).getTime();resolutionCount++}
+      }
+      const notificationCounts:any={PENDING:0,DELIVERED:0,READ:0,DISMISSED:0};
+      for(const n of notifications) if(notificationCounts[n.status]!==undefined) notificationCounts[n.status]++;
+      const recentEvents=events.slice(-100).reverse().map((e:any)=>({case_code:"EMG-"+String((cases||[]).find((c:any)=>c.id===e.case_id)?.location_event_id||e.case_id).slice(0,8).toUpperCase(),status:e.status,note:e.note,created_at:e.created_at}));
+      return json({ok:true,scope:{role_names:roleNames,territory_id:requested||null},summary:{
+        total_cases:(cases||[]).length,...byStatus,sla_breaches:breaches,escalated_cases:escalated,
+        avg_ack_minutes:ackCount?Math.round(ackTotal/ackCount/60000):0,
+        avg_resolution_minutes:resolutionCount?Math.round(resolutionTotal/resolutionCount/60000):0,
+        notification_counts:notificationCounts
+      },timeline:recentEvents});
+    }
+
     if(action==="active"){
       if(!ownAssignment) return json({ok:false,error:"Role emergency belum tersedia"},403);
       const requested=body.territory_id;
