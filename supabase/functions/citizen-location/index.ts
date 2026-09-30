@@ -60,7 +60,18 @@ Deno.serve(async(req)=>{
       if(requested) q=q.eq("territory_id",requested);
       const {data,error}=await q.limit(100);
       if(error) throw error;
-      return json({ok:true,records:data||[]});
+      const records=(data||[]).map((x:any)=>({
+        id:x.id,
+        case_code:"EMG-"+String(x.id).slice(0,8).toUpperCase(),
+        territory_id:x.territory_id,
+        latitude:x.latitude,
+        longitude:x.longitude,
+        accuracy_m:x.accuracy_m,
+        captured_at:x.captured_at,
+        expires_at:x.expires_at,
+        reason:x.reason
+      }));
+      return json({ok:true,records});
     }
     return json({ok:false,error:"Unsupported action"},400);
   }catch(e){ return json({ok:false,error:e?.message||"Unexpected error"},500); }
