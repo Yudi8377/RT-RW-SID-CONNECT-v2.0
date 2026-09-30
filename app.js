@@ -579,7 +579,7 @@ function renderLiveRows(rows){
 }
 
 async function emergencyLocationWorkspace(){
-  if(!sb||ADMIN_PREVIEW)return '<div class="module-head"><div><div class="eyebrow dark">GIS / EMERGENCY LOCATION</div><h2>Emergency Location Center</h2><p>Workspace petugas untuk melihat lokasi darurat yang sedang aktif.</p></div><span class="status">AUTHENTICATED ONLY</span></div><section class="panel wide"><div class="module-note"><b>Preview boundary.</b><span>Emergency Location Center hanya tersedia pada sesi terautentikasi dengan role dan scope wilayah yang sesuai.</span></div></section>';
+  if(!sb||ADMIN_PREVIEW)return '<div class="module-head"><div><div class="eyebrow dark">GIS / EMERGENCY LOCATION</div><h2>Emergency Location Center</h2><p>Workspace petugas untuk melihat lokasi darurat yang sedang aktif.</p></div><span class="status">AUTHENTICATED ONLY</span></div>';
   let records=[],error="";
   try{
     const r=await sb.functions.invoke("citizen-location",{body:{action:"active"}});
@@ -591,14 +591,21 @@ async function emergencyLocationWorkspace(){
   const remain=t=>Math.max(0,Math.ceil((new Date(t).getTime()-now)/60000));
   const first=records[0];
   const map=first?'<div class="panel" style="padding:0;overflow:hidden;border-radius:16px"><iframe title="Google Maps Emergency Location" loading="lazy" style="width:100%;height:380px;border:0" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q='+encodeURIComponent(first.latitude+','+first.longitude)+'&output=embed"></iframe></div>':'<div class="empty-state"><b>Tidak ada lokasi darurat aktif.</b><span>Ketika warga mengaktifkan Emergency Location, lokasi akan muncul di pusat ini selama masa berlaku.</span></div>';
+  const act=async(id,action)=>{
+    const body={action,location_event_id:id};
+    if(action==="resolve"){const note=prompt("Catatan penyelesaian (opsional):","");if(note!==null)body.resolution_note=note}
+    const r=await sb.functions.invoke("citizen-location",{body});
+    if(r.error||!r.data?.ok)alert(r.data?.error||r.error?.message||"Aksi gagal");
+    const el=document.getElementById("workspace");if(el)el.innerHTML=await emergencyLocationWorkspace();
+  };
   const cards=records.map(x=>{
-    const mins=remain(x.expires_at);
-    const code=x.case_code||("EMG-"+String(x.id||"").slice(0,8).toUpperCase());
-    return '<div class="panel" style="border-left:4px solid #d2a74d"><div class="panel-head"><div><small>EMERGENCY CASE</small><h3>'+esc(code)+'</h3></div><span class="status active">'+mins+' MENIT</span></div><div class="module-note"><span><b>Lokasi:</b> '+Number(x.latitude).toFixed(6)+', '+Number(x.longitude).toFixed(6)+'</span><span><b>Akurasi:</b> '+(x.accuracy_m==null?"—":Math.round(x.accuracy_m)+" m")+'</span><span><b>Dibagikan:</b> '+fmt(x.captured_at)+'</span><span><b>Kedaluwarsa:</b> '+fmt(x.expires_at)+'</span><span><b>Keterangan:</b> '+esc(x.reason||"Tidak ada keterangan")+'</span></div><a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(x.latitude+','+x.longitude)+'">Buka Google Maps</a></div>';
+    const mins=remain(x.expires_at),code=x.case_code||("EMG-"+String(x.id||"").slice(0,8).toUpperCase());
+    const st=x.response_status||"OPEN";
+    const buttons=st==="OPEN"?'<button class="btn primary" data-emergency-action="acknowledge" data-event-id="'+esc(x.id)+'">ACK</button>':st==="ACKNOWLEDGED"?'<button class="btn primary" data-emergency-action="respond" data-event-id="'+esc(x.id)+'">RESPOND</button><button class="btn" data-emergency-action="cancel" data-event-id="'+esc(x.id)+'">Cancel</button>':st==="RESPONDING"?'<button class="btn primary" data-emergency-action="resolve" data-event-id="'+esc(x.id)+'">Resolve</button>':'';
+    return '<div class="panel" style="border-left:4px solid #d2a74d"><div class="panel-head"><div><small>EMERGENCY CASE</small><h3>'+esc(code)+'</h3></div><span class="status active">'+esc(st)+'</span></div><div class="module-note"><span><b>Lokasi:</b> '+Number(x.latitude).toFixed(6)+', '+Number(x.longitude).toFixed(6)+'</span><span><b>Akurasi:</b> '+(x.accuracy_m==null?"—":Math.round(x.accuracy_m)+" m")+'</span><span><b>Dibagikan:</b> '+fmt(x.captured_at)+'</span><span><b>Kedaluwarsa:</b> '+fmt(x.expires_at)+' ('+mins+' menit)</span><span><b>Keterangan:</b> '+esc(x.reason||"Tidak ada keterangan")+'</span></div><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem">'+buttons+'<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(x.latitude+','+x.longitude)+'">Buka Google Maps</a></div></div>';
   }).join("");
-  return '<div class="module-head"><div><div class="eyebrow dark">GIS / EMERGENCY LOCATION</div><h2>Emergency Location Center</h2><p>Lokasi darurat warga yang aktif pada scope petugas. Lokasi tidak ditampilkan sebagai data publik.</p></div><button class="btn primary" data-emergency-refresh>↻ Refresh</button></div><section class="panel wide"><div class="panel-head"><div><small>ACTIVE EMERGENCY</small><h3>'+records.length+' lokasi aktif</h3></div><span class="status active">CONSENT-BASED</span></div><div class="module-note"><b>Privacy boundary.</b><span>Lokasi hanya muncul setelah warga memberikan izin. Data ditampilkan kepada petugas yang memiliki role dan scope wilayah sesuai. Masa berlaku mengikuti permintaan warga.</span></div></section><section class="panel wide"><div class="panel-head"><div><small>GOOGLE MAPS</small><h3>Peta lokasi darurat</h3></div></div>'+map+'</section><section class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem">'+(records.length?cards:'<div class="panel"><div class="empty-state"><b>'+esc(error||"Belum ada emergency location aktif.")+'</b><span>Gunakan tombol Refresh setelah ada warga yang membagikan lokasi.</span></div></div>')+'</section><section class="panel wide"><div class="module-note"><b>Catatan operasional.</b><span>Center ini tidak melakukan tracking otomatis. Refresh mengambil snapshot lokasi darurat aktif dari server. Core workflow RT/RW tidak diubah.</span></div></section>';
+  return '<div class="module-head"><div><div class="eyebrow dark">GIS / EMERGENCY LOCATION</div><h2>Emergency Location Center</h2><p>Lokasi darurat warga yang aktif pada scope petugas. Lokasi tidak ditampilkan sebagai data publik.</p></div><button class="btn primary" data-emergency-refresh>↻ Refresh</button></div><section class="panel wide"><div class="panel-head"><div><small>ACTIVE EMERGENCY</small><h3>'+records.length+' lokasi aktif</h3></div><span class="status active">CONSENT-BASED</span></div><div class="module-note"><b>Privacy boundary.</b><span>Lokasi hanya muncul setelah warga memberikan izin. Petugas hanya dapat menangani kasus dalam scope wilayahnya.</span></div></section><section class="panel wide"><div class="panel-head"><div><small>GOOGLE MAPS</small><h3>Peta lokasi darurat</h3></div></div>'+map+'</section><section class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem">'+(records.length?cards:'<div class="panel"><div class="empty-state"><b>'+esc(error||"Belum ada emergency location aktif.")+'</b><span>Gunakan tombol Refresh setelah ada warga yang membagikan lokasi.</span></div></div>')+'</section><section class="panel wide"><div class="module-note"><b>Lifecycle.</b><span>OPEN → ACKNOWLEDGED → RESPONDING → RESOLVED. Pembatalan hanya tersedia setelah ACK. Semua transisi dicatat dalam audit log.</span></div></section>';
 }
-
 function adminAccessWorkspace(){
  let rows=[];
  let error="";
@@ -678,7 +685,20 @@ function openCitizen360(id){
  modal("Citizen 360 · "+(x.full_name||"Warga"),html,true);
 }
 document.addEventListener("click",function(e){const el=e.target.closest("[data-citizen-view]");if(!el)return;e.preventDefault();e.stopImmediatePropagation();openCitizen360(el.dataset.citizenView);});
-document.addEventListener("click",async function(e){if(!e.target.closest("[data-emergency-refresh]"))return;e.preventDefault();const el=document.getElementById("workspace");if(el)el.innerHTML=await emergencyLocationWorkspace();});
+document.addEventListener("click",async function(e){
+  const refresh=e.target.closest("[data-emergency-refresh]");
+  const action=e.target.closest("[data-emergency-action]");
+  if(!refresh&&!action)return;
+  e.preventDefault();
+  if(action){
+    const id=action.dataset.eventId,op=action.dataset.emergencyAction;
+    const body={action:op,location_event_id:id};
+    if(op==="resolve"){const note=prompt("Catatan penyelesaian (opsional):","");if(note!==null)body.resolution_note=note}
+    const r=await sb.functions.invoke("citizen-location",{body});
+    if(r.error||!r.data?.ok)alert(r.data?.error||r.error?.message||"Aksi gagal");
+  }
+  const el=document.getElementById("workspace");if(el)el.innerHTML=await emergencyLocationWorkspace();
+});
 function workspace(){if(state.view==="warga"&&state.sub==="registry"){setTimeout(loadCitizen360,50);return citizen360Workspace();}if(state.view==="admin"&&state.sub==="territory")return adminTerritoryWorkspace();if(state.view==="admin"&&state.sub==="users")return adminUsersWorkspace();if(state.view==="admin"&&state.sub==="access")return adminAccessWorkspace();if(state.view==="admin"&&state.sub==="roles")return adminRolesWorkspace();if(state.view==="gis"&&state.sub==="emergency"){setTimeout(async()=>{const el=document.getElementById("workspace");if(el)el.innerHTML=await emergencyLocationWorkspace()},0);return '<div class="module-note"><b>Memuat Emergency Location Center…</b><span>Memeriksa lokasi darurat aktif sesuai role dan scope.</span></div>';}if(state.view==="admin"&&state.sub==="forms")return governmentFormRegistryWorkspace();if(state.view==='identitas'&&state.sub==='profil'){setTimeout(()=>{document.querySelector('[data-identity-save]')?.addEventListener('click',saveIdentity);document.querySelector('[data-identity-preview]')?.addEventListener('click',identityPreview)},0);return identityWorkspace()}if(state.view==='rw'&&state.sub==='review')return rwReviewWorkspace();if(state.view==='smart'&&state.sub==='command')return intelligenceDashboard();
  seedRows();const m=modules[state.view],s=state.rows[key()]||[],title=subTitle();const printHeader=(state.view==="rt"||state.view==="rw")?reportIdentityHeader():"";
  const subHtml=m[2].map(x=>'<button class="'+(state.sub===x[0]?"active":"")+'" data-workspace-module="'+esc(state.view)+'" data-workspace-sub="'+esc(x[0])+'">'+esc(x[1])+'</button>').join("");
