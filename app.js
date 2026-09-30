@@ -578,7 +578,7 @@ function renderLiveRows(rows){
   const foot=document.querySelector(".table-foot span");if(foot)foot.textContent=rows.length+" live records";
 }
 
-async async function emergencyLocationWorkspace(){
+async function emergencyLocationWorkspace(){
   if(!sb||ADMIN_PREVIEW)return '<div class="module-head"><div><div class="eyebrow dark">GIS / EMERGENCY LOCATION</div><h2>Emergency Location Center</h2><p>Workspace petugas untuk melihat lokasi darurat yang sedang aktif.</p></div><span class="status">AUTHENTICATED ONLY</span></div><section class="panel wide"><div class="module-note"><b>Preview boundary.</b><span>Emergency Location Center hanya tersedia pada sesi terautentikasi dengan role dan scope wilayah yang sesuai.</span></div></section>';
   let records=[],error="";
   try{
