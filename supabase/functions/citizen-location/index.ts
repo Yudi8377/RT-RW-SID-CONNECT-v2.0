@@ -51,6 +51,36 @@ Deno.serve(async(req)=>{
       return json({ok:true,event:data||null});
     }
 
+    if(["acknowledge","respond","resolve","cancel"].includes(action)){
+      if(!ownAssignment) return json({ok:false,error:"Role emergency belum tersedia"},403);
+      const eventId=String(body.location_event_id||"");
+      if(!eventId) return json({ok:false,error:"location_event_id diperlukan"},400);
+      const {data:event,error:eventError}=await admin.from("citizen_location_events").select("id,territory_id,active,expires_at").eq("id",eventId).maybeSingle();
+      if(eventError) throw eventError;
+      if(!event) return json({ok:false,error:"Emergency location tidak ditemukan"},404);
+      const allowed=assignments?.filter((a:any)=>a.role_code==="PLATFORM_ADMIN"||a.role_code==="RT_OPERATOR"||a.role_code==="RW_REVIEWER"||a.role_code==="VILLAGE_VALIDATOR").map((a:any)=>a.scope_territory_id).filter(Boolean)||[];
+      if(ownAssignment.role_code!=="PLATFORM_ADMIN"&&!allowed.includes(event.territory_id)) return json({ok:false,error:"Emergency location di luar scope"},403);
+      const {data:existing,error:existingError}=await admin.from("emergency_response_cases").select("*").eq("location_event_id",eventId).maybeSingle();
+      if(existingError) throw existingError;
+      let nextStatus=action==="acknowledge"?"ACKNOWLEDGED":action==="respond"?"RESPONDING":action==="resolve"?"RESOLVED":"CANCELLED";
+      const now=new Date().toISOString();
+      const patch:any={status:nextStatus,updated_at:now};
+      if(action==="acknowledge"){patch.acknowledged_by=user.id;patch.acknowledged_at=now}
+      if(action==="respond") patch.responding_at=now;
+      if(action==="resolve"){patch.resolved_by=user.id;patch.resolved_at=now;patch.resolution_note=String(body.resolution_note||"").slice(0,1000)||null}
+      if(existing){
+        const {data:updated,error:updateError}=await admin.from("emergency_response_cases").update(patch).eq("id",existing.id).select("*").single();
+        if(updateError) throw updateError;
+        await admin.from("audit_logs").insert({action:"EMERGENCY_RESPONSE_"+nextStatus,actor_user_id:user.id,territory_id:event.territory_id,metadata:{case_id:existing.id,location_event_id:eventId}});
+        return json({ok:true,case:updated});
+      }
+      if(action!=="acknowledge") return json({ok:false,error:"Kasus harus di-ACK terlebih dahulu"},409);
+      const {data:created,error:createError}=await admin.from("emergency_response_cases").insert({location_event_id:event.id,territory_id:event.territory_id,status:"ACKNOWLEDGED",acknowledged_by:user.id,acknowledged_at:now}).select("*").single();
+      if(createError) throw createError;
+      await admin.from("audit_logs").insert({action:"EMERGENCY_RESPONSE_ACKNOWLEDGED",actor_user_id:user.id,territory_id:event.territory_id,metadata:{case_id:created.id,location_event_id:eventId}});
+      return json({ok:true,case:created});
+    }
+
     if(action==="active"){
       if(!ownAssignment) return json({ok:false,error:"Role emergency belum tersedia"},403);
       const requested=body.territory_id;
