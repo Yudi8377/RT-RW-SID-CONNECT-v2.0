@@ -85,7 +85,7 @@ Deno.serve(async(req)=>{
       if(!ownAssignment) return json({ok:false,error:"Role emergency belum tersedia"},403);
       const requested=body.territory_id;
       const allowedTerritories=assignments?.filter((a:any)=>a.role_code==="PLATFORM_ADMIN"||a.role_code==="RT_OPERATOR"||a.role_code==="RW_REVIEWER"||a.role_code==="VILLAGE_VALIDATOR").map((a:any)=>a.scope_territory_id).filter(Boolean);
-      let q=admin.from("citizen_location_events").select("id,user_id,territory_id,latitude,longitude,accuracy_m,captured_at,expires_at,reason,emergency_response_cases(status)").eq("active",true).gt("expires_at",new Date().toISOString()).order("captured_at",{ascending:false});
+      let q=admin.from("citizen_location_events").select("id,user_id,territory_id,latitude,longitude,accuracy_m,captured_at,expires_at,reason,emergency_response_cases(status,priority,sla_due_at)").eq("active",true).gt("expires_at",new Date().toISOString()).order("captured_at",{ascending:false});
       if(ownAssignment.role_code!=="PLATFORM_ADMIN") q=q.in("territory_id",allowedTerritories||[]);
       if(requested) q=q.eq("territory_id",requested);
       const {data,error}=await q.limit(100);
