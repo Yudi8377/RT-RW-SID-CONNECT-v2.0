@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RT/RW–SID CONNECT v2.0 — Offline</title>
+<style>
+body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#08111f;color:#e8eef7}
+main{max-width:1000px;margin:0 auto;padding:48px 32px}
+.card{background:#101c2d;border:1px solid #26364d;border-radius:18px;padding:24px;margin:18px 0}
+h1{margin:0 0 8px;font-size:30px}.muted{color:#9fb0c7}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.metric{padding:18px;background:#0b1626;border-radius:14px}.value{font-size:24px;font-weight:700;margin-top:6px}
+.ok{color:#70e1a1}.warn{color:#ffd37a}
+button{background:#e8eef7;color:#08111f;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>RT/RW–SID CONNECT v2.0</h1>
+    <div class="muted">Windows Offline Runtime</div>
+    <p class="ok">● Mode offline aktif — tidak membutuhkan koneksi Supabase untuk membuka aplikasi ini.</p>
+  </div>
+  <div class="card">
+    <h2>Local Database</h2>
+    <div id="status" class="muted">Memuat status...</div>
+    <div class="grid" id="metrics"></div>
+  </div>
+  <div class="card">
+    <h2>Data Bootstrap</h2>
+    <p class="muted">Master/reference data berasal dari paket snapshot Supabase yang dikontrol. Data pribadi dan transaksi produksi tidak dibundel ke installer.</p>
+    <button onclick="location.reload()">Refresh Status</button>
+  </div>
+</main>
+<script>
+(async()=>{
+  const status=document.getElementById("status"), metrics=document.getElementById("metrics");
+  try{
+    const s=await window.rtRwSidOffline.getStatus();
+    status.innerHTML='<span class="ok">Database siap.</span> Schema v'+s.schemaVersion+' · Seed '+(s.seeded?'OK':'BELUM')+' · Queue pending '+s.queuePending;
+    const counts=s.tableCounts||{};
+    metrics.innerHTML=Object.entries(counts).map(([k,v])=>'<div class="metric"><div class="muted">'+k+'</div><div class="value">'+v+'</div></div>').join('');
+  }catch(e){status.innerHTML='<span class="warn">Database belum siap:</span> '+String(e)}
+})();
+</script>
+</body>
+</html>
