@@ -64,16 +64,34 @@
         </div>
       </div>
       <div class="col-lg-5">
-        <div class="living-map-card">
+        <div class="living-map-card" id="smartVillageMap">
           <div class="map-top"><span><i class="bi bi-geo-alt-fill"></i> <span id="mapTitle">Peta Kehidupan Desa</span></span><span class="d-flex align-items-center gap-2"><button class="map-area-btn" data-action="area"><i class="bi bi-sliders2"></i> Sesuaikan RT/RW</button><span class="live-dot">LIVE</span></span></div>
+          <div class="map-tool-row" aria-label="Kontrol peta">
+            <button class="map-tool" data-action="map-search" title="Cari di peta"><i class="bi bi-search"></i><span>Cari</span></button>
+            <button class="map-tool" data-action="map-locate" title="Lokasi terkini"><i class="bi bi-crosshair"></i><span>Lokasi saya</span></button>
+            <button class="map-tool" data-action="map-directions" title="Rute"><i class="bi bi-sign-turn-right"></i><span>Rute</span></button>
+            <button class="map-tool" data-action="map-explore" title="Jelajahi"><i class="bi bi-compass"></i><span>Jelajahi</span></button>
+            <button class="map-tool" data-action="map-nearby" title="Tempat terdekat"><i class="bi bi-geo-alt"></i><span>Terdekat</span></button>
+            <button class="map-tool" data-action="map-layers" title="Layer"><i class="bi bi-layers"></i><span>Layer</span></button>
+            <button class="map-tool" data-action="map-share" title="Bagikan peta"><i class="bi bi-share"></i><span>Bagikan</span></button>
+            <button class="map-tool" data-action="map-fullscreen" title="Layar penuh"><i class="bi bi-fullscreen"></i><span>Layar penuh</span></button>
+            <button class="map-tool" data-action="map-open" title="Buka Google Maps"><i class="bi bi-box-arrow-up-right"></i><span>Google Maps</span></button>
+          </div>
           <div class="map-canvas" style="padding:0;overflow:hidden;position:relative">
             <iframe title="Google Maps — Smart Village Desa Cerdas" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
               src="https://www.google.com/maps?q=Cinere%2C%20Depok%2C%20Jawa%20Barat&output=embed"
               style="width:100%;height:100%;min-height:360px;border:0;display:block"></iframe>
             <div class="map-context" id="mapContext" style="z-index:2"><i class="bi bi-geo-alt-fill"></i> Cinere · Depok · Jawa Barat</div>
           </div>
-          <div class="map-footer"><span><i class="bi bi-shield-check"></i> Data publik terkurasi</span><span>GIS Ready</span></div>
+          <div class="map-footer"><span><i class="bi bi-shield-check"></i> Data publik terkurasi</span><span>GIS Ready · Peta dasar Google Maps</span></div>
         </div>
+        <style>
+          .map-tool-row{display:flex;gap:7px;flex-wrap:wrap;padding:10px 12px;background:rgba(255,255,255,.96);border-bottom:1px solid rgba(20,35,40,.09)}
+          .map-tool{border:1px solid rgba(20,35,40,.12);background:#fff;color:#18363b;border-radius:999px;display:inline-flex;align-items:center;gap:6px;padding:7px 11px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.18s ease}
+          .map-tool:hover,.map-tool:focus-visible{transform:translateY(-1px);box-shadow:0 5px 16px rgba(20,35,40,.12);outline:none}
+          .map-tool i{font-size:.95rem}.map-tool span{white-space:nowrap}
+          @media(max-width:700px){.map-tool-row{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}.map-tool-row::-webkit-scrollbar{display:none}.map-tool{flex:0 0 auto}}
+        </style>
       </div>
     </div>
   </div>
