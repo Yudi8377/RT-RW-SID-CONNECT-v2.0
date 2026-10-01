@@ -39,13 +39,12 @@ jobs:
 
       - name: Dependency security audit
         id: dependency-audit
-        continue-on-error: true
         working-directory: desktop
         shell: powershell
         run: |
           npm audit --json | Tee-Object audit-report.json
           if ($LASTEXITCODE -ne 0) {
-            Write-Warning "npm audit reported vulnerabilities; hardening remains open."
+            throw "npm audit found vulnerabilities at high severity or above."
           }
 
       - name: Upload dependency audit
