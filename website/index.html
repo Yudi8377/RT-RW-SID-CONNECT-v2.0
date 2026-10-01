@@ -66,14 +66,11 @@
       <div class="col-lg-5">
         <div class="living-map-card">
           <div class="map-top"><span><i class="bi bi-geo-alt-fill"></i> <span id="mapTitle">Peta Kehidupan Desa</span></span><span class="d-flex align-items-center gap-2"><button class="map-area-btn" data-action="area"><i class="bi bi-sliders2"></i> Sesuaikan RT/RW</button><span class="live-dot">LIVE</span></span></div>
-          <div class="map-canvas">
-            <div class="map-road r1"></div><div class="map-road r2"></div><div class="map-road r3"></div>
-            <div class="map-river"></div>
-            <button class="map-pin p1" data-toast="RT 04 · 128 keluarga"><i class="bi bi-geo-alt-fill"></i></button>
-            <button class="map-pin p2" data-toast="Balai Desa · Pelayanan publik"><i class="bi bi-building-fill"></i></button>
-            <button class="map-pin p3" data-toast="UMKM · 24 pelaku usaha"><i class="bi bi-shop"></i></button>
-            <button class="map-pin p4" data-toast="RW 02 · 5 RT"><i class="bi bi-people-fill"></i></button>
-            <div class="map-label l1" id="mapAreaLabel">PUSAT DESA</div><div class="map-label l2">KAWASAN USAHA</div><div class="map-context" id="mapContext"><i class="bi bi-people"></i> Semua wilayah</div>
+          <div class="map-canvas" style="padding:0;overflow:hidden;position:relative">
+            <iframe title="Google Maps — Smart Village Desa Cerdas" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+              src="https://www.google.com/maps?q=Cinere%2C%20Depok%2C%20Jawa%20Barat&output=embed"
+              style="width:100%;height:100%;min-height:360px;border:0;display:block"></iframe>
+            <div class="map-context" id="mapContext" style="z-index:2"><i class="bi bi-geo-alt-fill"></i> Cinere · Depok · Jawa Barat</div>
           </div>
           <div class="map-footer"><span><i class="bi bi-shield-check"></i> Data publik terkurasi</span><span>GIS Ready</span></div>
         </div>
