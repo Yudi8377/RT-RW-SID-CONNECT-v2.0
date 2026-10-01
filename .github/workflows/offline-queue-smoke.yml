@@ -33,3 +33,4 @@ jobs:
           node --check local-db.cjs
           node --check offline-queue.cjs
           node test-offline-queue.cjs
+          node test-offline-queue-policy.cjs
