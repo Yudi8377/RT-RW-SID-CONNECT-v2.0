@@ -93,7 +93,7 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
     markQueueFailed(id, error, { retryable = true, retryDelayMs = 0 } = {}) {
       const message = error instanceof Error ? error.message : String(error);
       const code = error?.code || (retryable ? "SYNC_RETRYABLE" : "SYNC_NON_RETRYABLE");
-      const current = db.exec("SELECT retry_count, max_retries FROM offline_queue WHERE id=? LIMIT 1");
+      const current = db.exec("SELECT retry_count, max_retries FROM offline_queue WHERE id=? LIMIT 1", [id]);
       const row = current[0]?.values?.[0];
       if (!row) throw new Error("Queue item not found: " + id);
       const retryCount = Number(row[0]) + 1;
