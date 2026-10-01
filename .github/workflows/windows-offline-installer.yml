@@ -47,6 +47,8 @@ jobs:
           if (-not (Test-Path offline-shell.html)) { throw "offline-shell.html missing" }
           if (-not (Test-Path ..\offline-data\supabase-snapshot-v1.0\master-data.json)) { throw "offline seed package missing" }
           node test-offline-runtime.cjs
+          node test-offline-queue-policy.cjs
+          node test-offline-migration-recovery.cjs
 
       - name: Build Windows installer
         working-directory: desktop
