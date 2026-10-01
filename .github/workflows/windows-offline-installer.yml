@@ -46,6 +46,7 @@ jobs:
           node --check preload.cjs
           if (-not (Test-Path offline-shell.html)) { throw "offline-shell.html missing" }
           if (-not (Test-Path ..\offline-data\supabase-snapshot-v1.0\master-data.json)) { throw "offline seed package missing" }
+          node test-offline-runtime.cjs
 
       - name: Build Windows installer
         working-directory: desktop
