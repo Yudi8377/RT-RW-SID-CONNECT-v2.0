@@ -91,7 +91,7 @@ async function testStaleProcessingRecovery(seedPath) {
   const before = reopened.listQueue({ status: QUEUE_STATUSES.PROCESSING, limit: 10 });
   assert(before.length === 1, "test fixture did not restore PROCESSING state");
 
-  reopenedQueue.replay(async () => ({ recovered: true }));
+  await reopenedQueue.replay(async () => ({ recovered: true }));
   const recovered = reopened.listQueue({ limit: 10 }).find((row) => row.id === item.id);
   assert(recovered && recovered.status === QUEUE_STATUSES.SYNCED, "stale PROCESSING row was not recovered and replayed");
   assert(recovered.errorCode === null, "stale recovery metadata was not cleared after sync");
