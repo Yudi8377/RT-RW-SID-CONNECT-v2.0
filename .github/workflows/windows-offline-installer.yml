@@ -37,6 +37,16 @@ jobs:
         working-directory: desktop
         run: npm install
 
+      - name: Validate offline runtime sources
+        working-directory: desktop
+        shell: powershell
+        run: |
+          node --check main.cjs
+          node --check local-db.cjs
+          node --check preload.cjs
+          if (-not (Test-Path offline-shell.html)) { throw "offline-shell.html missing" }
+          if (-not (Test-Path ..\offline-data\supabase-snapshot-v1.0\master-data.json)) { throw "offline seed package missing" }
+
       - name: Build Windows installer
         working-directory: desktop
         run: npx electron-builder --win nsis --config electron-builder.yml
