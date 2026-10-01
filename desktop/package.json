@@ -1,11 +1,17 @@
 {
-  "name":"rt-rw-sid-connect-desktop",
-  "version":"2.0.0",
-  "description":"RT/RW-SID CONNECT v2.0 — Smart Village Windows Offline Bundle",
-  "main":"main.cjs",
-  "author":"Yudi8377",
-  "license":"UNLICENSED",
-  "private":true,
-  "scripts":{"start":"electron .","dist":"electron-builder --win nsis"},
-  "devDependencies":{"electron":"^38.1.0","electron-builder":"^26.0.12"}
+  "name": "rt-rw-sid-connect-desktop",
+  "version": "2.0.0",
+  "description": "RT/RW-SID CONNECT v2.0 — Smart Village Windows Offline Bundle",
+  "main": "main.cjs",
+  "author": "Yudi8377",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^38.1.0",
+    "electron-builder": "^26.0.12"
+  }
 }
