@@ -1,0 +1,12 @@
+{
+  "name": "rt-rw-sid-connect-desktop",
+  "version": "2.0.1",
+  "description": "RT/RW-SID CONNECT v2.0.1 — Smart Village Windows Offline Bundle",
+  "main": "main.cjs",
+  "author": "Yudi8377",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": { "start": "electron .", "dist": "electron-builder --win nsis" },
+  "dependencies": { "sql.js": "1.13.0" },
+  "devDependencies": { "electron": "^38.1.0", "electron-builder": "^26.0.12" }
+}

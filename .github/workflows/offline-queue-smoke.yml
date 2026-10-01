@@ -1,0 +1,36 @@
+name: Offline Queue Smoke Test
+
+on:
+  push:
+    branches: ["offline-windows-installer-v1"]
+  pull_request:
+    branches: ["offline-windows-installer-v1"]
+
+permissions:
+  contents: read
+
+jobs:
+  queue-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package.json
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm install
+
+      - name: Validate queue sources
+        working-directory: desktop
+        run: |
+          node --check local-db.cjs
+          node --check offline-queue.cjs
+          node test-offline-queue.cjs
+          node test-offline-queue-policy.cjs
