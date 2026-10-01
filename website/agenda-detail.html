@@ -32,7 +32,7 @@
     const sb=window.supabase.createClient(SUPABASE_URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     const r=await sb.functions.invoke("public-experience",{body:{action:"agenda_list",territory_id}});
     if(r.error||!r.data?.ok)throw new Error(r.data?.error||r.error?.message||"Gagal memuat agenda.");
-    const x=(r.data.records||[]).find(v=>String(v.id)===String(id));
+    const x=(r.data.records||[]).find(v=>String(v.id??v.agenda_id)===String(id));
     if(!x)throw new Error("Agenda tidak ditemukan atau belum dipublikasikan.");
     const d=new Date(x.event_date+"T00:00:00");
     const date=d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
