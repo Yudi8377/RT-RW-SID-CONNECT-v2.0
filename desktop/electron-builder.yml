@@ -9,8 +9,6 @@ files:
     to: .
     filter:
       - "**/*"
-      - "!desktop/package.json"
-      - "!desktop/electron-builder.yml"
       - "!desktop/node_modules/**"
       - "!desktop/dist/**"
       - "!.git/**"
@@ -28,5 +26,5 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: RT-RW-SID CONNECT
+  shortcutName: RT/RW-SID CONNECT
   uninstallDisplayName: RT/RW-SID CONNECT v2.0
