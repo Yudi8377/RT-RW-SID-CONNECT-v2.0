@@ -8,7 +8,7 @@
       const api=window.smartVillage;
       if(!api)return;
       try{
-        if(target.matches('[data-agenda-id]')){const id=target.dataset.agendaId;if(id&&api.openAgendaDetail){e.preventDefault();e.stopImmediatePropagation();api.openAgendaDetail(id);}return;}
+        if(target.matches('[data-agenda-id]')){const id=target.dataset.agendaId;if(id){e.preventDefault();e.stopImmediatePropagation();if(api.openAgendaDetail){api.openAgendaDetail(id);return;}const href=target.getAttribute('href')||('./agenda-detail.html?agenda_id='+encodeURIComponent(id));window.location.assign(href);return;}}
         if(target.matches('[data-agenda-back]')&&api.openAgenda){e.preventDefault();e.stopImmediatePropagation();api.openAgenda();return;}
         if(target.matches('[data-action]')&&api.handleAction){e.preventDefault();e.stopImmediatePropagation();api.handleAction(target.dataset.action);return;}
         if(target.matches('[data-start-item]')&&api.startService){e.preventDefault();e.stopImmediatePropagation();api.startService(target.dataset.startItem,Number(target.dataset.itemIndex));return;}
