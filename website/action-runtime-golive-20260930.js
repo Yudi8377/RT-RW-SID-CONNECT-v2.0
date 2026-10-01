@@ -3,12 +3,12 @@
     if(window.__SMART_VILLAGE_CANONICAL_ACTION_V4__) return;
     window.__SMART_VILLAGE_CANONICAL_ACTION_V4__=true;
     const dispatch=(e)=>{
-      const target=e.target.closest?.('[data-action],[data-start-item],[data-dashboard-tab],[data-dashboard-context],[data-development-action],[data-development-back],[data-service-item],[data-service-start],[data-service-back],[data-form-back],[data-form-menu],[data-menu-main],[data-home],[data-area],[data-share-emergency],[data-economy-register],[data-economy-back]');
+      const target=e.target.closest?.('[data-action],[data-agenda-id],[data-start-item],[data-dashboard-tab],[data-dashboard-context],[data-development-action],[data-development-back],[data-service-item],[data-service-start],[data-service-back],[data-form-back],[data-form-menu],[data-menu-main],[data-home],[data-area],[data-share-emergency],[data-economy-register],[data-economy-back]');
       if(!target)return;
       const api=window.smartVillage;
       if(!api)return;
       try{
-        if(target.matches('[data-action]') && api.handleAction){e.preventDefault();e.stopImmediatePropagation();api.handleAction(target.dataset.action);return;}
+        if(target.matches('[data-agenda-id]') && api.openAgendaDetail){e.preventDefault();e.stopImmediatePropagation();api.openAgendaDetail(target.dataset.agendaId);return;}if(target.matches('[data-action]') && api.handleAction){e.preventDefault();e.stopImmediatePropagation();api.handleAction(target.dataset.action);return;}
         if(target.matches('[data-start-item]') && api.startService){e.preventDefault();e.stopImmediatePropagation();api.startService(target.dataset.startItem,Number(target.dataset.itemIndex));return;}
         if(target.matches('[data-dashboard-tab]') && api.loadDashboardTab){e.preventDefault();e.stopImmediatePropagation();document.querySelectorAll('[data-dashboard-tab]').forEach(x=>x.classList.toggle('selected',x===target));api.loadDashboardTab(target.dataset.dashboardTab);return;}if(target.matches('[data-dashboard-context]') && api.dashboardContextAction){e.preventDefault();e.stopImmediatePropagation();api.dashboardContextAction(target.dataset.dashboardContext,Number(target.dataset.contextIndex));return;}if(target.matches('[data-development-action]') && api.developmentAction){e.preventDefault();e.stopImmediatePropagation();api.developmentAction(Number(target.dataset.developmentAction));return;}if(target.matches('[data-development-back]') && api.loadDashboardTab){e.preventDefault();e.stopImmediatePropagation();api.loadDashboardTab('development');return;}
         if(target.matches('[data-service-item]') && api.itemModal){e.preventDefault();e.stopImmediatePropagation();api.itemModal(target.dataset.serviceItem,Number(target.dataset.item));return;}
