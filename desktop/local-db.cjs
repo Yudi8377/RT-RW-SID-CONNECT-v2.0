@@ -2,7 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const initSqlJs = require("sql.js");
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
+const DEFAULT_MAX_RETRIES = 3;
 
 async function openLocalDatabase({ userDataPath, seedPath }) {
   const dataDir = path.join(userDataPath, "data");
@@ -13,16 +14,22 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
   });
   const db = fs.existsSync(dbPath) ? new SQL.Database(fs.readFileSync(dbPath)) : new SQL.Database();
   db.run("CREATE TABLE IF NOT EXISTS local_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
-  db.run("CREATE TABLE IF NOT EXISTS offline_queue (id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, operation TEXT NOT NULL, payload_json TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', created_at TEXT NOT NULL, synced_at TEXT, error_message TEXT);");
-  const version = scalar(db, "SELECT value FROM local_meta WHERE key='schema_version'");
-  if (!version) {
+  db.run("CREATE TABLE IF NOT EXISTS offline_queue (id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, operation TEXT NOT NULL, payload_json TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', created_at TEXT NOT NULL, synced_at TEXT, error_message TEXT, idempotency_key TEXT, retry_count INTEGER NOT NULL DEFAULT 0, max_retries INTEGER NOT NULL DEFAULT 3, last_attempt_at TEXT, next_retry_at TEXT, conflict_key TEXT, error_code TEXT);");
+
+  const version = Number(scalar(db, "SELECT value FROM local_meta WHERE key='schema_version'") || 0);
+  if (version === 0) {
     seedDatabase(db, seedPath);
     db.run("INSERT OR REPLACE INTO local_meta(key,value) VALUES ('schema_version', ?)", [String(SCHEMA_VERSION)]);
     db.run("INSERT OR REPLACE INTO local_meta(key,value) VALUES ('seed_package', ?)", ["supabase-snapshot-v1.0"]);
     persist(db, dbPath);
-  } else if (Number(version) !== SCHEMA_VERSION) {
+  } else if (version === 1) {
+    migrateQueueSchema(db);
+    db.run("UPDATE local_meta SET value=? WHERE key='schema_version'", [String(SCHEMA_VERSION)]);
+    persist(db, dbPath);
+  } else if (version !== SCHEMA_VERSION) {
     throw new Error("Unsupported local database schema version: " + version);
   }
+
   return {
     dbPath,
     schemaVersion: SCHEMA_VERSION,
@@ -32,7 +39,9 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
         schemaVersion: SCHEMA_VERSION,
         seeded: Boolean(scalar(db, "SELECT value FROM local_meta WHERE key='seed_package'")),
         queuePending: Number(scalar(db, "SELECT COUNT(*) FROM offline_queue WHERE status='PENDING'") || 0),
+        queueProcessing: Number(scalar(db, "SELECT COUNT(*) FROM offline_queue WHERE status='PROCESSING'") || 0),
         queueFailed: Number(scalar(db, "SELECT COUNT(*) FROM offline_queue WHERE status='FAILED'") || 0),
+        queueDeadLetter: Number(scalar(db, "SELECT COUNT(*) FROM offline_queue WHERE status='DEAD_LETTER'") || 0),
         tableCounts: {
           platform_core: Number(scalar(db, "SELECT COUNT(*) FROM platform_core") || 0),
           territories: Number(scalar(db, "SELECT COUNT(*) FROM territories") || 0),
@@ -44,35 +53,77 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
         }
       };
     },
-    enqueue({ id, entityType, operation, payload, createdAt }) {
-      db.run("INSERT INTO offline_queue(id, entity_type, operation, payload_json, status, created_at, synced_at, error_message) VALUES (?, ?, ?, ?, 'PENDING', ?, NULL, NULL)", [
-        id, entityType, operation, JSON.stringify(payload), createdAt
+    enqueue({ id, entityType, operation, payload, createdAt, idempotencyKey, maxRetries = DEFAULT_MAX_RETRIES, conflictKey }) {
+      if (maxRetries < 0 || !Number.isInteger(maxRetries)) throw new Error("maxRetries must be a non-negative integer");
+      if (idempotencyKey) {
+        const existing = db.exec("SELECT id, status, retry_count FROM offline_queue WHERE idempotency_key=? LIMIT 1", [idempotencyKey]);
+        if (existing[0]?.values?.[0]) {
+          const [existingId, status, retryCount] = existing[0].values[0];
+          return { id: existingId, status, retryCount, duplicate: true };
+        }
+      }
+      const resolvedId = id || cryptoRandomId();
+      db.run("INSERT INTO offline_queue(id, entity_type, operation, payload_json, status, created_at, synced_at, error_message, idempotency_key, retry_count, max_retries, last_attempt_at, next_retry_at, conflict_key, error_code) VALUES (?, ?, ?, ?, 'PENDING', ?, NULL, NULL, ?, 0, ?, NULL, NULL, ?, NULL)", [
+        resolvedId, entityType, operation, JSON.stringify(payload), createdAt, idempotencyKey || resolvedId, maxRetries, conflictKey || null
       ]);
       persist(db, dbPath);
-      return { id, status: "PENDING" };
+      return { id: resolvedId, status: "PENDING", duplicate: false };
     },
     listQueue({ status = null, limit = 100 } = {}) {
       const sql = status
-        ? "SELECT id, entity_type, operation, payload_json, status, created_at, synced_at, error_message FROM offline_queue WHERE status=? ORDER BY created_at ASC, id ASC LIMIT ?"
-        : "SELECT id, entity_type, operation, payload_json, status, created_at, synced_at, error_message FROM offline_queue ORDER BY created_at ASC, id ASC LIMIT ?";
+        ? "SELECT id, entity_type, operation, payload_json, status, created_at, synced_at, error_message, idempotency_key, retry_count, max_retries, last_attempt_at, next_retry_at, conflict_key, error_code FROM offline_queue WHERE status=? ORDER BY created_at ASC, id ASC LIMIT ?"
+        : "SELECT id, entity_type, operation, payload_json, status, created_at, synced_at, error_message, idempotency_key, retry_count, max_retries, last_attempt_at, next_retry_at, conflict_key, error_code FROM offline_queue ORDER BY created_at ASC, id ASC LIMIT ?";
       const result = status ? db.exec(sql, [status, limit]) : db.exec(sql, [limit]);
       return rows(result);
     },
+    recoverStaleProcessing({ staleAfterMs = 15 * 60 * 1000 } = {}) {
+      const cutoff = new Date(Date.now() - staleAfterMs).toISOString();
+      db.run("UPDATE offline_queue SET status='PENDING', next_retry_at=NULL, error_message='Recovered stale PROCESSING item', error_code='STALE_PROCESSING' WHERE status='PROCESSING' AND last_attempt_at IS NOT NULL AND last_attempt_at < ?", [cutoff]);
+      persist(db, dbPath);
+    },
     markQueueProcessing(id) {
-      db.run("UPDATE offline_queue SET status='PROCESSING' WHERE id=? AND status='PENDING'", [id]);
+      const now = new Date().toISOString();
+      db.run("UPDATE offline_queue SET status='PROCESSING', last_attempt_at=?, error_code=NULL WHERE id=? AND status='PENDING' AND (next_retry_at IS NULL OR next_retry_at<=?)", [now, id, now]);
       persist(db, dbPath);
     },
     markQueueSynced(id) {
-      db.run("UPDATE offline_queue SET status='SYNCED', synced_at=?, error_message=NULL WHERE id=?", [new Date().toISOString(), id]);
+      db.run("UPDATE offline_queue SET status='SYNCED', synced_at=?, error_message=NULL, error_code=NULL, next_retry_at=NULL WHERE id=?", [new Date().toISOString(), id]);
       persist(db, dbPath);
     },
-    markQueueFailed(id, error) {
+    markQueueFailed(id, error, { retryable = true, retryDelayMs = 0 } = {}) {
       const message = error instanceof Error ? error.message : String(error);
-      db.run("UPDATE offline_queue SET status='FAILED', error_message=? WHERE id=?", [message, id]);
+      const code = error?.code || (retryable ? "SYNC_RETRYABLE" : "SYNC_NON_RETRYABLE");
+      const current = db.exec("SELECT retry_count, max_retries FROM offline_queue WHERE id=? LIMIT 1");
+      const row = current[0]?.values?.[0];
+      if (!row) throw new Error("Queue item not found: " + id);
+      const retryCount = Number(row[0]) + 1;
+      const maxRetries = Number(row[1]);
+      const exhausted = !retryable || retryCount >= maxRetries;
+      const status = exhausted ? "DEAD_LETTER" : "PENDING";
+      const nextRetryAt = status === "PENDING" ? new Date(Date.now() + Math.max(0, retryDelayMs)).toISOString() : null;
+      db.run("UPDATE offline_queue SET status=?, retry_count=?, error_message=?, error_code=?, next_retry_at=? WHERE id=?", [status, retryCount, message, code, nextRetryAt, id]);
       persist(db, dbPath);
+      return { id, status, retryCount, maxRetries, retryable, exhausted, nextRetryAt };
     },
     close() { persist(db, dbPath); db.close(); }
   };
+}
+
+function migrateQueueSchema(db) {
+  const columns = new Set((db.exec("PRAGMA table_info(offline_queue)")[0]?.values || []).map((row) => row[1]));
+  const additions = [
+    ["idempotency_key", "TEXT"],
+    ["retry_count", "INTEGER NOT NULL DEFAULT 0"],
+    ["max_retries", "INTEGER NOT NULL DEFAULT 3"],
+    ["last_attempt_at", "TEXT"],
+    ["next_retry_at", "TEXT"],
+    ["conflict_key", "TEXT"],
+    ["error_code", "TEXT"]
+  ];
+  for (const [name, definition] of additions) {
+    if (!columns.has(name)) db.run("ALTER TABLE offline_queue ADD COLUMN " + name + " " + definition);
+  }
+  db.run("UPDATE offline_queue SET idempotency_key=id WHERE idempotency_key IS NULL");
 }
 
 function seedDatabase(db, seedPath) {
@@ -112,8 +163,18 @@ function rows(result) {
       status: row.status,
       createdAt: row.created_at,
       syncedAt: row.synced_at,
-      errorMessage: row.error_message
+      errorMessage: row.error_message,
+      idempotencyKey: row.idempotency_key,
+      retryCount: row.retry_count,
+      maxRetries: row.max_retries,
+      lastAttemptAt: row.last_attempt_at,
+      nextRetryAt: row.next_retry_at,
+      conflictKey: row.conflict_key,
+      errorCode: row.error_code
     }));
 }
 function persist(db, dbPath) { fs.writeFileSync(dbPath, Buffer.from(db.export())); }
-module.exports = { openLocalDatabase, SCHEMA_VERSION };
+function cryptoRandomId() {
+  return require("crypto").randomUUID();
+}
+module.exports = { openLocalDatabase, SCHEMA_VERSION, DEFAULT_MAX_RETRIES };
