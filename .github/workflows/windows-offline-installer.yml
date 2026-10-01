@@ -14,7 +14,7 @@ on:
         default: "v2.0.1"
         type: string
   push:
-    branches: ["offline-windows-installer-v1"]
+    branches: ["offline-windows-installer-v1", "hardening-v2.0.1"]
 
 permissions:
   contents: write
@@ -24,10 +24,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -36,6 +36,25 @@ jobs:
       - name: Install desktop build dependencies
         working-directory: desktop
         run: npm install
+
+      - name: Dependency security audit
+        id: dependency-audit
+        continue-on-error: true
+        working-directory: desktop
+        shell: powershell
+        run: |
+          npm audit --json | Tee-Object audit-report.json
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "npm audit reported vulnerabilities; hardening remains open."
+          }
+
+      - name: Upload dependency audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RT-RW-SID-CONNECT-v2.0-Dependency-Audit
+          path: desktop/audit-report.json
+          if-no-files-found: warn
 
       - name: Validate offline runtime sources
         working-directory: desktop
