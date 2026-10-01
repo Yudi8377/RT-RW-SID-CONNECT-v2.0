@@ -5,16 +5,23 @@ directories:
   output: dist
   buildResources: build
 files:
+  - from: package.json
+    to: package.json
+  - from: main.cjs
+    to: main.cjs
   - from: ../
     to: .
     filter:
       - "**/*"
+      - "!desktop/package.json"
+      - "!desktop/main.cjs"
+      - "!desktop/electron-builder.yml"
       - "!desktop/node_modules/**"
       - "!desktop/dist/**"
       - "!.git/**"
       - "!28_DOCUMENTATION/**"
 extraMetadata:
-  main: desktop/main.cjs
+  main: main.cjs
 win:
   target:
     - target: nsis
