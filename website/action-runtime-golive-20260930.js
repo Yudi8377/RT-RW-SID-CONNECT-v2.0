@@ -1,7 +1,7 @@
 (()=>{
   const install=()=>{
-    if(window.__SMART_VILLAGE_CANONICAL_ACTION_V5__) return;
-    window.__SMART_VILLAGE_CANONICAL_ACTION_V4__=true;
+    if(window.__SMART_VILLAGE_CANONICAL_ACTION_V6__) return;
+    window.__SMART_VILLAGE_CANONICAL_ACTION_V6__=true;
     const dispatch=(e)=>{
       const target=e.target.closest?.('[data-action],[data-agenda-id],[data-start-item],[data-dashboard-tab],[data-dashboard-context],[data-development-action],[data-development-back],[data-service-item],[data-service-start],[data-service-back],[data-form-back],[data-form-menu],[data-menu-main],[data-home],[data-area],[data-share-emergency],[data-economy-register],[data-economy-back]');
       if(!target)return;
@@ -25,7 +25,7 @@
       }catch(err){console.error('Smart Village canonical action failed:',err);api.showToast?.('Tindakan tidak dapat dijalankan. Silakan coba lagi.');}
     };
     document.addEventListener('click',dispatch,true);
-    document.documentElement.dataset.smartVillageActions='ready-v5';
+    document.documentElement.dataset.smartVillageActions='ready-v6';
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
