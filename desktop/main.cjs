@@ -3,7 +3,7 @@ const path = require("path");
 const { openLocalDatabase } = require("./local-db.cjs");
 
 const root = path.join(process.resourcesPath, "app-content");
-const appEntry = path.join(root, "index.html");
+const appEntry = path.join(__dirname, "offline-shell.html");
 const websiteEntry = path.join(root, "website", "index.html");
 const seedPath = path.join(root, "offline-data", "supabase-snapshot-v1.0", "master-data.json");
 let localDatabase = null;
