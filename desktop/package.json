@@ -6,12 +6,7 @@
   "author": "Yudi8377",
   "license": "UNLICENSED",
   "private": true,
-  "scripts": {
-    "start": "electron .",
-    "dist": "electron-builder --win nsis"
-  },
-  "devDependencies": {
-    "electron": "^38.1.0",
-    "electron-builder": "^26.0.12"
-  }
+  "scripts": { "start": "electron .", "dist": "electron-builder --win nsis" },
+  "dependencies": { "sql.js": "1.13.0" },
+  "devDependencies": { "electron": "^38.1.0", "electron-builder": "^26.0.12" }
 }
