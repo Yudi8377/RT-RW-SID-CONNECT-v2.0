@@ -4,24 +4,14 @@ artifactName: RT-RW-SID-CONNECT-v2.0-Setup-${version}.${ext}
 directories:
   output: dist
   buildResources: build
-files:
-  - from: package.json
-    to: package.json
-  - from: main.cjs
-    to: main.cjs
+extraResources:
   - from: ../
-    to: .
+    to: app-content
     filter:
       - "**/*"
-      - "!desktop/package.json"
-      - "!desktop/main.cjs"
-      - "!desktop/electron-builder.yml"
-      - "!desktop/node_modules/**"
-      - "!desktop/dist/**"
+      - "!desktop/**"
       - "!.git/**"
       - "!28_DOCUMENTATION/**"
-extraMetadata:
-  main: main.cjs
 win:
   target:
     - target: nsis
