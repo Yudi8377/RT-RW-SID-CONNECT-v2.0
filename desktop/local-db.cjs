@@ -13,7 +13,7 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
   });
   const db = fs.existsSync(dbPath) ? new SQL.Database(fs.readFileSync(dbPath)) : new SQL.Database();
   db.run("CREATE TABLE IF NOT EXISTS local_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
-  db.run("CREATE TABLE IF NOT EXISTS offline_queue (id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, operation TEXT NOT NULL, payload_json TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', created_at TEXT NOT NULL, synced_at TEXT);");
+  db.run("CREATE TABLE IF NOT EXISTS offline_queue (id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, operation TEXT NOT NULL, payload_json TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', created_at TEXT NOT NULL, synced_at TEXT, error_message TEXT);");
   const version = scalar(db, "SELECT value FROM local_meta WHERE key='schema_version'");
   if (!version) {
     seedDatabase(db, seedPath);
@@ -32,6 +32,7 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
         schemaVersion: SCHEMA_VERSION,
         seeded: Boolean(scalar(db, "SELECT value FROM local_meta WHERE key='seed_package'")),
         queuePending: Number(scalar(db, "SELECT COUNT(*) FROM offline_queue WHERE status='PENDING'") || 0),
+        queueFailed: Number(scalar(db, "SELECT COUNT(*) FROM offline_queue WHERE status='FAILED'") || 0),
         tableCounts: {
           platform_core: Number(scalar(db, "SELECT COUNT(*) FROM platform_core") || 0),
           territories: Number(scalar(db, "SELECT COUNT(*) FROM territories") || 0),
@@ -42,6 +43,33 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
           exchange_datasets: Number(scalar(db, "SELECT COUNT(*) FROM exchange_datasets") || 0)
         }
       };
+    },
+    enqueue({ id, entityType, operation, payload, createdAt }) {
+      db.run("INSERT INTO offline_queue(id, entity_type, operation, payload_json, status, created_at, synced_at, error_message) VALUES (?, ?, ?, ?, 'PENDING', ?, NULL, NULL)", [
+        id, entityType, operation, JSON.stringify(payload), createdAt
+      ]);
+      persist(db, dbPath);
+      return { id, status: "PENDING" };
+    },
+    listQueue({ status = null, limit = 100 } = {}) {
+      const sql = status
+        ? "SELECT id, entity_type, operation, payload_json, status, created_at, synced_at, error_message FROM offline_queue WHERE status=? ORDER BY created_at ASC, id ASC LIMIT ?"
+        : "SELECT id, entity_type, operation, payload_json, status, created_at, synced_at, error_message FROM offline_queue ORDER BY created_at ASC, id ASC LIMIT ?";
+      const result = status ? db.exec(sql, [status, limit]) : db.exec(sql, [limit]);
+      return rows(result);
+    },
+    markQueueProcessing(id) {
+      db.run("UPDATE offline_queue SET status='PROCESSING' WHERE id=? AND status='PENDING'", [id]);
+      persist(db, dbPath);
+    },
+    markQueueSynced(id) {
+      db.run("UPDATE offline_queue SET status='SYNCED', synced_at=?, error_message=NULL WHERE id=?", [new Date().toISOString(), id]);
+      persist(db, dbPath);
+    },
+    markQueueFailed(id, error) {
+      const message = error instanceof Error ? error.message : String(error);
+      db.run("UPDATE offline_queue SET status='FAILED', error_message=? WHERE id=?", [message, id]);
+      persist(db, dbPath);
     },
     close() { persist(db, dbPath); db.close(); }
   };
@@ -72,5 +100,20 @@ function insertRows(db, table, rows, columns) {
   for (const row of rows || []) db.run(sql, columns.map((column) => row[column] ?? null));
 }
 function scalar(db, sql) { const result = db.exec(sql); return result[0]?.values?.[0]?.[0] ?? null; }
+function rows(result) {
+  const table = result[0];
+  if (!table) return [];
+  return table.values.map((values) => Object.fromEntries(table.columns.map((column, index) => [column, values[index]])))
+    .map((row) => ({
+      id: row.id,
+      entityType: row.entity_type,
+      operation: row.operation,
+      payload: JSON.parse(row.payload_json),
+      status: row.status,
+      createdAt: row.created_at,
+      syncedAt: row.synced_at,
+      errorMessage: row.error_message
+    }));
+}
 function persist(db, dbPath) { fs.writeFileSync(dbPath, Buffer.from(db.export())); }
 module.exports = { openLocalDatabase, SCHEMA_VERSION };
