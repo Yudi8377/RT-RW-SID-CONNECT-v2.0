@@ -22,7 +22,8 @@
 <script>
 (async()=>{
   const box=document.getElementById("detail");
-  const params=new URLSearchParams(location.search);\n  const id=params.get("id")||params.get("agenda_id");
+  const params=new URLSearchParams(location.search);
+  const id=params.get("id")||params.get("agenda_id");
   const SUPABASE_URL=window.APP_CONFIG?.supabaseUrl||"https://gzdusguveeeflmlvvmwe.supabase.co";
   const KEY=window.APP_CONFIG?.supabasePublishableKey||"sb_publishable_nSqPHZf1-1CAJMFNmrpNqA_lafobeV-";
   const territory_id="f06b8420-54f5-4ee4-b487-bacc7b374dd2";
@@ -39,7 +40,8 @@
     const tm=x.start_at?new Date(x.start_at).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",hour12:false})+" WIB":"Waktu belum ditentukan";
     const name=x.title||x.name||"Agenda Warga";
     const type=String(x.event_type||"AGENDA").replaceAll("_"," ");
-    const description=x.description||x.summary||x.notes||"Kegiatan warga yang ditandai dapat dipublikasikan oleh tata kelola desa.";\n    const notes=x.notes&&x.notes!==description?x.notes:"Data publik berasal dari kegiatan yang telah ditandai dapat dipublikasikan oleh tata kelola desa.";
+    const description=x.description||x.summary||x.notes||"Kegiatan warga yang ditandai dapat dipublikasikan oleh tata kelola desa.";
+    const notes=x.notes&&x.notes!==description?x.notes:"Data publik berasal dari kegiatan yang telah ditandai dapat dipublikasikan oleh tata kelola desa.";
     const status=x.status||"PLANNED";
     const source=x.source_data||"SIM RT/RW · Public Experience";
     const territory=x.territory||"Desa Demo · PILOT-DESA";
@@ -66,7 +68,8 @@
         <div class="detail-box"><small>Wilayah</small><strong>${esc(territory)}</strong></div>
         <div class="detail-box"><small>Sumber data</small><strong>${esc(source)}</strong></div>
         <div class="detail-box"><small>ID agenda</small><strong>${esc(x.agenda_id||x.id)}</strong></div>
-        <div class="detail-box"><small>Status publikasi</small><strong>${esc(publicVisible)}</strong></div>\n        <div class="detail-box"><small>Catatan tata kelola</small><strong>${esc(notes)}</strong></div>
+        <div class="detail-box"><small>Status publikasi</small><strong>${esc(publicVisible)}</strong></div>
+        <div class="detail-box"><small>Catatan tata kelola</small><strong>${esc(notes)}</strong></div>
       </div>
       <section class="detail-section">
         <h2>Informasi untuk warga</h2>
