@@ -9,8 +9,10 @@ files:
     to: .
     filter:
       - "**/*"
-      - "!desktop/**"
-      - "!node_modules/**"
+      - "!desktop/package.json"
+      - "!desktop/electron-builder.yml"
+      - "!desktop/node_modules/**"
+      - "!desktop/dist/**"
       - "!.git/**"
       - "!28_DOCUMENTATION/**"
 extraMetadata:
