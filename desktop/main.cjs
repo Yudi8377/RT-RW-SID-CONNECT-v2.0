@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Menu, shell } = require("electron");
 const path = require("path");
 
-const root = path.join(__dirname, "..");
+const root = path.join(process.resourcesPath, "app-content");
 const appEntry = path.join(root, "index.html");
 const websiteEntry = path.join(root, "website", "index.html");
 
