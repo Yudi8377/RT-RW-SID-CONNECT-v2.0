@@ -1,0 +1,46 @@
+{
+  "platform_core": [
+    {
+      "id": "9e24a285-e500-4d32-b1cc-c3be144c2d87",
+      "platform_name": "RT/RW–SID CONNECT",
+      "platform_version": "2.0.0",
+      "environment": "production",
+      "created_at": "2026-09-28T06:13:29.382702+00:00"
+    }
+  ],
+  "territories": [
+    {"id":"b44facdd-6fde-4b3a-a049-9574f72697c2","parent_id":null,"territory_type":"PROVINCE","code":"PILOT-ID-JB","name":"Pilot Jawa Barat","active":true,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"7846b205-5fc3-4fac-9f28-ad322f2b33ab","parent_id":"b44facdd-6fde-4b3a-a049-9574f72697c2","territory_type":"REGENCY_CITY","code":"PILOT-KAB","name":"Kabupaten Pilot","active":true,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"c92921aa-64a0-4a8e-aadd-be5e46ed2cf4","parent_id":"7846b205-5fc3-4fac-9f28-ad322f2b33ab","territory_type":"DISTRICT","code":"PILOT-KEC","name":"Kecamatan Pilot","active":true,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"f06b8420-54f5-4ee4-b487-bacc7b374dd2","parent_id":"c92921aa-64a0-4a8e-aadd-be5e46ed2cf4","territory_type":"VILLAGE","code":"PILOT-DESA","name":"Desa Pilot","active":true,"created_at":"2026-09-28T06:56:32.231226+00:00"}
+  ],
+  "roles": [
+    {"id":"f84ba082-7330-4e03-a7d6-738da045df04","role_code":"PILOT_VIEWER","role_name":"Pilot Viewer","critical":false,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"47365982-32aa-46b3-a6f6-b4e063f4e4d0","role_code":"PLATFORM_ADMIN","role_name":"Platform Administrator","critical":true,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"ec1f7683-6f6c-4365-91be-e111b52779b3","role_code":"RT_OPERATOR","role_name":"RT Operator","critical":false,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"775fb8f2-4ed5-49a4-837b-2452b3bf688a","role_code":"RW_REVIEWER","role_name":"RW Reviewer","critical":false,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"a094a4fb-ccd1-4999-a30f-5da8d0cddef3","role_code":"VILLAGE_VALIDATOR","role_name":"Village Validator","critical":true,"created_at":"2026-09-28T06:56:32.231226+00:00"}
+  ],
+  "permissions": [
+    {"id":"498accb4-868f-4823-a08a-6c2a760b2081","permission_code":"admin.manage","permission_name":"Manage platform configuration","critical":true,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"0eb08b89-d01e-4166-bdc3-5f07d793111f","permission_code":"demo.request.create","permission_name":"Create pilot request","critical":false,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"0212be4c-655a-4fac-b199-0a10e8e8c073","permission_code":"workflow.review","permission_name":"Review workflow item","critical":true,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"763cc4de-ae1e-4a3e-b11b-02e2325439c8","permission_code":"workflow.validate","permission_name":"Validate workflow item","critical":true,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"fe4beebd-7012-48f5-b5c9-459f6fb9469e","permission_code":"workflow.verify","permission_name":"Verify workflow item","critical":true,"created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"id":"1fd28587-7504-4767-8b1f-2bef8eef9afc","permission_code":"workspace.read","permission_name":"Read assigned workspace","critical":false,"created_at":"2026-09-28T06:56:32.231226+00:00"}
+  ],
+  "role_permissions": [
+    {"role_id":"f84ba082-7330-4e03-a7d6-738da045df04","permission_id":"0eb08b89-d01e-4166-bdc3-5f07d793111f","created_at":"2026-09-28T06:56:32.231226+00:00"},
+    {"role_id":"f84ba082-7330-4e03-a7d6-738da045df04","permission_id":"1fd28587-7504-4767-8b1f-2bef8eef9afc","created_at":"2026-09-28T06:56:32.231226+00:00"}
+  ],
+  "organizations": [
+    {"id":"7f68bf88-7589-428c-bd91-e03980308a14","organization_type":"VILLAGE","name":"Desa Pilot","territory_id":"f06b8420-54f5-4ee4-b487-bacc7b374dd2","active":true,"created_at":"2026-09-28T06:56:32.231226+00:00"}
+  ],
+  "exchange_datasets": [
+    {"id":"2b9e4a05-8a50-457d-a769-608e61fe3003","dataset_code":"COMMUNITY_ACTIVITY_SIGNAL","dataset_name":"Sinyal Aktivitas Komunitas","source_system":"RT_RW_SID_CONNECT","consumer_system":"GPFFE","classification":"INTERNAL","purpose":"Pemetaan kebutuhan dan partisipasi kegiatan komunitas untuk program sosial dan pemberdayaan.","active":true,"created_at":"2026-09-28T08:27:13.576169+00:00"},
+    {"id":"fafa3cba-bb78-4d28-a7bd-9cc0c8c1a536","dataset_code":"COMMUNITY_CASHFLOW_AGGREGATE","dataset_name":"Perputaran Kas Komunitas Agregat","source_system":"RT_RW_SID_CONNECT","consumer_system":"GPFFE","classification":"INTERNAL","purpose":"Analisis ekonomi komunitas berbasis transaksi agregat RT/RW tanpa membagikan transaksi personal.","active":true,"created_at":"2026-09-28T08:27:13.576169+00:00"},
+    {"id":"fcb68566-f1d9-4685-9fca-24f7e059d7b6","dataset_code":"COMMUNITY_NEEDS","dataset_name":"Community Needs","source_system":"RT_RW_SID_CONNECT","consumer_system":"GPFFE","classification":"INTERNAL","purpose":"Government program and funding matching","active":true,"created_at":"2026-09-28T06:13:29.382702+00:00"},
+    {"id":"1cf23d6d-706c-466d-a23c-7243a657f927","dataset_code":"COMMUNITY_PROFILE_AGGREGATE","dataset_name":"Community Profile Aggregate","source_system":"RT_RW_SID_CONNECT","consumer_system":"GPFFE","classification":"INTERNAL","purpose":"Aggregate community planning intelligence","active":true,"created_at":"2026-09-28T06:13:29.382702+00:00"},
+    {"id":"a506ac01-b9ba-47a1-8c8d-b3020d6ed506","dataset_code":"SOCIAL_ECONOMIC_PROFILE_AGGREGATE","dataset_name":"Profil Sosial Ekonomi Agregat","source_system":"RT_RW_SID_CONNECT","consumer_system":"GPFFE","classification":"INTERNAL","purpose":"Analisis agregat kesejahteraan, kerentanan dan kebutuhan program; bukan penetapan status kemiskinan individual.","active":true,"created_at":"2026-09-28T08:27:13.576169+00:00"}
+  ]
+}
