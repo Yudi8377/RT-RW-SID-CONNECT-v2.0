@@ -2,6 +2,17 @@ name: Windows Offline Installer
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish a GitHub release from this verified installer build"
+        required: true
+        default: false
+        type: boolean
+      release_version:
+        description: "Release tag/version, e.g. v2.0.1"
+        required: false
+        default: "v2.0.1"
+        type: string
   push:
     branches: ["offline-windows-installer-v1"]
 
@@ -48,18 +59,26 @@ jobs:
             desktop/dist/*.sha256
           if-no-files-found: error
 
-      - name: Publish GitHub Release v2.0.0
+      - name: Publish GitHub Release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_release == true }}
         working-directory: desktop
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
           $exe = Get-ChildItem dist\*.exe | Select-Object -First 1
           $checksum = Get-ChildItem dist\*.sha256 | Select-Object -First 1
           if (-not $exe) { throw "Release EXE not found." }
           if (-not $checksum) { throw "Release checksum not found." }
+          if (-not $env:RELEASE_VERSION) { throw "Release version is required." }
 
-          gh release create "v2.0.0" $exe.FullName $checksum.FullName `
+          gh release view "$env:RELEASE_VERSION" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            throw "Release $env:RELEASE_VERSION already exists. Choose a new release_version."
+          }
+
+          gh release create "$env:RELEASE_VERSION" $exe.FullName $checksum.FullName `
             --target "${{ github.sha }}" `
-            --title "RT/RW-SID CONNECT v2.0.0" `
-            --notes "Windows Offline Installer v2.0.0. Built and verified from commit ${{ github.sha }}. This release does not modify or merge into main."
+            --title "RT/RW-SID CONNECT $env:RELEASE_VERSION" `
+            --notes "Windows Offline Installer $env:RELEASE_VERSION. Built from commit ${{ github.sha }} after a successful build and checksum verification. This release does not modify or merge into main."
