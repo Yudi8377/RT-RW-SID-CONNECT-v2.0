@@ -1,0 +1,38 @@
+name: Windows Offline Installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["offline-windows-installer-v1"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package.json
+
+      - name: Install desktop build dependencies
+        working-directory: desktop
+        run: npm install
+
+      - name: Build Windows installer
+        working-directory: desktop
+        run: npx electron-builder --win nsis --config electron-builder.yml
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: RT-RW-SID-CONNECT-v2.0-Windows-Offline
+          path: desktop/dist/*.exe
+          if-no-files-found: error
