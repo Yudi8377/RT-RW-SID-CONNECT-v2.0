@@ -607,14 +607,22 @@ async function emergencyLocationWorkspace(){
   return '<div class="module-head"><div><div class="eyebrow dark">GIS / EMERGENCY LOCATION</div><h2>Emergency Location Center</h2><p>Lokasi darurat warga yang aktif pada scope petugas. Lokasi tidak ditampilkan sebagai data publik.</p></div><button class="btn primary" data-emergency-refresh>↻ Refresh</button></div><section class="panel wide"><div class="panel-head"><div><small>ACTIVE EMERGENCY</small><h3>'+records.length+' lokasi aktif</h3></div><span class="status active">CONSENT-BASED</span></div><div class="module-note"><b>Privacy boundary.</b><span>Lokasi hanya muncul setelah warga memberikan izin. Petugas hanya dapat menangani kasus dalam scope wilayahnya.</span></div></section><section class="panel wide"><div class="panel-head"><div><small>GOOGLE MAPS</small><h3>Peta lokasi darurat</h3></div></div>'+map+'</section><section class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem">'+(records.length?cards:'<div class="panel"><div class="empty-state"><b>'+esc(error||"Belum ada emergency location aktif.")+'</b><span>Gunakan tombol Refresh setelah ada warga yang membagikan lokasi.</span></div></div>')+'</section><section class="panel wide"><div class="module-note"><b>Lifecycle.</b><span>OPEN → ACKNOWLEDGED → RESPONDING → RESOLVED. Pembatalan hanya tersedia setelah ACK. Semua transisi dicatat dalam audit log.</span></div></section>';
 }
 function adminAccessWorkspace(){
- let rows=[];
- let error="";
- if(sb&&!ADMIN_PREVIEW){
-   try{
-     const r=await sb.functions.invoke("admin-access-management",{body:{action:"list"}});
-     if(r.error) error=r.error.message||"Access management unavailable";
-     rows=r.data?.assignments||[];
-   }catch(e){error=e?.message||"Access management unavailable"}
+ let rows=Array.isArray(window.__adminAccessRows)?window.__adminAccessRows:[];
+ let error=window.__adminAccessError||"";
+ if(sb&&!ADMIN_PREVIEW&&!window.__adminAccessLoading){
+   window.__adminAccessLoading=true;
+   sb.functions.invoke("admin-access-management",{body:{action:"list"}}).then(r=>{
+     window.__adminAccessRows=r.data?.assignments||[];
+     window.__adminAccessError=r.error?.message||"";
+     window.__adminAccessLoading=false;
+     render();
+   }).catch(e=>{
+     window.__adminAccessRows=[];
+     window.__adminAccessError=e?.message||"Access management unavailable";
+     window.__adminAccessLoading=false;
+     render();
+   });
+   error="Memuat assignment dari server…";
  }
  const demo=ADMIN_PREVIEW;
  const bodyRows=rows.length?rows.map(x=>'<tr><td><b>'+esc(x.user_id)+'</b></td><td>'+esc(x.roles?.role_name||x.roles?.role_code||"-")+'</td><td>'+esc(x.territories?.name||"Global")+'</td><td>'+status(x.active?"ACTIVE":"INACTIVE")+'</td><td>'+esc(x.starts_at||"—")+'</td><td><button type="button" class="row-action" data-access-deactivate="'+esc(x.id)+'">Deactivate</button></td></tr>').join(""):'<tr><td colspan="6"><div class="empty-state"><b>'+esc(error||"Belum ada assignment aktif.")+'</b><span>'+(demo?"ADMIN PREVIEW tidak memiliki kewenangan produksi dan tidak membuat assignment.":"Pastikan akun ini memiliki PLATFORM_ADMIN assignment sebelum mengelola akses.")+'</span></div></td></tr>';
