@@ -31,7 +31,16 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
         dbPath,
         schemaVersion: SCHEMA_VERSION,
         seeded: Boolean(scalar(db, "SELECT value FROM local_meta WHERE key='seed_package'")),
-        queuePending: Number(scalar(db, "SELECT COUNT(*) FROM offline_queue WHERE status='PENDING'") || 0),\n        tableCounts: {\n          platform_core: Number(scalar(db, "SELECT COUNT(*) FROM platform_core") || 0),\n          territories: Number(scalar(db, "SELECT COUNT(*) FROM territories") || 0),\n          roles: Number(scalar(db, "SELECT COUNT(*) FROM roles") || 0),\n          permissions: Number(scalar(db, "SELECT COUNT(*) FROM permissions") || 0),\n          role_permissions: Number(scalar(db, "SELECT COUNT(*) FROM role_permissions") || 0),\n          organizations: Number(scalar(db, "SELECT COUNT(*) FROM organizations") || 0),\n          exchange_datasets: Number(scalar(db, "SELECT COUNT(*) FROM exchange_datasets") || 0)\n        }
+        queuePending: Number(scalar(db, "SELECT COUNT(*) FROM offline_queue WHERE status='PENDING'") || 0),
+        tableCounts: {
+          platform_core: Number(scalar(db, "SELECT COUNT(*) FROM platform_core") || 0),
+          territories: Number(scalar(db, "SELECT COUNT(*) FROM territories") || 0),
+          roles: Number(scalar(db, "SELECT COUNT(*) FROM roles") || 0),
+          permissions: Number(scalar(db, "SELECT COUNT(*) FROM permissions") || 0),
+          role_permissions: Number(scalar(db, "SELECT COUNT(*) FROM role_permissions") || 0),
+          organizations: Number(scalar(db, "SELECT COUNT(*) FROM organizations") || 0),
+          exchange_datasets: Number(scalar(db, "SELECT COUNT(*) FROM exchange_datasets") || 0)
+        }
       };
     },
     close() { persist(db, dbPath); db.close(); }
