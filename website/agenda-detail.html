@@ -95,9 +95,9 @@
         </div>
       </section>
       <script>
-        document.getElementById("agendaMapFrame").src="PLACEHOLDER".replace("PLACEHOLDER", mapEmbed);
-        document.getElementById("agendaMapLink").href=mapLink;
-        document.getElementById("agendaMapLabel").textContent=mapQuery;
+        document.getElementById("agendaMapFrame").src=${mapEmbed};
+        document.getElementById("agendaMapLink").href=${mapLink};
+        document.getElementById("agendaMapLabel").textContent=${esc(mapQuery)};
       </script>
       <div class="detail-actions">
         <a class="btn btn-civic" href="./index.html#agenda"><i class="bi bi-calendar-event me-1"></i>Kembali ke Agenda</a>
