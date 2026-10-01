@@ -74,6 +74,7 @@ async function testStaleProcessingRecovery(seedPath) {
   db.markQueueProcessing(item.id);
 
   const dbPath = path.join(userDataPath, "data", "rt-rw-sid-connect.sqlite");
+  db.close();
   const SQL = await initSqlJs({
     locateFile: (file) => path.join(__dirname, "node_modules", "sql.js", "dist", file)
   });
@@ -84,7 +85,6 @@ async function testStaleProcessingRecovery(seedPath) {
   ]);
   fs.writeFileSync(dbPath, Buffer.from(rawDb.export()));
   rawDb.close();
-  db.close();
 
   const reopened = await openLocalDatabase({ userDataPath, seedPath });
   const reopenedQueue = new OfflineQueueEngine(reopened);
