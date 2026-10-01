@@ -31,3 +31,40 @@
 .emergency-location-fields input,.emergency-location-fields select{display:block;width:100%;margin-top:.3rem;padding:.65rem .75rem;border:1px solid rgba(17,37,31,.14);border-radius:12px;background:#fff}
 .emergency-location-status{display:block;margin-top:.7rem;color:#53645d}
 @media(max-width:700px){.emergency-location-fields{grid-template-columns:1fr}}
+
+/* =========================================================
+   SMART VILLAGE — CIVIC EDITORIAL DESIGN SYSTEM v2
+   Visual-only enhancement layer. Runtime/action selectors preserved.
+   Direction: civic editorial + living village, inspired by modern
+   public-service Webflow patterns without copying any template.
+   ========================================================= */
+:root{
+  --ink:#10251e;--ink-2:#183a30;--green:#287052;--green-2:#3f8968;
+  --sage:#dfece2;--paper:#f6f4ed;--white:#fff;--gold:#d8b65e;
+  --line:rgba(16,37,30,.105);--muted:#64736c;
+  --shadow:0 24px 70px rgba(16,37,30,.11);--shadow-soft:0 12px 36px rgba(16,37,30,.08);
+  --display:"Newsreader",serif;--sans:"DM Sans",sans-serif;--ui:"Manrope",sans-serif
+}
+body{background:var(--paper);letter-spacing:-.01em}
+.site-header{background:rgba(246,244,237,.86);box-shadow:0 1px 0 rgba(16,37,30,.05)}
+.navbar{min-height:82px}.brand{letter-spacing:.11em}.brand-mark{width:39px;height:39px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 7px 18px rgba(16,37,30,.12)}
+.nav-link{position:relative}.nav-link:after{content:"";position:absolute;left:.85rem;right:.85rem;bottom:.32rem;height:2px;background:var(--green);transform:scaleX(0);transform-origin:left;transition:transform .22s ease}.nav-link:hover:after,.nav-link.active:after{transform:scaleX(1)}
+.btn{transition:transform .2s ease,box-shadow .2s ease,background .2s ease}.btn-civic{box-shadow:0 8px 18px rgba(40,112,82,.16)}
+.hero{min-height:720px;padding:112px 0 92px;background:radial-gradient(circle at 78% 28%,rgba(105,170,127,.17),transparent 25%),linear-gradient(120deg,#0d211b 0%,#122d24 54%,#17392e 100%)}
+.hero:after{background:radial-gradient(circle at 22% 82%,rgba(216,182,94,.07),transparent 20%),linear-gradient(90deg,transparent 55%,rgba(255,255,255,.025))}
+.hero h1{max-width:850px;font-weight:500;letter-spacing:-.055em}.hero-copy{font-size:18px;max-width:620px}.hero-proof{gap:0;margin-left:-8px}.hero-proof div{padding:0 25px;border-right:1px solid rgba(255,255,255,.15)}.hero-proof div:first-child{padding-left:8px}
+.living-map-card{border-radius:24px;box-shadow:0 35px 100px rgba(0,0,0,.34);transform:translateY(3px)}.map-canvas{height:395px;background-size:38px 38px}.map-pin{transition:transform .2s ease,box-shadow .2s ease}.map-pin:hover{transform:scale(1.12);box-shadow:0 0 0 10px rgba(225,191,104,.16),0 10px 24px rgba(0,0,0,.2)}
+.quick-strip{background:#e9ece4}.quick-item{min-height:82px;padding:20px 20px}.quick-item:hover{background:#f8f8f2;transform:translateY(-1px)}
+.section-pad,.news-section,.economy-section,.agenda-section{padding-top:112px;padding-bottom:112px}.section-head{margin-bottom:48px}.section-head h2,.economy-section h2{font-size:clamp(2.8rem,4.6vw,4.4rem)}
+.service-card{border-radius:18px;padding:32px;box-shadow:0 0 0 rgba(0,0,0,0);min-height:315px}.service-card:hover{transform:translateY(-7px);box-shadow:var(--shadow)}.service-card.featured{background:linear-gradient(145deg,#e4f0e6,#d9e9dd)}.service-card>i{font-size:31px;margin:40px 0 22px}.service-card h3{font-size:18px;letter-spacing:-.02em}.service-card a,.service-action{font:700 11px var(--ui);color:var(--green);text-decoration:none;background:none;border:0;padding:0;cursor:pointer}.service-action:hover,.service-card a:hover{color:var(--ink)}
+.signal-section{padding:68px 0;background:linear-gradient(135deg,#e8ece4,#dfe8df)}.signal-grid{gap:80px}.signal-main h2{font-size:clamp(2.5rem,4vw,3.8rem)}.signal-stats{background:rgba(255,255,255,.28);border:1px solid rgba(16,37,30,.08);border-radius:18px;overflow:hidden}
+.news-section{background:linear-gradient(135deg,#0d211b,#16362b);position:relative;overflow:hidden}.news-section:before{content:"";position:absolute;width:520px;height:520px;border:1px solid rgba(183,215,191,.08);border-radius:50%;right:-260px;top:-220px}.news-feature{border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.2)}.news-photo{height:360px}.news-row{padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:15px;margin-bottom:12px;background:rgba(255,255,255,.025);transition:.2s}.news-row:hover{background:rgba(255,255,255,.06);transform:translateX(4px)}
+.editorial-note{margin-top:38px!important;padding:22px 0}.editorial-note strong{font-size:18px}
+.chat-window{border-radius:20px;box-shadow:var(--shadow)}.chat-head{padding:19px 22px}.chat-body{min-height:350px;padding:25px}.chat-bubble{border-radius:14px}.chat-compose{padding:16px 18px}
+.economy-section{background:linear-gradient(135deg,#102a22,#183c31);position:relative;overflow:hidden}.economy-section:after{content:"";position:absolute;right:-150px;bottom:-250px;width:560px;height:560px;border:1px solid rgba(216,182,94,.12);border-radius:50%}.economy-grid{position:relative;z-index:1;border-radius:18px;overflow:hidden;background:rgba(255,255,255,.025)}.economy-grid>div{padding:29px 22px}.economy-quote{padding-left:30px!important}
+.agenda-item-action{transition:background .2s ease}.agenda-item{padding:25px 14px;border-radius:12px}.agenda-item:hover{padding-left:18px;background:#f2f5ef}.agenda-date{width:66px;height:66px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(40,112,82,.06)}.agenda-arrow{transition:.2s}.agenda-item:hover .agenda-arrow{background:var(--green);color:#fff;border-color:var(--green);transform:translateX(2px)}
+.footer{background:#0a1b16}.footer-brand{letter-spacing:.12em}
+:focus-visible{outline:3px solid rgba(216,182,94,.9);outline-offset:3px;border-radius:5px}
+@media(max-width:991px){.hero{padding-top:86px}.hero-proof{margin-top:34px}.living-map-card{margin-top:8px}.section-pad,.news-section,.economy-section,.agenda-section{padding-top:82px;padding-bottom:82px}}
+@media(max-width:575px){.hero{min-height:auto;padding:72px 0 62px}.hero h1{font-size:3.35rem}.hero-copy{font-size:15px}.hero-proof{display:grid;grid-template-columns:1fr 1fr;gap:18px}.hero-proof div{padding:0 0 0 10px!important;border-right:0;border-left:1px solid rgba(255,255,255,.15)}.map-canvas{height:300px}.section-head{align-items:flex-start;flex-direction:column}.section-head h2,.economy-section h2{font-size:2.75rem}.service-card{min-height:0}.editorial-note{grid-template-columns:1fr;gap:8px}.economy-grid{grid-template-columns:1fr 1fr}.economy-grid>div{border-bottom:1px solid rgba(255,255,255,.12)}.economy-quote{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
