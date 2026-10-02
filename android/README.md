@@ -1,11 +1,24 @@
-# Smart Village Android
+# Smart Village Mobile
 
-Official Android client for RT/RW-SID CONNECT v2.0 / Smart Village — Desa Cerdas Engine.
+Official cross-platform mobile client for RT/RW-SID CONNECT v2.0 / Smart Village — Desa Cerdas Engine.
 
-The Android app is a client of the existing Supabase project, not a second database. It uses the publishable key only and keeps authorization in the existing backend/RLS/Edge Functions.
+## Platforms
+- Android
+- iOS
 
-Initial modules: Beranda, Layanan, Kabar Desa, Agenda Warga, Ruang Warga, authentication.
+The app is one client experience over the existing Supabase project; it does not create a second database.
 
-Local: copy .env.example to .env, set the publishable key, then npm install and npx expo start.
+## UX baseline
+- Public information is browseable without a trial wall.
+- Sign-in is only required for private/personal actions.
+- Role and wilayah permissions remain enforced by Supabase/RLS/Edge Functions.
+- Visual contract: `DESIGN.md`.
 
-Release signing credentials must stay outside the repository.
+## Run locally
+1. Copy `.env.example` to `.env`.
+2. Set `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+3. Run `npm install`.
+4. Run `npx expo start`.
+5. Use Expo Go or a development build on Android/iOS.
+
+Release signing credentials must remain outside the repository.
