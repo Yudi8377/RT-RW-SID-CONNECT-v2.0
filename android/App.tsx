@@ -11,7 +11,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import * as SecureStore from "expo-secure-store";
 import { createClient, Session } from "@supabase/supabase-js";
 import { enqueueRequest, flushQueue, queuedCount } from "./src/offlineQueue";
 
@@ -143,7 +142,9 @@ export default function App() {
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>\n          {notice ? <Pressable style={s.notice} onPress={() => setNotice("")}><Text style={s.noticeText}>{notice}</Text></Pressable> : null}\n          {queueSize > 0 ? <View style={s.queuePill}><Text style={s.queueText}>{queueSize} permohonan menunggu sinkronisasi</Text></View> : null}
+        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+          {notice ? <Pressable style={s.notice} onPress={() => setNotice("")}><Text style={s.noticeText}>{notice}</Text></Pressable> : null}
+          {queueSize > 0 ? <View style={s.queuePill}><Text style={s.queueText}>{queueSize} permohonan menunggu sinkronisasi</Text></View> : null}
           {tab === "home" && <Home setTab={setTab} session={session} />}
           {tab === "services" && <Services session={session} setAuth={setAuth} setQueueSize={setQueueSize} setNotice={setNotice} />}
           {tab === "news" && <News data={news} />}
@@ -422,7 +423,11 @@ const s = StyleSheet.create({
   quickIconText: { color: "#356557", fontSize: 18, fontWeight: "800" },
   quickTitle: { color: "#16352C", fontSize: 14, fontWeight: "900" },
   quickNote: { color: "#74817B", fontSize: 11, marginTop: 4 },
-  pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },\n  notice: { backgroundColor: "#16352C", borderRadius: 14, padding: 12, marginBottom: 10 },\n  noticeText: { color: "#FFFFFF", fontSize: 12, lineHeight: 18, fontWeight: "800" },\n  queuePill: { backgroundColor: "#FFF2D8", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 10 },\n  queueText: { color: "#765A21", fontSize: 11, fontWeight: "800" },
+  pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
+  notice: { backgroundColor: "#16352C", borderRadius: 14, padding: 12, marginBottom: 10 },
+  noticeText: { color: "#FFFFFF", fontSize: 12, lineHeight: 18, fontWeight: "800" },
+  queuePill: { backgroundColor: "#FFF2D8", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 10 },
+  queueText: { color: "#765A21", fontSize: 11, fontWeight: "800" },
   featureCard: { backgroundColor: "#E7EFEA", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#D5E1DB" },
   featureTag: { alignSelf: "flex-start", backgroundColor: "#D5E4DD", borderRadius: 12, paddingHorizontal: 9, paddingVertical: 6, marginBottom: 13 },
   featureTagText: { color: "#356557", fontSize: 8.5, fontWeight: "900", letterSpacing: 1.1 },
