@@ -3,7 +3,8 @@ const path = require("path");
 const { openLocalDatabase } = require("./local-db.cjs");
 
 const root = path.join(process.resourcesPath, "app-content");
-const appEntry = path.join(__dirname, "offline-shell.html");
+const appEntry = path.join(root, "index.html");
+const offlineStatusEntry = path.join(__dirname, "offline-shell.html");
 const websiteEntry = path.join(root, "website", "index.html");
 const seedPath = path.join(root, "offline-data", "supabase-snapshot-v1.0", "master-data.json");
 let localDatabase = null;
@@ -16,7 +17,8 @@ function createWindow() {
   });
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     { label: "Aplikasi", submenu: [
-      { label: "RT/RW–SID CONNECT", click: () => win.loadFile(appEntry) },
+      { label: "SIM RT/RW OS", click: () => win.loadFile(appEntry) },
+      { label: "Offline Runtime / Database", click: () => win.loadFile(offlineStatusEntry) },
       { label: "Smart Village Website", click: () => win.loadFile(websiteEntry) },
       { type: "separator" }, { role: "reload" }, { role: "toggleDevTools" }, { type: "separator" }, { role: "quit" }
     ]},
