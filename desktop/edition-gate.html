@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RT/RW–SID CONNECT — Aktivasi Edisi</title>
+<style>
+body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#07111e;color:#edf4fb;min-height:100vh;display:grid;place-items:center}
+.wrap{width:min(980px,calc(100% - 40px));padding:34px}.card{background:#101d2d;border:1px solid #29405b;border-radius:24px;padding:32px;box-shadow:0 24px 70px rgba(0,0,0,.3)}
+h1{margin:0 0 8px}.muted{color:#9eb0c5}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:26px 0}
+button{width:100%;text-align:left;padding:18px;border-radius:16px;border:1px solid #304762;background:#0b1727;color:#eef5fb;cursor:pointer}
+button:hover,button.active{border-color:#8bd4ff;background:#13283e}button b{display:block;font-size:18px;margin-bottom:6px}button span{display:block;color:#9eb0c5;font-size:13px;line-height:1.45}
+.panel{border-top:1px solid #263a51;padding-top:22px}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}input{flex:1;min-width:260px;padding:13px 14px;border-radius:12px;border:1px solid #304762;background:#081421;color:#fff}
+.primary{background:#eef5fb;color:#07111e;border:0;width:auto;text-align:center;font-weight:800;padding:13px 20px}.msg{margin-top:14px;color:#ffd37a}
+.small{font-size:12px;color:#8297ae;margin-top:18px}
+@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:500px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main class="wrap"><section class="card">
+<div class="muted">RT/RW–SID CONNECT v2.0.1 · WINDOWS</div>
+<h1>Pilih Edisi / Aktivasi</h1>
+<p class="muted">Ini adalah onboarding produk Windows. Website publik dan SIM RT/RW OS adalah dua lapisan berbeda. Pilihan di sini menentukan entitlement awal; akses administrator tetap mengikuti akun, role, scope dan RLS.</p>
+<div class="grid">
+<button data-edition="COMMUNITY"><b>Community</b><span>Akses komunitas untuk penggunaan dasar sesuai entitlement Community.</span></button>
+<button data-edition="TRIAL"><b>Trial 7 Hari</b><span>Evaluasi fitur yang tersedia selama masa trial. Tidak memberi hak administrator produksi.</span></button>
+<button data-edition="PRO"><b>Pro</b><span>Membutuhkan activation/license code yang diterbitkan oleh sistem lisensi.</span></button>
+<button data-edition="ENTERPRISE"><b>Enterprise</b><span>Membutuhkan activation/license code dan konfigurasi organisasi.</span></button>
+</div>
+<div class="panel">
+<div id="detail" class="muted">Pilih edisi untuk melanjutkan.</div>
+<div id="codeRow" class="row" style="display:none;margin-top:16px"><input id="code" placeholder="Masukkan activation/license code"><button class="primary" id="activate">Verifikasi & Buka OS</button></div>
+<div id="continueRow" class="row" style="display:none;margin-top:16px"><button class="primary" id="continue">Buka SIM RT/RW OS</button></div>
+<div id="msg" class="msg"></div>
+</div>
+<div class="small">Catatan: Pro/Enterprise tidak boleh dibuka dengan kode statis yang tertanam di aplikasi. Verifikasi produksi harus berasal dari issuer lisensi/server atau token lisensi offline yang ditandatangani.</div>
+</section></main>
+<script>
+let selected=null;
+const detail=document.getElementById("detail"),codeRow=document.getElementById("codeRow"),continueRow=document.getElementById("continueRow"),msg=document.getElementById("msg");
+document.querySelectorAll("[data-edition]").forEach(b=>b.onclick=()=>{
+ selected=b.dataset.edition; document.querySelectorAll("[data-edition]").forEach(x=>x.classList.toggle("active",x===b));
+ codeRow.style.display=(selected==="PRO"||selected==="ENTERPRISE")?"flex":"none";
+ continueRow.style.display=(selected==="COMMUNITY"||selected==="TRIAL")?"flex":"none";
+ msg.textContent="";
+ detail.textContent=selected==="COMMUNITY"?"Community dipilih. Klik Buka SIM RT/RW OS untuk melanjutkan.":
+ selected==="TRIAL"?"Trial 7 hari dipilih. Masa trial dicatat pada profil lokal; privilege produksi tetap server-side.":
+ "Edisi "+selected+" memerlukan lisensi yang valid. Kode akan diverifikasi; aplikasi tidak akan menerima kode demo/palsu.";
+});
+document.getElementById("continue").onclick=()=>{
+ if(!selected)return;
+ localStorage.setItem("rtrw_sid_desktop_edition",selected);
+ if(selected==="TRIAL")localStorage.setItem("rtrw_sid_trial_started_at",new Date().toISOString());
+ window.rtRwSidDesktop.openOs();
+};
+document.getElementById("activate").onclick=()=>{
+ msg.textContent="Verifikasi Pro/Enterprise belum dapat dianggap valid tanpa issuer lisensi. Hubungkan ke layanan lisensi resmi untuk mengaktifkan entitlement.";
+};
+</script></body></html>
