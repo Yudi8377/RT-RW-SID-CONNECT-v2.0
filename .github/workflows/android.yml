@@ -1,4 +1,4 @@
-name: Android App Validation
+name: Mobile App Validation
 
 on:
   push:
@@ -24,4 +24,5 @@ jobs:
           cache: npm
           cache-dependency-path: android/package.json
       - run: npm install
-      - run: npx expo export --platform android
+      - run: npx tsc --noEmit
+      - run: npx expo export --platform all
