@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { createClient, Session } from "@supabase/supabase-js";
+import { enqueueRequest, flushQueue, queuedCount } from "./src/offlineQueue";
 
 const URL = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://gzdusguveeeflmlvvmwe.supabase.co";
 const KEY = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
@@ -58,9 +59,11 @@ export default function App() {
   const [error, setError] = useState("");
   const [detail, setDetail] = useState<any>(null);
   const [news, setNews] = useState(newsDemo);
+  const [queueSize, setQueueSize] = useState(0);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    sb.auth.getSession().then((r) => setSession(r.data.session));
+    sb.auth.getSession().then(async (r) => { setSession(r.data.session); await syncQueuedRequests(r.data.session); });
     const sub = sb.auth.onAuthStateChange((_, s) => setSession(s));
     return () => sub.data.subscription.unsubscribe();
   }, []);
@@ -140,9 +143,9 @@ export default function App() {
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>\n          {notice ? <Pressable style={s.notice} onPress={() => setNotice("")}><Text style={s.noticeText}>{notice}</Text></Pressable> : null}\n          {queueSize > 0 ? <View style={s.queuePill}><Text style={s.queueText}>{queueSize} permohonan menunggu sinkronisasi</Text></View> : null}
           {tab === "home" && <Home setTab={setTab} session={session} />}
-          {tab === "services" && <Services setAuth={setAuth} />}
+          {tab === "services" && <Services session={session} setAuth={setAuth} setQueueSize={setQueueSize} setNotice={setNotice} />}
           {tab === "news" && <News data={news} />}
           {tab === "agenda" && <Agenda open={setDetail} />}
           {tab === "room" && <Room session={session} setAuth={setAuth} />}
@@ -226,7 +229,34 @@ function Quick({ icon, title, note, go }: any) {
   );
 }
 
-function Services({ setAuth }: any) {
+function Services({ session, setAuth, setQueueSize, setNotice }: any) {
+  async function requestService(serviceName: string) {
+    if (!session?.user) {
+      setAuth(true);
+      return;
+    }
+    const item = {
+      serviceName,
+      citizenName: session.user.email || "Warga",
+      scopeLabel: "MY_SCOPE",
+    };
+    const r = await sb.from("demo_requests").insert({
+      request_number: `MOB-${Date.now()}`,
+      citizen_name: item.citizenName,
+      service_name: item.serviceName,
+      scope_label: item.scopeLabel,
+      status: "SUBMITTED",
+      classification: "INTERNAL",
+    });
+    if (r.error) {
+      await enqueueRequest(item);
+      const count = await queuedCount();
+      setQueueSize(count);
+      setNotice("Permohonan disimpan di perangkat dan akan dikirim saat koneksi tersedia.");
+    } else {
+      setNotice("Permohonan berhasil dikirim.");
+    }
+  }
   return (
     <View>
       <Text style={s.eyebrow}>LAYANAN PUBLIK</Text>
@@ -236,13 +266,13 @@ function Services({ setAuth }: any) {
         <Pressable
           key={x[0]}
           style={({ pressed }) => [s.serviceCard, pressed && s.pressed]}
-          onPress={x[0] === "Lacak Permohonan" ? () => setAuth(true) : undefined}
+          onPress={() => x[0] === "Lacak Permohonan" ? setAuth(true) : requestService(x[0])}
         >
           <View style={s.serviceIcon}><Text style={s.serviceIconText}>{x[2]}</Text></View>
           <View style={{ flex: 1 }}>
             <Text style={s.serviceTitle}>{x[0]}</Text>
             <Text style={s.serviceText}>{x[1]}</Text>
-            <Text style={s.link}>{x[0] === "Lacak Permohonan" ? "Masuk & lacak  →" : "Lihat informasi  →"}</Text>
+            <Text style={s.link}>{x[0] === "Lacak Permohonan" ? "Masuk & lacak  →" : session ? "Ajukan layanan  →" : "Masuk untuk mengajukan  →"}</Text>
           </View>
         </Pressable>
       ))}
@@ -392,7 +422,7 @@ const s = StyleSheet.create({
   quickIconText: { color: "#356557", fontSize: 18, fontWeight: "800" },
   quickTitle: { color: "#16352C", fontSize: 14, fontWeight: "900" },
   quickNote: { color: "#74817B", fontSize: 11, marginTop: 4 },
-  pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
+  pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },\n  notice: { backgroundColor: "#16352C", borderRadius: 14, padding: 12, marginBottom: 10 },\n  noticeText: { color: "#FFFFFF", fontSize: 12, lineHeight: 18, fontWeight: "800" },\n  queuePill: { backgroundColor: "#FFF2D8", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 10 },\n  queueText: { color: "#765A21", fontSize: 11, fontWeight: "800" },
   featureCard: { backgroundColor: "#E7EFEA", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#D5E1DB" },
   featureTag: { alignSelf: "flex-start", backgroundColor: "#D5E4DD", borderRadius: 12, paddingHorizontal: 9, paddingVertical: 6, marginBottom: 13 },
   featureTagText: { color: "#356557", fontSize: 8.5, fontWeight: "900", letterSpacing: 1.1 },
