@@ -39,9 +39,9 @@ async function main() {
   child.unref();
   await waitForFile(dbPath,30000);
 
-  const shell=path.join(installDir,"resources","app-content","desktop","offline-shell.html");
+  const asar=path.join(installDir,"resources","app.asar");
   const website=path.join(installDir,"resources","app-content","website","index.html");
-  if(!fs.existsSync(shell)) fail("Installed offline-shell.html missing");
+  if(!fs.existsSync(asar)) fail("Installed app.asar missing");
   if(!fs.existsSync(website)) fail("Installed website payload missing");
 
   const dbSize=fs.statSync(dbPath).size;
