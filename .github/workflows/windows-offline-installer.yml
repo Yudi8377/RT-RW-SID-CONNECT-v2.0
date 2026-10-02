@@ -100,6 +100,21 @@ jobs:
             desktop/dist/*.sha256
           if-no-files-found: error
 
+      - name: Enforce release acceptance gate
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_release == true }}
+        shell: powershell
+        run: |
+          if (-not (Test-Path windows-acceptance-report.json)) {
+            throw "Release blocked: Windows acceptance evidence is missing."
+          }
+          $report = Get-Content windows-acceptance-report.json -Raw | ConvertFrom-Json
+          $manual = @($report.acceptance.PSObject.Properties | Where-Object { $_.Value -eq "MANUAL_REQUIRED" })
+          if ($manual.Count -gt 0) {
+            $names = ($manual.Name -join ", ")
+            throw "Release blocked: manual Windows acceptance remains required for: $names"
+          }
+          if (-not $report.ok) { throw "Release blocked: acceptance report is not OK." }
+
       - name: Publish GitHub Release
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_release == true }}
         working-directory: desktop
