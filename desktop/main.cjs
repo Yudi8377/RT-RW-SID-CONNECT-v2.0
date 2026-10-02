@@ -9,6 +9,7 @@ const offlineStatusEntry = path.join(__dirname, "offline-shell.html");
 const websiteEntry = path.join(root, "website", "index.html");
 const seedPath = path.join(root, "offline-data", "supabase-snapshot-v1.0", "master-data.json");
 let localDatabase = null;
+let mainWindow = null;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -26,13 +27,14 @@ function createWindow() {
     ]},
     { label: "Jendela", submenu: [{ role: "togglefullscreen" }, { role: "resetZoom" }] }
   ]));
-  win.loadFile(appEntry);
+  mainWindow = win;
+  win.loadFile(editionGateEntry);
 }
 
 app.whenReady().then(async () => {
   localDatabase = await openLocalDatabase({ userDataPath: app.getPath("userData"), seedPath });
   ipcMain.handle("offline-db:status", () => localDatabase.getStatus());
-  ipcMain.handle("desktop:open-os", () => { createWindow.__unused = true; return BrowserWindow.getAllWindows()[0]?.loadFile(appEntry); });
+  ipcMain.handle("desktop:open-os", () => mainWindow?.loadFile(appEntry));
   createWindow();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 }).catch((error) => { console.error("Offline database bootstrap failed:", error); app.quit(); });
