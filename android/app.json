@@ -1,1 +1,22 @@
-{"expo":{"name":"Smart Village","slug":"smart-village-desa-cerdas","version":"1.0.0","orientation":"portrait","userInterfaceStyle":"light","scheme":"smartvillage","android":{"package":"id.desa.smartvillage","versionCode":1,"adaptiveIcon":{"backgroundColor":"#10231d"}},"plugins":["expo-secure-store"]}}
+{
+  "expo": {
+    "name": "Smart Village",
+    "slug": "smart-village-desa-cerdas",
+    "version": "1.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "smartvillage",
+    "android": {
+      "package": "id.desa.smartvillage",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "backgroundColor": "#16352C"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "id.desa.smartvillage",
+      "supportsTablet": true
+    },
+    "plugins": ["expo-secure-store"]
+  }
+}
