@@ -14,7 +14,7 @@ on:
         default: "v2.0.1"
         type: string
   push:
-    branches: ["offline-windows-installer-v1", "hardening-v2.0.1"]
+    branches: ["offline-windows-installer-v1", "hardening-v2.0.1", "qa/windows-acceptance-harness-v1"]
 
 permissions:
   contents: write
@@ -38,14 +38,11 @@ jobs:
         run: npm install
 
       - name: Dependency security audit
-        id: dependency-audit
         working-directory: desktop
         shell: powershell
         run: |
           npm audit --json | Tee-Object audit-report.json
-          if ($LASTEXITCODE -ne 0) {
-            throw "npm audit found vulnerabilities at high severity or above."
-          }
+          if ($LASTEXITCODE -ne 0) { throw "npm audit found vulnerabilities at high severity or above." }
 
       - name: Upload dependency audit
         if: always()
@@ -81,6 +78,19 @@ jobs:
           $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
           "$hash  $($exe.Name)" | Set-Content -Encoding ascii "dist\$($exe.Name).sha256"
 
+      - name: Install and launch acceptance
+        working-directory: desktop
+        shell: powershell
+        run: node test-windows-installer-acceptance.cjs
+
+      - name: Upload Windows acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RT-RW-SID-CONNECT-v2.0-Windows-Acceptance-Evidence
+          path: windows-acceptance-report.json
+          if-no-files-found: warn
+
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
@@ -103,12 +113,8 @@ jobs:
           if (-not $exe) { throw "Release EXE not found." }
           if (-not $checksum) { throw "Release checksum not found." }
           if (-not $env:RELEASE_VERSION) { throw "Release version is required." }
-
           gh release view "$env:RELEASE_VERSION" *> $null
-          if ($LASTEXITCODE -eq 0) {
-            throw "Release $env:RELEASE_VERSION already exists. Choose a new release_version."
-          }
-
+          if ($LASTEXITCODE -eq 0) { throw "Release $env:RELEASE_VERSION already exists. Choose a new release_version." }
           gh release create "$env:RELEASE_VERSION" $exe.FullName $checksum.FullName `
             --target "${{ github.sha }}" `
             --title "RT/RW-SID CONNECT $env:RELEASE_VERSION" `
