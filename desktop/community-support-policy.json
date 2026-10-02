@@ -1,0 +1,16 @@
+{
+  "edition": "COMMUNITY",
+  "target": "RT/RW",
+  "support_model": "monthly_support_fee",
+  "amount_idr": 250000,
+  "period": "monthly",
+  "scope": "one_rt_or_rw_unit",
+  "reminders_days_before_due": [7,3,1],
+  "grace_period_required": true,
+  "data_lock_on_nonpayment": false,
+  "payment_status_authoritative_source": "server_control_center",
+  "offline_license": true,
+  "heartbeat_data_minimum": ["installation_id","organization_id","license_id","edition","app_version","last_seen"],
+  "citizen_data_in_heartbeat": false,
+  "notes": "Production payment verification and entitlement enforcement require a server-side licensing/payment service. This configuration is not proof of payment."
+}
