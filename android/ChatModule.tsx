@@ -5,7 +5,8 @@ import nacl from "tweetnacl";
 import * as naclUtil from "tweetnacl-util";
 import {Session} from "@supabase/supabase-js";
 
-const B64=naclUtil.encodeBase64, U8=naclUtil.decodeBase64;
+const B64=(value:Uint8Array)=>naclUtil.encodeBase64(value as any);
+const U8=(value:string)=>naclUtil.decodeBase64(value) as any;
 const box:any=nacl.box; // E2EE v1: established NaCl primitive; no custom cryptography
 
 export default function ChatModule({visible,onClose,sb,session,profile}:any){
@@ -66,7 +67,7 @@ export default function ChatModule({visible,onClose,sb,session,profile}:any){
     const pub=new Map((d.data||[]).map((x:any)=>[x.id,x.public_key]));
     const decoded=rows.map((m:any)=>{
       const env:any=envBy.get(m.id);let body="[Pesan terenkripsi tidak dapat dibuka]";
-      if(env&&secret){try{const parts=String(env.ciphertext).split("."); const plain=box.open(U8(parts[1]||""),U8(env.nonce),U8(String(parts[0]||pub.get(m.sender_device_id)||"")),secret);if(plain)body=naclUtil.decodeUTF8(plain);}catch{}}
+      if(env&&secret){try{const parts=String(env.ciphertext).split("."); const plain=box.open(U8(parts[1]||""),U8(env.nonce),U8(String(parts[0]||pub.get(m.sender_device_id)||"")),secret);if(plain)body=naclUtil.decodeUTF8(plain as any);}catch{}}
       return {...m,body,self:m.sender_user_id===session.user.id};
     });
     setMessages(decoded);
