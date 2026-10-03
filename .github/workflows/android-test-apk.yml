@@ -44,6 +44,15 @@ jobs:
         working-directory: android/android
         run: ./gradlew assembleRelease --no-daemon
 
+      - name: Verify emergency service manifest
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f android/app/src/main/AndroidManifest.xml
+          grep -q 'EmergencyMonitoringService' android/app/src/main/AndroidManifest.xml
+          grep -q 'FOREGROUND_SERVICE' android/app/src/main/AndroidManifest.xml
+
       - name: Verify APK
         shell: bash
         run: |
