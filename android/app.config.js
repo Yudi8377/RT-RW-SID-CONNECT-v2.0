@@ -26,7 +26,7 @@ module.exports = ({ config }) => ({
       NSLocationWhenInUseUsageDescription: "Lokasi digunakan saat Anda membuka peta wilayah atau mengaktifkan bantuan darurat."
     }
   },
-  plugins: ["expo-secure-store", "expo-location"],
+  plugins: ["expo-secure-store", "expo-location", ["expo-sensors", { motionPermission: "RT/RW-SID CONNECT menggunakan sensor gerak untuk mendeteksi kemungkinan kejadian darurat." }]],
   extra: {
     ...(config.extra || {}),
     smartVillage: true,
