@@ -21,7 +21,7 @@ const aliases: Record<string, { target: string; confidence: number }> = {
   "nomor kk": { target: "kk", confidence: 0.98 },
   nomorkk: { target: "kk", confidence: 0.98 },
   nama: { target: "name", confidence: 1 },
-  nama lengkap: { target: "name", confidence: 1 },
+  "nama lengkap": { target: "name", confidence: 1 },
   namalengkap: { target: "name", confidence: 1 },
   alamat: { target: "address", confidence: 1 },
   "tempat lahir": { target: "birth_place", confidence: 0.98 },
