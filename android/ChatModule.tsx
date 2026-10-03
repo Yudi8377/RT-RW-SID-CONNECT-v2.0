@@ -5,10 +5,10 @@ import nacl from "tweetnacl";
 import * as naclUtil from "tweetnacl-util";
 import {Session} from "@supabase/supabase-js";
 
-const B64:any=(value:any)=>naclUtil.encodeBase64(value as any);
-const U8:any=(value:any)=>naclUtil.decodeBase64(String(value)) as any;
-const UTF8:any=(value:any)=>naclUtil.decodeUTF8(String(value));
-const box:any=nacl.box; // E2EE v1: established NaCl primitive; no custom cryptography
+const B64=(value:Uint8Array):string=>naclUtil.encodeBase64(value);
+const U8=(value:string):Uint8Array=>naclUtil.decodeBase64(value);
+const UTF8=(value:string):Uint8Array=>naclUtil.decodeUTF8(value);
+const box=nacl.box; // E2EE v1: established NaCl primitive; no custom cryptography
 
 export default function ChatModule({visible,onClose,sb,session,profile}:any){
   const [device,setDevice]=useState<any>(null),[conversations,setConversations]=useState<any[]>([]),[active,setActive]=useState<any>(null);
@@ -65,10 +65,10 @@ export default function ChatModule({visible,onClose,sb,session,profile}:any){
     const envBy=new Map((e.data||[]).map((x:any)=>[x.message_id,x]));
     const senderIds=[...new Set(rows.map((x:any)=>x.sender_device_id))];
     const d=await sb.from("sv_chat_devices").select("id,user_id,public_key").in("id",senderIds);
-    const pub=new Map((d.data||[]).map((x:any)=>[x.id,x.public_key]));
+    const pub=new Map<string,string>((d.data||[]).map((x:any)=>[String(x.id),String(x.public_key)]));
     const decoded=rows.map((m:any)=>{
       const env:any=envBy.get(m.id);let body="[Pesan terenkripsi tidak dapat dibuka]";
-      if(env&&secret){try{const parts=String(env.ciphertext).split("."); const plain=box.open(U8(parts[1]||""),U8(env.nonce),U8(String(parts[0]||pub.get(m.sender_device_id)||"")),secret);if(plain)body=String.fromCharCode(...Array.from(plain as Uint8Array));}catch{}}
+      if(env&&secret){try{const parts=String(env.ciphertext).split("."); const plain=box.open(U8(parts[1]||""),U8(String(env.nonce)),U8(String(parts[0]||pub.get(String(m.sender_device_id))||"")),secret);if(plain)body=naclUtil.encodeUTF8(plain);}catch{}}
       return {...m,body,self:m.sender_user_id===session.user.id};
     });
     setMessages(decoded);
@@ -85,7 +85,7 @@ export default function ChatModule({visible,onClose,sb,session,profile}:any){
     if(m.error){setNotice(m.error.message);setBusy(false);return;}
     const envelopes=(devices.data||[]).map((d:any)=>{
       const eph=nacl.box.keyPair(),nonce=nacl.randomBytes(nacl.box.nonceLength);
-      const cipher=box(new TextEncoder().encode(body) as any,nonce,U8(String(d.public_key)),eph.secretKey);
+      const cipher=box(UTF8(body),nonce,U8(String(d.public_key)),eph.secretKey);
       return {message_id:m.data.id,recipient_device_id:d.id,nonce:B64(nonce),ciphertext:B64(eph.publicKey)+"."+B64(cipher)};
     });
     const er=await sb.from("sv_chat_message_envelopes").insert(envelopes);
