@@ -169,6 +169,27 @@ export default function App() {
   );
 }
 
+
+async function syncQueuedRequests(currentSession: Session | null) {
+  if (!currentSession?.user) {
+    return;
+  }
+  const flushed = await flushQueue(async (item) => {
+    const { error } = await sb.from("demo_requests").insert({
+      request_number: item.id,
+      citizen_name: item.citizenName,
+      service_name: item.serviceName,
+      scope_label: item.scopeLabel,
+      status: "SUBMITTED",
+      classification: "INTERNAL",
+    });
+    return !error;
+  });
+  if (flushed > 0) {
+    await SecureStore.setItemAsync("rt_rw_sid_mobile_queue_notice_v1", String(flushed));
+  }
+}
+
 function Home({ setTab, session }: any) {
   const greeting = useMemo(() => {
     const h = new Date().getHours();
