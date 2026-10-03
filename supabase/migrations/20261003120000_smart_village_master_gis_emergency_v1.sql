@@ -291,3 +291,72 @@ begin
   end if;
   return new;
 end $$;
+
+
+create table if not exists public.sv_service_plans (
+  code text primary key,
+  name text not null,
+  billing_mode text not null check (billing_mode in ('TRIAL','DONATION','SUBSCRIPTION','CONTRACT')),
+  price_monthly_idr integer not null default 0,
+  donation_suggested_idr integer not null default 0,
+  ai_context_level integer not null default 1 check (ai_context_level between 1 and 5),
+  voice_enabled boolean not null default true,
+  emergency_ai_enabled boolean not null default false,
+  active boolean not null default true
+);
+insert into public.sv_service_plans(code,name,billing_mode,price_monthly_idr,donation_suggested_idr,ai_context_level,voice_enabled,emergency_ai_enabled) values
+('TRIAL','Trial','TRIAL',0,0,1,true,false),
+('COMMUNITY','Community','DONATION',0,250000,2,true,true),
+('PRO','Pro','SUBSCRIPTION',0,0,4,true,true),
+('ENTERPRISE','Enterprise','CONTRACT',0,0,5,true,true)
+on conflict(code) do update set name=excluded.name,billing_mode=excluded.billing_mode,donation_suggested_idr=excluded.donation_suggested_idr,ai_context_level=excluded.ai_context_level,voice_enabled=excluded.voice_enabled,emergency_ai_enabled=excluded.emergency_ai_enabled;
+
+create table if not exists public.sv_account_entitlements (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  plan_code text not null references public.sv_service_plans(code),
+  status text not null default 'ACTIVE' check (status in ('ACTIVE','PENDING','EXPIRED','SUSPENDED')),
+  starts_at timestamptz not null default now(),
+  expires_at timestamptz,
+  next_renewal_at timestamptz,
+  source text not null default 'TRIAL' check (source in ('TRIAL','DONATION','SUBSCRIPTION','CONTRACT','ADMIN')),
+  updated_at timestamptz not null default now()
+);
+alter table public.sv_service_plans enable row level security;
+alter table public.sv_account_entitlements enable row level security;
+drop policy if exists sv_plans_auth_read on public.sv_service_plans;
+create policy sv_plans_auth_read on public.sv_service_plans for select to authenticated using (active=true);
+drop policy if exists sv_entitlement_self_read on public.sv_account_entitlements;
+create policy sv_entitlement_self_read on public.sv_account_entitlements for select to authenticated using (user_id=(select auth.uid()));
+grant select on public.sv_service_plans,public.sv_account_entitlements to authenticated;
+
+create or replace function public.sv_ensure_trial_entitlement(p_user_id uuid)
+returns void language sql security invoker set search_path=public as $$
+  insert into public.sv_account_entitlements(user_id,plan_code,status,source,starts_at,expires_at)
+  values(p_user_id,'TRIAL','ACTIVE','TRIAL',now(),now()+interval '7 days')
+  on conflict(user_id) do nothing;
+$$;
+grant execute on function public.sv_ensure_trial_entitlement(uuid) to authenticated;
+
+create table if not exists public.sv_ai_companion_suggestions (
+  id uuid primary key default gen_random_uuid(),
+  role_code text not null references public.sv_role_registry(role_code),
+  title text not null,
+  prompt text not null,
+  active boolean not null default true,
+  priority integer not null default 50
+);
+insert into public.sv_ai_companion_suggestions(role_code,title,prompt,priority) values
+('WARGA','Ide untuk lingkungan','Apa satu hal kecil yang bisa kita perbaiki minggu ini di lingkungan RT saya?',10),
+('WARGA','Gotong royong','Bantu saya membuat ide kegiatan gotong royong yang realistis dan murah.',20),
+('WARGA','Saran layanan','Saya ingin memberi saran agar layanan RT/RW lebih mudah. Mulai dari mana?',30),
+('KETUA_RT','Prioritas RT','Ringkas hal yang perlu menjadi prioritas pelayanan RT berdasarkan agenda dan pengaduan.',10),
+('KETUA_RT','Rencana kerja','Bantu susun rencana kerja RT satu bulan dengan indikator sederhana.',20),
+('PENGURUS_RT','Operasional','Bantu saya membuat checklist pekerjaan operasional RT minggu ini.',20),
+('KETUA_RW','Koordinasi RW','Bantu membuat agenda koordinasi lintas RT berbasis isu wilayah.',10),
+('KETUA_RW','Ringkasan wilayah','Bantu menyusun ringkasan isu RW tanpa membuka data pribadi warga.',20),
+('PENGURUS_RW','Operasional RW','Bantu membuat checklist koordinasi RW minggu ini.',20)
+on conflict do nothing;
+alter table public.sv_ai_companion_suggestions enable row level security;
+drop policy if exists sv_ai_suggestions_auth_read on public.sv_ai_companion_suggestions;
+create policy sv_ai_suggestions_auth_read on public.sv_ai_companion_suggestions for select to authenticated using(active=true);
+grant select on public.sv_ai_companion_suggestions to authenticated;
