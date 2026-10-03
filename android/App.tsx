@@ -50,12 +50,14 @@ export default function App(){
   const [agenda,setAgenda]=useState<any[]>(DEMO_AGENDA);
   const [detail,setDetail]=useState<any>(null);
   const [location,setLocation]=useState<Location.LocationObject|null>(null);
-  const [emergency,setEmergency]=useState<any[]>([]);\n  const [territories,setTerritories]=useState<any[]>([]);
+  const [emergency,setEmergency]=useState<any[]>([]);
+  const [territories,setTerritories]=useState<any[]>([]);
   const [mapReady,setMapReady]=useState(GOOGLE_MAPS_READY);
 
   useEffect(()=>{ sb.auth.getSession().then(async r=>{setSession(r.data.session);await loadIdentity(r.data.session)}); const sub=sb.auth.onAuthStateChange((_,s)=>{setSession(s);loadIdentity(s)}); return()=>sub.data.subscription.unsubscribe(); },[]);
   useEffect(()=>{ loadPublic(); },[]);
-  useEffect(()=>{ if(session) loadEmergency(); },[session]);\n  useEffect(()=>{ loadTerritories(); },[]);
+  useEffect(()=>{ if(session) loadEmergency(); },[session]);
+  useEffect(()=>{ loadTerritories(); },[]);
 
   async function loadIdentity(s:Session|null){
     if(!s){setProfile(null);setRole("PUBLIC");return;}
@@ -72,7 +74,11 @@ export default function App(){
     if(!n.error&&n.data?.records?.length) setNews(n.data.records.map((x:any)=>({...x,image_url:x.image_url||DEMO_NEWS[0].image_url,summary:x.summary||x.content||"",content:x.content||x.summary||""})));
     if(!a.error&&a.data?.records?.length) setAgenda(a.data.records.map((x:any)=>({id:x.id,date:x.event_date?new Date(x.event_date).toLocaleDateString("id-ID",{day:"2-digit",month:"short"}).toUpperCase():"",type:x.event_type||"AGENDA",title:x.title||x.name,time:x.start_at?new Date(x.start_at).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})+" WIB":"",location:x.location||"Wilayah",description:x.description||""})));
   }
-  async function loadTerritories(){\n    const r=await sb.rpc("sv_public_map_territories");\n    if(!r.error && Array.isArray(r.data)) setTerritories(r.data);\n  }\n  async function loadEmergency(){
+  async function loadTerritories(){
+    const r=await sb.rpc("sv_public_map_territories");
+    if(!r.error && Array.isArray(r.data)) setTerritories(r.data);
+  }
+  async function loadEmergency(){
     const r=await sb.from("sv_emergency_events").select("id,latitude,longitude,category,status,expires_at,created_at").eq("requester_user_id",session?.user.id).order("created_at",{ascending:false}).limit(10);
     if(!r.error) setEmergency(r.data||[]);
   }
