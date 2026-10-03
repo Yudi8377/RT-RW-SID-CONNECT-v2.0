@@ -2,15 +2,16 @@
   "expo": {
     "name": "RT/RW-SID CONNECT",
     "slug": "rt-rw-sid-connect",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "rtrwsidconnect",
     "android": {
       "package": "id.rtrwsid.connect",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
-        "backgroundColor": "#16352C"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B1F3A"
       },
       "config": {
         "googleMaps": {
@@ -36,6 +37,12 @@
           "locationWhenInUsePermission": "RT/RW-SID CONNECT menggunakan lokasi hanya saat Anda meminta peta atau bantuan darurat."
         }
       ]
-    ]
+    ],
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B1F3A"
+    }
   }
 }
