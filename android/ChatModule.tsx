@@ -5,7 +5,7 @@ import nacl from "tweetnacl";
 import * as naclUtil from "tweetnacl-util";
 import {Session} from "@supabase/supabase-js";
 
-const B64=naclUtil.encodeBase64, U8=naclUtil.decodeBase64;\nconst box:any=nacl.box;
+const B64=naclUtil.encodeBase64, U8=naclUtil.decodeBase64;\nconst box:any=nacl.box; // E2EE v1: established NaCl primitive; no custom cryptography
 
 export default function ChatModule({visible,onClose,sb,session,profile}:any){
   const [device,setDevice]=useState<any>(null),[conversations,setConversations]=useState<any[]>([]),[active,setActive]=useState<any>(null);
