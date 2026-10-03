@@ -160,3 +160,60 @@ grant insert on public.sv_role_requests, public.sv_emergency_events to authentic
 
 -- Never expose national IDs or private household membership through the mobile public map.
 revoke all on public.sv_master_households from anon, authenticated;
+
+
+-- Align the existing mobile registration profile with the five operational entry roles.
+do $$
+begin
+  if exists (select 1 from pg_constraint where conname = 'citizen_profiles_requested_role_check') then
+    alter table public.citizen_profiles drop constraint citizen_profiles_requested_role_check;
+  end if;
+end $$;
+alter table public.citizen_profiles add constraint citizen_profiles_requested_role_check
+  check (requested_role in ('WARGA','KETUA_RT','PENGURUS_RT','KETUA_RW','PENGURUS_RW'));
+
+create or replace function public.handle_new_citizen_profile() returns trigger
+language plpgsql security definer set search_path=public as $$
+declare
+  v_requested_role text;
+  v_status text;
+  v_role_id uuid;
+  v_legacy_role text;
+begin
+  v_requested_role := upper(coalesce(new.raw_user_meta_data->>'requested_role','WARGA'));
+  if v_requested_role not in ('WARGA','KETUA_RT','PENGURUS_RT','KETUA_RW','PENGURUS_RW') then v_requested_role := 'WARGA'; end if;
+  v_status := case when v_requested_role='WARGA' then 'AUTO_APPROVED' else 'PENDING_REVIEW' end;
+
+  insert into public.citizen_profiles(user_id,full_name,phone,requested_role,approval_status,village_label,rt_number,rw_number)
+  values (
+    new.id,
+    coalesce(nullif(new.raw_user_meta_data->>'full_name',''),split_part(coalesce(new.email,''),'@',1)),
+    nullif(new.raw_user_meta_data->>'phone',''),
+    v_requested_role,v_status,
+    nullif(new.raw_user_meta_data->>'village_label',''),
+    nullif(new.raw_user_meta_data->>'rt_number',''),
+    nullif(new.raw_user_meta_data->>'rw_number','')
+  )
+  on conflict(user_id) do update set
+    full_name=excluded.full_name, phone=excluded.phone, requested_role=excluded.requested_role,
+    approval_status=excluded.approval_status, village_label=excluded.village_label,
+    rt_number=excluded.rt_number, rw_number=excluded.rw_number, updated_at=now();
+
+  if v_requested_role='WARGA' then
+    select id into v_role_id from public.roles where role_code='WARGA' limit 1;
+    if v_role_id is not null then
+      insert into public.role_assignments(user_id,role_id,active)
+      select new.id,v_role_id,true
+      where not exists(select 1 from public.role_assignments where user_id=new.id and role_id=v_role_id and active=true);
+    end if;
+  else
+    insert into public.sv_role_requests(user_id,requested_role, status)
+    values(new.id,v_requested_role,'PENDING')
+    on conflict do nothing;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists on_auth_user_created_citizen_profile on auth.users;
+create trigger on_auth_user_created_citizen_profile after insert on auth.users
+for each row execute function public.handle_new_citizen_profile();
