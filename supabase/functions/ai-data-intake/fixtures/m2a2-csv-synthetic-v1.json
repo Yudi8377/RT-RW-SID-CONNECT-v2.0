@@ -1,0 +1,23 @@
+{
+  "fixture": "m2a2-csv-synthetic-v1",
+  "synthetic_only": true,
+  "source_type": "CSV",
+  "rows": [
+    {
+      "NIK": "3200000000000001",
+      "KK": "3200000000000002",
+      "Nama": "SYNTHETIC ONE"
+    },
+    {
+      "NIK": "3200000000000003",
+      "KK": "3200000000000004",
+      "Nama": "SYNTHETIC TWO"
+    }
+  ],
+  "expected": {
+    "rows": 2,
+    "sensitive_values_must_not_appear_in_response": true,
+    "core_person_or_household_mutation": false,
+    "decision_support_only": true
+  }
+}
