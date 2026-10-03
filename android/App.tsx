@@ -59,7 +59,8 @@ export default function App(){
   const [aiOpen,setAiOpen]=useState(false);
   const [sensorProtection,setSensorProtection]=useState(false);
   const [sensorAlert,setSensorAlert]=useState(false);
-  const [aiReply,setAiReply]=useState("Saya siap membantu Anda menemukan ide, layanan, dan langkah berikutnya untuk lingkungan.");\n  const [plan,setPlan]=useState<any>(null);
+  const [aiReply,setAiReply]=useState("Saya siap membantu Anda menemukan ide, layanan, dan langkah berikutnya untuk lingkungan.");
+  const [plan,setPlan]=useState<any>(null);
 
   useEffect(()=>{ sb.auth.getSession().then(async r=>{setSession(r.data.session);await loadIdentity(r.data.session)}); const sub=sb.auth.onAuthStateChange((_,s)=>{setSession(s);loadIdentity(s)}); return()=>sub.data.subscription.unsubscribe(); },[]);
   useEffect(()=>{ loadPublic(); },[]);
