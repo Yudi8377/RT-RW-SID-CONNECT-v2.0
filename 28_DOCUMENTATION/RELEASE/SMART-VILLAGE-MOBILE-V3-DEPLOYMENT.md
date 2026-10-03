@@ -14,6 +14,8 @@ This release changes the mobile entry experience into the Smart Village shell:
 - role-specific room shell
 - picture-card news and scrollable details
 - agenda details
+- citizen profile photo with private Storage + signed URL
+- NUSA CHAT direct messaging foundation with device-side E2EE v1
 
 ## Data model
 
@@ -59,6 +61,10 @@ Emergency events contain requester identity, coordinates, consent timestamp, 30-
 
 The app does not implement silent background tracking.
 
+## NUSA CHAT security gate
+
+NUSA CHAT stores message envelopes as ciphertext and keeps device private keys in SecureStore. The release test must use two real Android accounts/devices to verify bidirectional encryption, recipient isolation, exact-phone recipient discovery and the absence of plaintext in `sv_chat_messages`. The cryptographic contract and its v1 limitations are documented in `28_DOCUMENTATION/SECURITY/NUSA-CHAT-E2EE-V1.md`.
+
 ## Release gate
 
 Before store deployment:
@@ -69,6 +75,7 @@ Before store deployment:
 4. Run TypeScript validation and Expo Android export/build.
 5. Install the release APK on a real Android device.
 6. Validate public landing, five registration choices, WARGA activation, RT/RW pending verification, role-specific room, Google Map, RT/RW polygons, location permission, emergency event creation/expiry, Kabar Desa picture cards, Baca selengkapnya and Agenda detail scroll.
-7. Promote only the verified binary to Play Console testing.
+7. Validate NUSA CHAT with two real devices and verify the E2EE storage contract.
+8. Promote only the verified binary to Play Console testing.
 
 The existing Windows Installer v2.0.1 is outside this change and must remain untouched.
