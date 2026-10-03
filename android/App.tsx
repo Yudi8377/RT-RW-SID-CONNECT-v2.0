@@ -5,6 +5,8 @@ import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
 import {
   ActivityIndicator,
+  Image,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -55,18 +57,29 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("home");
   const [session, setSession] = useState<Session | null>(null);
   const [auth, setAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin"|"signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [requestedRole, setRequestedRole] = useState<"WARGA"|"RT"|"RW">("WARGA");
+  const [village, setVillage] = useState("Desa Pilot");
+  const [rtNumber, setRtNumber] = useState("");
+  const [rwNumber, setRwNumber] = useState("");
+  const [profile, setProfile] = useState<any>(null);
+  const [roleCode, setRoleCode] = useState<string|null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [detail, setDetail] = useState<any>(null);
-  const [news, setNews] = useState(newsDemo);
+  const [detailType, setDetailType] = useState<"news"|"agenda"|null>(null);
+  const [news, setNews] = useState<any[]>(newsDemo.map((x:any[],i:number)=>({id:String(i),category:x[0],date:x[1],title:x[2],summary:x[3],content:x[3],image_url:["https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80","https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80","https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80"][i]})));
+  const [agenda, setAgenda] = useState<any[]>(agendaDemo);
   const [queueSize, setQueueSize] = useState(0);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    sb.auth.getSession().then(async (r) => { setSession(r.data.session); await syncQueuedRequests(r.data.session); });
-    const sub = sb.auth.onAuthStateChange((_, s) => setSession(s));
+    sb.auth.getSession().then(async (r) => { setSession(r.data.session); await loadProfile(r.data.session); await syncQueuedRequests(r.data.session); });
+    const sub = sb.auth.onAuthStateChange((_, s) => { setSession(s); loadProfile(s); });
     return () => sub.data.subscription.unsubscribe();
   }, []);
 
@@ -91,6 +104,38 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    let alive=true;
+    Promise.all([sb.functions.invoke("public-experience",{body:{action:"news_list"}}),sb.functions.invoke("public-experience",{body:{action:"agenda_list"}})]).then(([nr,ar])=>{
+      if(!alive)return;
+      if(!nr.error&&nr.data?.ok&&nr.data.records?.length)setNews(nr.data.records.map((x:any)=>({id:x.id,category:x.category||"DESA",date:x.published_at?new Date(x.published_at).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}).toUpperCase():"",title:x.title||"Kabar Desa",summary:x.summary||x.content||"",content:x.content||x.summary||"",image_url:x.image_url||"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80"})));
+      if(!ar.error&&ar.data?.ok&&ar.data.records?.length)setAgenda(ar.data.records.map((x:any)=>{const d=new Date(x.event_date||Date.now());return [String(d.getDate()).padStart(2,"0"),d.toLocaleDateString("id-ID",{month:"short"}).toUpperCase(),x.event_type||"AGENDA",x.title||x.name,x.start_at?new Date(x.start_at).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})+" WIB":"",x.location||"Wilayah",x.description||""];}));
+    }).catch(()=>{});
+    return()=>{alive=false;};
+  },[]);
+  useEffect(()=>{setDetail(null);setDetailType(null);},[tab]);
+
+  async function loadProfile(currentSession: Session|null){
+    if(!currentSession?.user){setProfile(null);setRoleCode(null);return;}
+    const p=await sb.from("citizen_profiles").select("full_name,phone,requested_role,approval_status,village_label,rt_number,rw_number").eq("user_id",currentSession.user.id).maybeSingle();
+    if(p.data)setProfile(p.data);
+    const r=await sb.from("role_assignments").select("active,roles(role_code)").eq("user_id",currentSession.user.id).eq("active",true).limit(5);
+    const codes=(r.data||[]).map((x:any)=>x.roles?.role_code).filter(Boolean);
+    const active=codes.find((x:string)=>["RT_OPERATOR","RW_REVIEWER","WARGA"].includes(x));
+    setRoleCode(active==="RT_OPERATOR"?"RT":active==="RW_REVIEWER"?"RW":active==="WARGA"?"WARGA":null);
+  }
+
+  async function signUp(){
+    if(!fullName.trim()||!email.trim()||password.length<6){setError("Nama, email, dan password minimal 6 karakter wajib diisi.");return;}
+    if((requestedRole==="RT"||requestedRole==="RW")&&(!rtNumber.trim()||!rwNumber.trim())){setError("Untuk pendaftaran RT/RW, isi nomor RT dan RW terlebih dahulu.");return;}
+    setBusy(true);setError("");
+    const r=await sb.auth.signUp({email:email.trim(),password,options:{data:{full_name:fullName.trim(),phone:phone.trim(),requested_role:requestedRole,village_label:village.trim(),rt_number:rtNumber.trim(),rw_number:rwNumber.trim()}}});
+    setBusy(false);
+    if(r.error){setError(r.error.message);return;}
+    if(r.data.session){setSession(r.data.session);await loadProfile(r.data.session);setAuth(false);setNotice(requestedRole==="WARGA"?"Pendaftaran warga berhasil. Ruang Warga Anda sudah aktif.":"Pendaftaran diterima. Permintaan peran RT/RW menunggu verifikasi pengelola wilayah.");}
+    else{setNotice("Pendaftaran berhasil. Periksa email jika verifikasi email diaktifkan, lalu masuk.");setAuthMode("signin");setPassword("");}
+  }
+
   async function signIn() {
     setBusy(true);
     setError("");
@@ -104,21 +149,7 @@ export default function App() {
   }
 
   if (auth) {
-    return (
-      <SafeAreaView style={s.safe}>
-        <StatusBar barStyle="dark-content" />
-        <Auth
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-          busy={busy}
-          error={error}
-          back={() => setAuth(false)}
-          signIn={signIn}
-        />
-      </SafeAreaView>
-    );
+    return <SafeAreaView style={s.safe}><StatusBar barStyle="dark-content" /><AuthV2 mode={authMode} setMode={setAuthMode} email={email} setEmail={setEmail} password={password} setPassword={setPassword} fullName={fullName} setFullName={setFullName} phone={phone} setPhone={setPhone} requestedRole={requestedRole} setRequestedRole={setRequestedRole} village={village} setVillage={setVillage} rtNumber={rtNumber} setRtNumber={setRtNumber} rwNumber={rwNumber} setRwNumber={setRwNumber} busy={busy} error={error} back={()=>{setAuth(false);setError("");}} signIn={signIn} signUp={signUp} /></SafeAreaView>;
   }
 
   return (
@@ -137,8 +168,7 @@ export default function App() {
             accessibilityRole="button"
             style={s.login}
             onPress={async () => {
-              if (session) await sb.auth.signOut();
-              else setAuth(true);
+              if (session) { await sb.auth.signOut(); setNotice("Anda sudah keluar."); } else { setAuthMode("signin"); setAuth(true); }
             }}
           >
             <Text style={s.loginText}>{session ? "Keluar" : "Masuk"}</Text>
@@ -148,14 +178,14 @@ export default function App() {
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
           {notice ? <Pressable style={s.notice} onPress={() => setNotice("")}><Text style={s.noticeText}>{notice}</Text></Pressable> : null}
           {queueSize > 0 ? <View style={s.queuePill}><Text style={s.queueText}>{queueSize} permohonan menunggu sinkronisasi</Text></View> : null}
-          {tab === "home" && <Home setTab={setTab} session={session} />}
+          {tab === "home" && <HomeV2 setTab={setTab} session={session} roleLabel={roleCode || profile?.requested_role || "PUBLIK"} rolePending={profile?.approval_status === "PENDING_REVIEW"} profile={profile} />}
           {tab === "services" && <Services session={session} setAuth={setAuth} setQueueSize={setQueueSize} setNotice={setNotice} />}
-          {tab === "news" && <News data={news} />}
-          {tab === "agenda" && <Agenda open={setDetail} />}
-          {tab === "room" && <Room session={session} setAuth={setAuth} />}
+          {tab === "news" && <NewsV2 data={news} open={(x:any)=>{setDetail(x);setDetailType("news");}} />}
+          {tab === "agenda" && <AgendaV2 data={agenda} open={(x:any)=>{setDetail(x);setDetailType("agenda");}} />}
+          {tab === "room" && <RoomV2 session={session} setAuth={()=>{setAuthMode("signin");setAuth(true);}} roleLabel={roleCode || profile?.requested_role || "PUBLIK"} />}
         </ScrollView>
 
-        {detail && <Detail item={detail} close={() => setDetail(null)} />}
+        <DetailV2 item={detail} type={detailType} close={()=>{setDetail(null);setDetailType(null);}} />
 
         <View style={s.nav}>
           <Nav label="Beranda" icon="⌂" active={tab === "home"} go={() => setTab("home")} />
@@ -190,6 +220,24 @@ async function syncQueuedRequests(currentSession: Session | null) {
   }
 }
 
+function HomeV2({setTab,session,roleLabel,rolePending,profile}:any){
+  return <View>
+    <View style={s.greetingRow}><View><Text style={s.eyebrow}>{session?"Selamat datang, "+(profile?.full_name||"warga"):"Selamat datang"}</Text><Text style={s.pageTitle}>{session?"Ruang "+String(roleLabel).toLowerCase()+" Anda.":"Ruang warga untuk semua."}</Text></View><View style={s.rolePill}><Text style={s.roleText}>{roleLabel}{rolePending?" · MENUNGGU":""}</Text></View></View>
+    {rolePending?<View style={s.pendingCard}><Text style={s.pendingTitle}>Pendaftaran {roleLabel} sedang diverifikasi</Text><Text style={s.text}>Layanan publik tetap tersedia. Hak khusus RT/RW aktif setelah pengelola wilayah menyetujui pendaftaran.</Text></View>:null}
+    <View style={s.civicPulse}><Text style={s.pulseLabel}>WILAYAH</Text><Text style={s.pulseTitle}>{session?(profile?.village_label||"Akun terhubung"):"Informasi publik"}</Text><Text style={s.pulseText}>{session?"Tampilan mengikuti peran dan kewenangan akun Anda.":"Jelajahi layanan, kabar, dan agenda tanpa membuat akun."}</Text><Pressable style={s.pulseAction} onPress={()=>setTab(session?"room":"services")}><Text style={s.pulseActionText}>{session?"Buka ruang saya  →":"Jelajahi layanan  →"}</Text></Pressable></View>
+    <Text style={s.section}>Akses cepat</Text><View style={s.quickGrid}><Quick icon="▤" title="Surat & layanan" note="Administrasi" go={()=>setTab("services")}/><Quick icon="◌" title="Pengaduan" note="Sampaikan masalah" go={()=>setTab("room")}/><Quick icon="◷" title="Agenda" note="Kegiatan wilayah" go={()=>setTab("agenda")}/><Quick icon="◉" title="Kabar" note="Info terbaru" go={()=>setTab("news")}/></View>
+    <View style={s.sectionRow}><Text style={s.sectionSmall}>Yang terbaru</Text><Pressable onPress={()=>setTab("news")}><Text style={s.link}>Lihat semua</Text></Pressable></View>
+    <Pressable style={s.featureCard} onPress={()=>setTab("news")}><Image source={{uri:"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80"}} style={s.featureImage}/><View style={s.featureInner}><Text style={s.featureTagText}>KABAR WILAYAH</Text><Text style={s.featureTitle}>Satu ruang untuk informasi yang dekat dengan kehidupan warga.</Text><Text style={s.featureText}>Berita, layanan, agenda, dan informasi publik dipisahkan dengan jelas.</Text><Text style={s.arrowLink}>Buka kabar →</Text></View></Pressable>
+  </View>;
+}
+function NewsV2({data,open}:any){return <View><Text style={s.eyebrow}>KABAR DESA</Text><Text style={s.pageTitle}>Yang sedang terjadi.</Text><Text style={s.intro}>Kartu berita dengan gambar agar informasi mudah dipindai.</Text>{data.map((x:any)=><Pressable key={x.id} style={({pressed})=>[s.newsCard,pressed&&s.pressed]} onPress={()=>open(x)}><Image source={{uri:x.image_url}} style={s.newsImage}/><View style={s.newsBody}><Text style={s.meta}>{x.category} · {x.date}</Text><Text style={s.article}>{x.title}</Text><Text style={s.text}>{x.summary}</Text><Text style={s.link}>Baca selengkapnya →</Text></View></Pressable>)}</View>;}
+function AgendaV2({data,open}:any){return <View><Text style={s.eyebrow}>AGENDA WARGA</Text><Text style={s.pageTitle}>Yang akan datang, terlihat.</Text><Text style={s.intro}>Ketuk agenda untuk membuka detail yang dapat digulir penuh.</Text>{data.map((x:any[],i:number)=><Pressable key={i} style={({pressed})=>[s.agenda,pressed&&s.pressed]} onPress={()=>open(x)}><View style={s.date}><Text style={s.day}>{x[0]}</Text><Text style={s.month}>{x[1]}</Text></View><View style={{flex:1}}><Text style={s.meta}>{x[2]}</Text><Text style={s.title}>{x[3]}</Text><Text style={s.text}>{x[4]} · {x[5]}</Text></View><Text style={s.arrow}>→</Text></Pressable>)}</View>;}
+function RoomV2({session,setAuth,roleLabel}:any){return <View><Text style={s.eyebrow}>RUANG {roleLabel}</Text><Text style={s.pageTitle}>{roleLabel==="RT"?"Panel RT dalam satu ruang.":roleLabel==="RW"?"Panel RW untuk verifikasi dan koordinasi.":"Ruang warga yang punya arah."}</Text><View style={s.roomHero}><View style={s.roomBadge}><Text style={s.roomBadgeText}>{session?"PERAN "+roleLabel:"PUBLIK"}</Text></View><Text style={s.roomTitle}>{roleLabel==="RT"?"Pelayanan RT · Verifikasi · Warga":roleLabel==="RW"?"Review RW · Wilayah · Laporan":"Tanya Desa · Pengumuman · Pengaduan · Komunitas"}</Text><Text style={s.text}>Tampilan mengikuti identitas dan kewenangan akun. Memilih RT/RW saat daftar belum memberi hak khusus sebelum diverifikasi.</Text><Pressable style={s.primaryButton} onPress={session?undefined:setAuth}><Text style={s.primaryButtonText}>{session?"Ruang siap digunakan":"Masuk untuk berpartisipasi"}</Text></Pressable></View></View>;}
+function DetailV2({item,type,close}:any){return <Modal visible={!!item} transparent animationType="slide" onRequestClose={close}><View style={s.modalBackdrop}><View style={s.modalSheet}><ScrollView contentContainerStyle={s.modalContent} showsVerticalScrollIndicator={true}><Pressable onPress={close} style={s.closeButton}><Text style={s.closeText}>Tutup ×</Text></Pressable>{type==="news"?<><Image source={{uri:item?.image_url}} style={s.detailImage}/><Text style={s.eyebrow}>{item?.category} · {item?.date}</Text><Text style={s.heroTitle}>{item?.title}</Text><Text style={s.text}>{item?.content||item?.summary}</Text></>:<><Text style={s.eyebrow}>{item?.[2]}</Text><Text style={s.heroTitle}>{item?.[3]}</Text><Text style={s.text}>{item?.[4]} · {item?.[5]}</Text><View style={s.card}><Text style={s.title}>Tentang agenda</Text><Text style={s.text}>{item?.[6]}</Text><Text style={[s.text,{marginTop:10}]}>Agenda yang dipublikasikan mengikuti tata kelola dan kewenangan wilayah.</Text></View></>}</ScrollView></View></View></Modal>;}
+function AuthV2({mode,setMode,email,setEmail,password,setPassword,fullName,setFullName,phone,setPhone,requestedRole,setRequestedRole,village,setVillage,rtNumber,setRtNumber,rwNumber,setRwNumber,busy,error,back,signIn,signUp}:any){
+  const signup=mode==="signup";
+  return <ScrollView contentContainerStyle={s.authScroll} keyboardShouldPersistTaps="handled"><View style={s.auth}><View style={s.authMark}><Text style={s.brandMarkText}>SV</Text></View><Text style={s.eyebrow}>{signup?"PENDAFTARAN PENGGUNA":"RUANG PRIBADI WARGA"}</Text><Text style={s.heroTitle}>{signup?"Buat akun dan pilih peran Anda.":"Masuk ke RT/RW-SID CONNECT."}</Text><Text style={s.intro}>{signup?"Warga dapat langsung aktif. Pendaftaran RT/RW masuk antrean verifikasi pengelola wilayah.":"Gunakan akun yang sudah terdaftar pada sistem wilayah."}</Text>{signup?<><TextInput style={s.input} placeholder="Nama lengkap" placeholderTextColor="#82908A" value={fullName} onChangeText={setFullName}/><TextInput style={s.input} placeholder="Nomor HP (opsional)" placeholderTextColor="#82908A" keyboardType="phone-pad" value={phone} onChangeText={setPhone}/><Text style={s.formLabel}>Daftar sebagai</Text><View style={s.roleChoices}>{(["WARGA","RT","RW"] as const).map(r=><Pressable key={r} style={[s.roleChoice,requestedRole===r&&s.roleChoiceActive]} onPress={()=>setRequestedRole(r)}><Text style={[s.roleChoiceText,requestedRole===r&&s.roleChoiceTextActive]}>{r}</Text><Text style={s.roleChoiceNote}>{r==="WARGA"?"Akses warga":r==="RT"?"Menunggu verifikasi RT":"Menunggu verifikasi RW"}</Text></Pressable>)}</View><TextInput style={s.input} placeholder="Desa / Kelurahan" placeholderTextColor="#82908A" value={village} onChangeText={setVillage}/>{requestedRole!=="WARGA"?<View style={s.rowInputs}><TextInput style={[s.input,s.halfInput]} placeholder="Nomor RT" placeholderTextColor="#82908A" keyboardType="number-pad" value={rtNumber} onChangeText={setRtNumber}/><TextInput style={[s.input,s.halfInput]} placeholder="Nomor RW" placeholderTextColor="#82908A" keyboardType="number-pad" value={rwNumber} onChangeText={setRwNumber}/></View>:null}</>:null}<TextInput style={s.input} placeholder="Email" placeholderTextColor="#82908A" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail}/><TextInput style={s.input} placeholder="Password minimal 6 karakter" placeholderTextColor="#82908A" secureTextEntry value={password} onChangeText={setPassword}/>{error?<Text style={s.error}>{error}</Text>:null}<Pressable style={s.primaryButton} onPress={signup?signUp:signIn} disabled={busy}>{busy?<ActivityIndicator color="#FFFFFF"/>:<Text style={s.primaryButtonText}>{signup?"Daftar":"Masuk"}</Text>}</Pressable><Pressable style={s.modeSwitch} onPress={()=>setMode(signup?"signin":"signup")}><Text style={s.link}>{signup?"Sudah punya akun? Masuk":"Belum punya akun? Daftar sekarang"}</Text></Pressable><Pressable style={s.backButton} onPress={back}><Text style={s.link}>← Kembali ke informasi publik</Text></Pressable></View></ScrollView>;
+}
 function Home({ setTab, session }: any) {
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -518,6 +566,8 @@ function Nav({ label, icon, active, go }: any) {
 }
 
 const s = StyleSheet.create({
+  featureImage:{width:"100%",height:150},featureInner:{padding:20},newsImage:{width:"100%",height:155},newsBody:{padding:18},pendingCard:{backgroundColor:"#FFF4DD",borderRadius:18,padding:16,marginBottom:12,borderWidth:1,borderColor:"#EBD7A9"},pendingTitle:{color:"#745A23",fontSize:15,fontWeight:"900",marginBottom:5},modalBackdrop:{flex:1,backgroundColor:"rgba(22,53,44,.42)",justifyContent:"flex-end"},modalSheet:{backgroundColor:"#F6F4EE",borderTopLeftRadius:28,borderTopRightRadius:28,maxHeight:"90%"},modalContent:{padding:24,paddingBottom:42},closeButton:{alignSelf:"flex-end",paddingVertical:6,paddingHorizontal:4,marginBottom:8},closeText:{color:"#356557",fontSize:13,fontWeight:"900"},detailImage:{width:"100%",height:190,borderRadius:20,marginBottom:18},authScroll:{flexGrow:1},formLabel:{color:"#52625B",fontSize:11,fontWeight:"900",marginTop:16,marginBottom:8},roleChoices:{gap:8},roleChoice:{backgroundColor:"#FFFFFF",borderWidth:1,borderColor:"#DCE4DF",borderRadius:14,padding:12},roleChoiceActive:{backgroundColor:"#E7EFEA",borderColor:"#7EA897"},roleChoiceText:{color:"#53625C",fontWeight:"900",fontSize:13},roleChoiceTextActive:{color:"#16352C"},roleChoiceNote:{color:"#7A8781",fontSize:10,marginTop:3},rowInputs:{flexDirection:"row",gap:8},halfInput:{flex:1},modeSwitch:{alignItems:"center",marginTop:15,padding:8},
+
   safe: { flex: 1, backgroundColor: "#F6F4EE" },
   app: { flex: 1, backgroundColor: "#F6F4EE" },
   header: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 13, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
