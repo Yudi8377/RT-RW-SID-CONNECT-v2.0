@@ -63,11 +63,12 @@ export default function App(){
     if(!s){setProfile(null);setRole("PUBLIC");return;}
     const p=await sb.from("citizen_profiles").select("*").eq("user_id",s.user.id).maybeSingle();
     setProfile(p.data||null);
-    if(p.data?.approval_status==="PENDING_REVIEW"){setRole("PENDING");return;}
     const r=await sb.from("role_assignments").select("active,roles(role_code)").eq("user_id",s.user.id).eq("active",true).limit(10);
     const codes=(r.data||[]).map((x:any)=>x.roles?.role_code).filter(Boolean);
-    const mapped:Role|undefined=codes.find((x:string)=>ROLES.some(y=>y.code===x));
-    setRole(mapped||"WARGA");
+    const normalized:Role[] = codes.map((x:string)=>x==="RT_OPERATOR"?"PENGURUS_RT":x==="RW_REVIEWER"?"PENGURUS_RW":x).filter((x:string)=>ROLES.some(y=>y.code===x));
+    const mapped:Role|undefined=normalized[0] as Role|undefined;
+    if(mapped){setRole(mapped);return;}
+    setRole(p.data?.approval_status==="PENDING_REVIEW"?"PENDING":"WARGA");
   }
   async function loadPublic(){
     const [n,a]=await Promise.all([sb.functions.invoke("public-experience",{body:{action:"news_list"}}),sb.functions.invoke("public-experience",{body:{action:"agenda_list"}})]);
