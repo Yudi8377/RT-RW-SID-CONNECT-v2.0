@@ -49,13 +49,20 @@ jobs:
       - name: Dependency security audit
         working-directory: desktop
         shell: powershell
-        continue-on-error: true
         run: |
-          npm audit --json | Tee-Object audit-report.json
+          # Advisory-only audit: preserve findings but never let npm audit's exit code
+          # skip installer/runtime validation in this build lane.
+          npm audit --json *> audit-report.json
           $auditExit = $LASTEXITCODE
           if ($auditExit -ne 0) {
-            Write-Warning "npm audit reported dependency vulnerabilities (exit code $auditExit). Build continues so the installer can be validated; the audit report remains an explicit release-security finding."
+            Write-Warning "npm audit reported dependency vulnerabilities (exit code $auditExit). Build continues; audit-report.json remains an explicit release-security finding."
+          } else {
+            Write-Host "npm audit completed without a non-zero exit code."
           }
+          if (-not (Test-Path audit-report.json)) {
+            throw "Dependency audit report was not generated."
+          }
+          exit 0
 
       - name: Upload dependency audit
         if: always()
