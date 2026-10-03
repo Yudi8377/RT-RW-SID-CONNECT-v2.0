@@ -87,7 +87,9 @@ create table if not exists public.sv_role_requests (
   reviewed_by uuid references auth.users(id)
 );
 
-create unique index if not exists sv_role_requests_user_unique on public.sv_role_requests(user_id);\n\ncreate table if not exists public.sv_emergency_events (
+create unique index if not exists sv_role_requests_user_unique on public.sv_role_requests(user_id);
+
+create table if not exists public.sv_emergency_events (
   id uuid primary key default gen_random_uuid(),
   requester_user_id uuid not null references auth.users(id) on delete cascade,
   territory_id uuid references public.sv_master_territories(id) on delete set null,
