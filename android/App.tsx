@@ -80,10 +80,11 @@ export default function App(){
     if(!transcript || event.isFinal===false) return;
     setEmergencyTranscript(transcript);
     setEmergencyRecognizing(false);
-    const r=await sb.functions.invoke("ai-companion",{body:{message:"EMERGENCY_ASSESSMENT. Sensor/perangkat mendeteksi kemungkinan insiden. Jawaban korban: "+transcript+". Analisis singkat: apakah korban kemungkinan membutuhkan bantuan segera? Berikan langkah paling aman dan jangan mengklaim diagnosis. Jika jawaban tidak jelas, minta korban menjawab ya/tidak apakah membutuhkan bantuan sekarang.",role:"WARGA"}});
-    const reply=String(r.data?.reply||"Saya mendengar jawaban Anda. Apakah Anda membutuhkan bantuan sekarang? Jawab ya atau tidak.");
+    const r=await sb.functions.invoke("ai-companion",{body:{message:"EMERGENCY_ASSESSMENT. Sensor/perangkat mendeteksi kemungkinan insiden. Jawaban korban: "+transcript+". Analisis apakah korban kemungkinan membutuhkan bantuan segera. Jika ambigu, utamakan pemeriksaan manusia.",role:"WARGA"}});
+    const reply=String(r.data?.reply||"Saya mendengar jawaban Anda. Apakah Anda membutuhkan bantuan sekarang?");
+    const needHelp=Boolean(r.data?.emergency_need_help);
     setEmergencyAssessment(reply);
-    Speech.speak(reply,{language:"id-ID",rate:0.9,onDone:()=>{ if(/\b(ya|butuh|tolong|bantuan|cedera|sakit|darurat)\b/i.test(transcript)){ setTimeout(()=>triggerEmergency("VOICE_AI",0.9),250); } }});
+    Speech.speak(reply,{language:"id-ID",rate:0.9,onDone:()=>{ if(needHelp){ setTimeout(()=>triggerEmergency("VOICE_AI",0.9),250); } }});
   });
   useEffect(()=>{ if(!session || !sensorProtection) return; let last=0; Accelerometer.setUpdateInterval(120); const sub=Accelerometer.addListener(async ({x,y,z})=>{ const g=Math.sqrt(x*x+y*y+z*z); if(g>3.0 && Date.now()-last>30000){last=Date.now();setSensorAlert(true);} }); return()=>sub.remove(); },[session,sensorProtection]);
 
@@ -129,7 +130,7 @@ export default function App(){
     setEmergencyVoice(true);
     setEmergencyTranscript("");
     setEmergencyAssessment("");
-    const question="Saya mendeteksi kemungkinan kejadian darurat. Apakah Anda sadar dan bisa berbicara? Tolong jawab dengan suara: ya atau tidak.";
+    const question="Saya mendeteksi kemungkinan kejadian darurat. Apakah Anda terluka atau membutuhkan bantuan sekarang? Tolong jawab dengan suara: ya atau tidak.";
     Speech.stop();
     Speech.speak(question,{language:"id-ID",rate:0.9,onDone:async()=>{
       try{
