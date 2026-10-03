@@ -65,7 +65,7 @@ export default function ChatModule({visible,onClose,sb,session,profile}:any){
     const pub=new Map((d.data||[]).map((x:any)=>[x.id,x.public_key]));
     const decoded=rows.map((m:any)=>{
       const env:any=envBy.get(m.id);let body="[Pesan terenkripsi tidak dapat dibuka]";
-      if(env&&secret){try{const plain=nacl.box.open(U8(env.ciphertext),U8(env.nonce),U8(pub.get(m.sender_device_id)||""),secret);if(plain)body=naclUtil.decodeUTF8(plain);}catch{}}
+      if(env&&secret){try{const parts=String(env.ciphertext).split("."); const plain=nacl.box.open(U8(parts[1]||""),U8(env.nonce),U8(parts[0]||pub.get(m.sender_device_id)||""),secret);if(plain)body=naclUtil.decodeUTF8(plain);}catch{}}
       return {...m,body,self:m.sender_user_id===session.user.id};
     });
     setMessages(decoded);
@@ -86,7 +86,7 @@ export default function ChatModule({visible,onClose,sb,session,profile}:any){
       return {message_id:m.data.id,recipient_device_id:d.id,nonce:B64(nonce),ciphertext:B64(eph.publicKey)+"."+B64(cipher)};
     });
     const er=await sb.from("sv_chat_message_envelopes").insert(envelopes);
-    if(er.error){setNotice("Pesan gagal diamankan dan tidak dikirim.");await sb.from("sv_chat_messages").delete().eq("id",m.data.id);setBusy(false);return;}
+    if(er.error){setNotice("Pesan gagal diamankan dan tidak dikirim.");setBusy(false);return;}
     await sb.from("sv_chat_conversations").update({updated_at:new Date().toISOString()}).eq("id",active.id);
     await loadMessages(active.id);await loadConversations();setBusy(false);
   }
