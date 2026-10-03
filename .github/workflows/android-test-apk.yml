@@ -34,6 +34,15 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Prepare application branding assets
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y imagemagick
+          mkdir -p assets
+          convert assets/app-icon.svg -background none -resize 1024x1024 assets/icon.png
+          convert assets/adaptive-icon.svg -background none -resize 1024x1024 assets/adaptive-icon.png
+
       - name: Install JavaScript dependencies
         run: npm install --no-audit --no-fund
 
