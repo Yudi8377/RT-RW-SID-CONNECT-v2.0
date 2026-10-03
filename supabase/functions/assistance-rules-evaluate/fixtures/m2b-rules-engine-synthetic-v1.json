@@ -1,0 +1,11 @@
+{
+  "fixture":"m2b-rules-engine-synthetic-v1",
+  "synthetic_only":true,
+  "program":{"program_code":"SYN-001","status":"ACTIVE","version":1},
+  "rules":[
+    {"rule_code":"R1","rule_type":"ELIGIBILITY","rule_expression":{"fact":"monthly_income","op":"lte","value":3000000},"explanation":"Synthetic income threshold."},
+    {"rule_code":"R2","rule_type":"DOCUMENT","rule_expression":{"fact":"identity_verified","op":"eq","value":true},"explanation":"Synthetic identity verification flag."}
+  ],
+  "facts":{"monthly_income":2500000,"identity_verified":true},
+  "expected":{"candidate_status":"CANDIDATE_MATCH","decision_support_only":true,"final_eligibility_decision":null,"raw_fact_values_not_persisted_in_rule_results":true}
+}

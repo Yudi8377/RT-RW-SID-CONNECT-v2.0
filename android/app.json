@@ -1,20 +1,20 @@
 {
   "expo": {
-    "name": "Smart Village",
-    "slug": "smart-village-desa-cerdas",
-    "version": "1.1.0",
+    "name": "RT/RW-SID CONNECT",
+    "slug": "rt-rw-sid-connect",
+    "version": "1.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "scheme": "smartvillage",
+    "scheme": "rtrwsidconnect",
     "android": {
-      "package": "id.desa.smartvillage",
+      "package": "id.rtrwsid.connect",
       "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#16352C"
       }
     },
     "ios": {
-      "bundleIdentifier": "id.desa.smartvillage",
+      "bundleIdentifier": "id.rtrwsid.connect",
       "supportsTablet": true
     },
     "plugins": ["expo-secure-store"]

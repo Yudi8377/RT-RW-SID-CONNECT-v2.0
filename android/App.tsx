@@ -1,5 +1,8 @@
 import "react-native-url-polyfill/auto";
 import React, { useEffect, useMemo, useState } from "react";
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import * as SecureStore from "expo-secure-store";
 import {
   ActivityIndicator,
   Pressable,
@@ -11,8 +14,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import * as SecureStore from "expo-secure-store";
 import { createClient, Session } from "@supabase/supabase-js";
+import { enqueueRequest, flushQueue, queuedCount } from "./src/offlineQueue";
 
 const URL = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://gzdusguveeeflmlvvmwe.supabase.co";
 const KEY = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
@@ -58,9 +61,11 @@ export default function App() {
   const [error, setError] = useState("");
   const [detail, setDetail] = useState<any>(null);
   const [news, setNews] = useState(newsDemo);
+  const [queueSize, setQueueSize] = useState(0);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    sb.auth.getSession().then((r) => setSession(r.data.session));
+    sb.auth.getSession().then(async (r) => { setSession(r.data.session); await syncQueuedRequests(r.data.session); });
     const sub = sb.auth.onAuthStateChange((_, s) => setSession(s));
     return () => sub.data.subscription.unsubscribe();
   }, []);
@@ -122,10 +127,10 @@ export default function App() {
       <View style={s.app}>
         <View style={s.header}>
           <View style={s.brandRow}>
-            <View style={s.brandMark}><Text style={s.brandMarkText}>SV</Text></View>
+            <View style={s.brandMark}><Text style={s.brandMarkText}>RT</Text></View>
             <View>
-              <Text style={s.brand}>SMART VILLAGE</Text>
-              <Text style={s.sub}>RT/RW · DESA CERDAS ENGINE</Text>
+              <Text style={s.brand}>RT/RW-SID CONNECT</Text>
+              <Text style={s.sub}>SISTEM INFORMASI RT/RW</Text>
             </View>
           </View>
           <Pressable
@@ -141,8 +146,10 @@ export default function App() {
         </View>
 
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+          {notice ? <Pressable style={s.notice} onPress={() => setNotice("")}><Text style={s.noticeText}>{notice}</Text></Pressable> : null}
+          {queueSize > 0 ? <View style={s.queuePill}><Text style={s.queueText}>{queueSize} permohonan menunggu sinkronisasi</Text></View> : null}
           {tab === "home" && <Home setTab={setTab} session={session} />}
-          {tab === "services" && <Services setAuth={setAuth} />}
+          {tab === "services" && <Services session={session} setAuth={setAuth} setQueueSize={setQueueSize} setNotice={setNotice} />}
           {tab === "news" && <News data={news} />}
           {tab === "agenda" && <Agenda open={setDetail} />}
           {tab === "room" && <Room session={session} setAuth={setAuth} />}
@@ -160,6 +167,27 @@ export default function App() {
       </View>
     </SafeAreaView>
   );
+}
+
+
+async function syncQueuedRequests(currentSession: Session | null) {
+  if (!currentSession?.user) {
+    return;
+  }
+  const flushed = await flushQueue(async (item) => {
+    const { error } = await sb.from("demo_requests").insert({
+      request_number: item.id,
+      citizen_name: item.citizenName,
+      service_name: item.serviceName,
+      scope_label: item.scopeLabel,
+      status: "SUBMITTED",
+      classification: "INTERNAL",
+    });
+    return !error;
+  });
+  if (flushed > 0) {
+    await SecureStore.setItemAsync("rt_rw_sid_mobile_queue_notice_v1", String(flushed));
+  }
 }
 
 function Home({ setTab, session }: any) {
@@ -226,7 +254,34 @@ function Quick({ icon, title, note, go }: any) {
   );
 }
 
-function Services({ setAuth }: any) {
+function Services({ session, setAuth, setQueueSize, setNotice }: any) {
+  async function requestService(serviceName: string) {
+    if (!session?.user) {
+      setAuth(true);
+      return;
+    }
+    const item = {
+      serviceName,
+      citizenName: session.user.email || "Warga",
+      scopeLabel: "MY_SCOPE",
+    };
+    const r = await sb.from("demo_requests").insert({
+      request_number: `MOB-${Date.now()}`,
+      citizen_name: item.citizenName,
+      service_name: item.serviceName,
+      scope_label: item.scopeLabel,
+      status: "SUBMITTED",
+      classification: "INTERNAL",
+    });
+    if (r.error) {
+      await enqueueRequest(item);
+      const count = await queuedCount();
+      setQueueSize(count);
+      setNotice("Permohonan disimpan di perangkat dan akan dikirim saat koneksi tersedia.");
+    } else {
+      setNotice("Permohonan berhasil dikirim.");
+    }
+  }
   return (
     <View>
       <Text style={s.eyebrow}>LAYANAN PUBLIK</Text>
@@ -236,16 +291,122 @@ function Services({ setAuth }: any) {
         <Pressable
           key={x[0]}
           style={({ pressed }) => [s.serviceCard, pressed && s.pressed]}
-          onPress={x[0] === "Lacak Permohonan" ? () => setAuth(true) : undefined}
+          onPress={() => x[0] === "Lacak Permohonan" ? setAuth(true) : requestService(x[0])}
         >
           <View style={s.serviceIcon}><Text style={s.serviceIconText}>{x[2]}</Text></View>
           <View style={{ flex: 1 }}>
             <Text style={s.serviceTitle}>{x[0]}</Text>
             <Text style={s.serviceText}>{x[1]}</Text>
-            <Text style={s.link}>{x[0] === "Lacak Permohonan" ? "Masuk & lacak  →" : "Lihat informasi  →"}</Text>
+            <Text style={s.link}>{x[0] === "Lacak Permohonan" ? "Masuk & lacak  →" : session ? "Ajukan layanan  →" : "Masuk untuk mengajukan  →"}</Text>
           </View>
         </Pressable>
       ))}
+      <DataIntakePanel session={session} setAuth={setAuth} setNotice={setNotice} />
+    </View>
+  );
+}
+
+function DataIntakePanel({ session, setAuth, setNotice }: any) {
+  async function createBatch(sourceType: string, sourceName: string, fileUri?: string) {
+    if (!session?.user) {
+      setAuth(true);
+      return;
+    }
+    const scope = await sb.from("role_assignments")
+      .select("scope_territory_id")
+      .eq("user_id", session.user.id)
+      .eq("active", true)
+      .not("scope_territory_id", "is", null)
+      .limit(1)
+      .maybeSingle();
+    const territoryId = scope.data?.scope_territory_id;
+    if (!territoryId) {
+      setNotice("Akun ini belum memiliki wilayah kerja aktif untuk Data Intake.");
+      return;
+    }
+
+    const r = await sb.from("data_intake_batches").insert({
+      territory_id: territoryId,
+      source_type: sourceType,
+      source_name: sourceName,
+      status: "UPLOADED",
+      created_by: session.user.id,
+    }).select("id").single();
+    if (r.error) {
+      setNotice("Pusat data belum dapat menerima input saat ini: " + r.error.message);
+      return;
+    }
+
+    const batchId = String(r.data?.id || "");
+    if (sourceType === "CSV" && fileUri && batchId) {
+      try {
+        const csv = await (await fetch(fileUri)).text();
+        const extraction = await sb.functions.invoke("ai-data-intake", {
+          body: { batch_id: batchId, source_type: "CSV", content: csv },
+        });
+        if (extraction.error) {
+          setNotice("Batch tersimpan, tetapi ekstraksi CSV belum berhasil: " + extraction.error.message);
+          return;
+        }
+        const d = extraction.data || {};
+        setNotice("Batch " + batchId.slice(0, 8) + " diproses: " + String(d.rows || 0) + " baris, " + String(d.matched || 0) + " cocok, " + String(d.review || 0) + " perlu review.");
+        return;
+      } catch (e: any) {
+        setNotice("Batch tersimpan, tetapi file CSV belum dapat dibaca: " + String(e?.message || e));
+        return;
+      }
+    }
+
+    setNotice("Input diterima. Batch " + batchId.slice(0, 8) + " menunggu ekstraksi/provider dan verifikasi operator.");
+  }
+
+  async function pickFile() {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: [
+        "text/csv",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/pdf",
+        "image/*",
+      ],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      const asset = result.assets[0];
+      const name = asset.name || "dokumen";
+      const mime = asset.mimeType || "";
+      const type = mime.includes("spreadsheet") || mime.includes("excel") ? "EXCEL" : mime.includes("csv") ? "CSV" : mime.includes("pdf") ? "PDF" : "IMAGE";
+      await createBatch(type, name, asset.uri);
+    }
+  }
+
+  async function capturePhoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      setNotice("Izin kamera diperlukan untuk memotret KK/KTP/dokumen.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.85 });
+    if (!result.canceled && result.assets?.[0]) {
+      await createBatch("SCAN", "camera-" + Date.now() + ".jpg");
+    }
+  }
+
+  return (
+    <View style={s.intakeCard}>
+      <Text style={s.intakeEyebrow}>DATA INTAKE</Text>
+      <Text style={s.intakeTitle}>Masukkan data tanpa mengetik ulang.</Text>
+      <Text style={s.intakeText}>CSV sudah dapat diproses untuk mapping, normalisasi, pencocokan NIK/KK, duplicate detection, dan review. PDF, foto, scan, dan Excel menunggu provider/parser yang disetujui.</Text>
+      <View style={s.intakeActions}>
+        <Pressable style={s.intakeButton} onPress={pickFile}>
+          <Text style={s.intakeButtonText}>Pilih file</Text>
+        </Pressable>
+        <Pressable style={s.intakeButton} onPress={capturePhoto}>
+          <Text style={s.intakeButtonText}>Foto / scan</Text>
+        </Pressable>
+      </View>
+      <Text style={s.intakeNote}>AI tidak langsung mengubah data sensitif. Hasil extraction dan matching melewati review sebelum masuk data inti.</Text>
     </View>
   );
 }
@@ -334,7 +495,7 @@ function Auth({ email, setEmail, password, setPassword, busy, error, back, signI
     <View style={s.auth}>
       <View style={s.authMark}><Text style={s.brandMarkText}>SV</Text></View>
       <Text style={s.eyebrow}>RUANG PRIBADI WARGA</Text>
-      <Text style={s.heroTitle}>Masuk ke Smart Village.</Text>
+      <Text style={s.heroTitle}>Masuk ke RT/RW-SID CONNECT.</Text>
       <Text style={s.intro}>Gunakan akun warga yang sudah terdaftar pada sistem wilayah.</Text>
       <TextInput style={s.input} placeholder="Email" placeholderTextColor="#82908A" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
       <TextInput style={s.input} placeholder="Password" placeholderTextColor="#82908A" secureTextEntry value={password} onChangeText={setPassword} />
@@ -393,10 +554,22 @@ const s = StyleSheet.create({
   quickTitle: { color: "#16352C", fontSize: 14, fontWeight: "900" },
   quickNote: { color: "#74817B", fontSize: 11, marginTop: 4 },
   pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
+  notice: { backgroundColor: "#16352C", borderRadius: 14, padding: 12, marginBottom: 10 },
+  noticeText: { color: "#FFFFFF", fontSize: 12, lineHeight: 18, fontWeight: "800" },
+  queuePill: { backgroundColor: "#FFF2D8", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 10 },
+  queueText: { color: "#765A21", fontSize: 11, fontWeight: "800" },
   featureCard: { backgroundColor: "#E7EFEA", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#D5E1DB" },
   featureTag: { alignSelf: "flex-start", backgroundColor: "#D5E4DD", borderRadius: 12, paddingHorizontal: 9, paddingVertical: 6, marginBottom: 13 },
   featureTagText: { color: "#356557", fontSize: 8.5, fontWeight: "900", letterSpacing: 1.1 },
   featureTitle: { color: "#16352C", fontSize: 19, lineHeight: 25, fontWeight: "900" },
+  intakeCard: { backgroundColor: "#16352C", borderRadius: 22, padding: 18, marginTop: 12, marginBottom: 14 },
+  intakeEyebrow: { color: "#AFC7BD", fontSize: 9, fontWeight: "900", letterSpacing: 1.45, marginBottom: 7 },
+  intakeTitle: { color: "#FFFFFF", fontSize: 19, lineHeight: 25, fontWeight: "900" },
+  intakeText: { color: "#C7D5CF", fontSize: 12.5, lineHeight: 19, marginTop: 8 },
+  intakeActions: { flexDirection: "row", gap: 8, marginTop: 14 },
+  intakeButton: { backgroundColor: "#E6F0EB", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  intakeButtonText: { color: "#16352C", fontSize: 12, fontWeight: "900" },
+  intakeNote: { color: "#9FB6AC", fontSize: 10.5, lineHeight: 16, marginTop: 11 },
   featureText: { color: "#63736C", fontSize: 13, lineHeight: 19, marginTop: 9 },
   arrowLink: { color: "#356557", fontSize: 12, fontWeight: "900", marginTop: 14 },
   intro: { color: "#687770", fontSize: 13, lineHeight: 20, marginTop: 8, marginBottom: 18 },
