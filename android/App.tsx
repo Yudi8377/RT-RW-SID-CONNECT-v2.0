@@ -105,7 +105,8 @@ export default function App(){
   async function loadIdentity(s:Session|null){
     if(!s){setProfile(null);setRole("PUBLIC");return;}
     const p=await sb.from("citizen_profiles").select("*").eq("user_id",s.user.id).maybeSingle();
-    if(p.data?.avatar_url){ const signed=await sb.storage.from("sv-profile-avatars").createSignedUrl(p.data.avatar_url,3600); if(!signed.error&&signed.data?.signedUrl) p.data.avatar_display_url=signed.data.signedUrl; }\n    setProfile(p.data||null);
+    if(p.data?.avatar_url){ const signed=await sb.storage.from("sv-profile-avatars").createSignedUrl(p.data.avatar_url,3600); if(!signed.error&&signed.data?.signedUrl) p.data.avatar_display_url=signed.data.signedUrl; }
+    setProfile(p.data||null);
     const r=await sb.from("role_assignments").select("active,roles(role_code)").eq("user_id",s.user.id).eq("active",true).limit(10);
     const codes=(r.data||[]).map((x:any)=>x.roles?.role_code).filter(Boolean);
     const normalized = codes.map((x:string)=>x==="RT_OPERATOR"?"PENGURUS_RT":x==="RW_REVIEWER"?"PENGURUS_RW":x).filter((x:string): x is Role => ROLES.some(y=>y.code===x));
