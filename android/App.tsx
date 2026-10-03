@@ -104,6 +104,38 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    let alive=true;
+    Promise.all([sb.functions.invoke("public-experience",{body:{action:"news_list"}}),sb.functions.invoke("public-experience",{body:{action:"agenda_list"}})]).then(([nr,ar])=>{
+      if(!alive)return;
+      if(!nr.error&&nr.data?.ok&&nr.data.records?.length)setNews(nr.data.records.map((x:any)=>({id:x.id,category:x.category||"DESA",date:x.published_at?new Date(x.published_at).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}).toUpperCase():"",title:x.title||"Kabar Desa",summary:x.summary||x.content||"",content:x.content||x.summary||"",image_url:x.image_url||"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80"})));
+      if(!ar.error&&ar.data?.ok&&ar.data.records?.length)setAgenda(ar.data.records.map((x:any)=>{const d=new Date(x.event_date||Date.now());return [String(d.getDate()).padStart(2,"0"),d.toLocaleDateString("id-ID",{month:"short"}).toUpperCase(),x.event_type||"AGENDA",x.title||x.name,x.start_at?new Date(x.start_at).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})+" WIB":"",x.location||"Wilayah",x.description||""];}));
+    }).catch(()=>{});
+    return()=>{alive=false;};
+  },[]);
+  useEffect(()=>{setDetail(null);setDetailType(null);},[tab]);
+
+  async function loadProfile(currentSession: Session|null){
+    if(!currentSession?.user){setProfile(null);setRoleCode(null);return;}
+    const p=await sb.from("citizen_profiles").select("full_name,phone,requested_role,approval_status,village_label,rt_number,rw_number").eq("user_id",currentSession.user.id).maybeSingle();
+    if(p.data)setProfile(p.data);
+    const r=await sb.from("role_assignments").select("active,roles(role_code)").eq("user_id",currentSession.user.id).eq("active",true).limit(5);
+    const codes=(r.data||[]).map((x:any)=>x.roles?.role_code).filter(Boolean);
+    const active=codes.find((x:string)=>["RT_OPERATOR","RW_REVIEWER","WARGA"].includes(x));
+    setRoleCode(active==="RT_OPERATOR"?"RT":active==="RW_REVIEWER"?"RW":active==="WARGA"?"WARGA":null);
+  }
+
+  async function signUp(){
+    if(!fullName.trim()||!email.trim()||password.length<6){setError("Nama, email, dan password minimal 6 karakter wajib diisi.");return;}
+    if((requestedRole==="RT"||requestedRole==="RW")&&(!rtNumber.trim()||!rwNumber.trim())){setError("Untuk pendaftaran RT/RW, isi nomor RT dan RW terlebih dahulu.");return;}
+    setBusy(true);setError("");
+    const r=await sb.auth.signUp({email:email.trim(),password,options:{data:{full_name:fullName.trim(),phone:phone.trim(),requested_role:requestedRole,village_label:village.trim(),rt_number:rtNumber.trim(),rw_number:rwNumber.trim()}}});
+    setBusy(false);
+    if(r.error){setError(r.error.message);return;}
+    if(r.data.session){setSession(r.data.session);await loadProfile(r.data.session);setAuth(false);setNotice(requestedRole==="WARGA"?"Pendaftaran warga berhasil. Ruang Warga Anda sudah aktif.":"Pendaftaran diterima. Permintaan peran RT/RW menunggu verifikasi pengelola wilayah.");}
+    else{setNotice("Pendaftaran berhasil. Periksa email jika verifikasi email diaktifkan, lalu masuk.");setAuthMode("signin");setPassword("");}
+  }
+
   async function signIn() {
     setBusy(true);
     setError("");
