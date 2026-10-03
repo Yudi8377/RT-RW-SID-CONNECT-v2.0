@@ -219,3 +219,29 @@ end $$;
 drop trigger if exists on_auth_user_created_citizen_profile on auth.users;
 create trigger on_auth_user_created_citizen_profile after insert on auth.users
 for each row execute function public.handle_new_citizen_profile();
+
+
+create or replace function public.sv_public_map_territories()
+returns table(
+  id uuid,
+  level text,
+  code text,
+  name text,
+  geojson jsonb,
+  center_lat double precision,
+  center_lng double precision
+)
+language sql
+stable
+as $$
+  select
+    t.id,t.level,t.code,t.name,
+    st_asgeojson(t.polygon)::jsonb,
+    case when t.centroid is null then null else st_y(t.centroid) end,
+    case when t.centroid is null then null else st_x(t.centroid) end
+  from public.sv_master_territories t
+  where t.active = true and t.polygon is not null
+  order by case t.level when 'VILLAGE' then 1 when 'RW' then 2 when 'RT' then 3 else 9 end, t.name;
+$$;
+
+grant execute on function public.sv_public_map_territories() to anon, authenticated;
