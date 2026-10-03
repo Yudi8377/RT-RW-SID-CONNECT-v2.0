@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as Location from "expo-location";
 import * as Speech from "expo-speech";
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from "expo-speech-recognition";
 import { Accelerometer } from "expo-sensors";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View, Linking } from "react-native";
 import MapView, { Circle, Marker, Polygon, PROVIDER_GOOGLE } from "react-native-maps";
@@ -60,6 +61,10 @@ export default function App(){
   const [sensorProtection,setSensorProtection]=useState(false);
   const [sensorAlert,setSensorAlert]=useState(false);
   const [aiReply,setAiReply]=useState("Saya siap membantu Anda menemukan ide, layanan, dan langkah berikutnya untuk lingkungan.");
+  const [emergencyVoice,setEmergencyVoice]=useState(false);
+  const [emergencyRecognizing,setEmergencyRecognizing]=useState(false);
+  const [emergencyTranscript,setEmergencyTranscript]=useState("");
+  const [emergencyAssessment,setEmergencyAssessment]=useState("");
   const [plan,setPlan]=useState<any>(null);
 
   useEffect(()=>{ sb.auth.getSession().then(async r=>{setSession(r.data.session);await loadIdentity(r.data.session)}); const sub=sb.auth.onAuthStateChange((_,s)=>{setSession(s);loadIdentity(s)}); return()=>sub.data.subscription.unsubscribe(); },[]);
@@ -67,6 +72,19 @@ export default function App(){
   useEffect(()=>{ if(session) loadEmergency(); },[session]);
   useEffect(()=>{ loadTerritories(); loadEmergencyContacts(); },[]);
   useEffect(()=>{ if(session){ sb.rpc("sv_ensure_trial_entitlement",{p_user_id:session.user.id}); loadPlan(); } },[session]);
+  useSpeechRecognitionEvent("start",()=>setEmergencyRecognizing(true));
+  useSpeechRecognitionEvent("end",()=>setEmergencyRecognizing(false));
+  useSpeechRecognitionEvent("result",async (event:any)=>{
+    if(!emergencyVoice) return;
+    const transcript=String(event.results?.[0]?.transcript||"").trim();
+    if(!transcript || event.isFinal===false) return;
+    setEmergencyTranscript(transcript);
+    setEmergencyRecognizing(false);
+    const r=await sb.functions.invoke("ai-companion",{body:{message:"EMERGENCY_ASSESSMENT. Sensor/perangkat mendeteksi kemungkinan insiden. Jawaban korban: "+transcript+". Analisis singkat: apakah korban kemungkinan membutuhkan bantuan segera? Berikan langkah paling aman dan jangan mengklaim diagnosis. Jika jawaban tidak jelas, minta korban menjawab ya/tidak apakah membutuhkan bantuan sekarang.",role:"WARGA"}});
+    const reply=String(r.data?.reply||"Saya mendengar jawaban Anda. Apakah Anda membutuhkan bantuan sekarang? Jawab ya atau tidak.");
+    setEmergencyAssessment(reply);
+    Speech.speak(reply,{language:"id-ID",rate:0.9,onDone:()=>{ if(/\b(ya|butuh|tolong|bantuan|cedera|sakit|darurat)\b/i.test(transcript)){ setTimeout(()=>triggerEmergency("VOICE_AI",0.9),250); } }});
+  });
   useEffect(()=>{ if(!session || !sensorProtection) return; let last=0; Accelerometer.setUpdateInterval(120); const sub=Accelerometer.addListener(async ({x,y,z})=>{ const g=Math.sqrt(x*x+y*y+z*z); if(g>3.0 && Date.now()-last>30000){last=Date.now();setSensorAlert(true);} }); return()=>sub.remove(); },[session,sensorProtection]);
 
   async function loadIdentity(s:Session|null){
@@ -106,6 +124,21 @@ export default function App(){
     if(!r.error) setEmergency(r.data||[]);
   }
   async function signOut(){await sb.auth.signOut();setNotice("Anda sudah keluar.");setTab("home");}
+  async function startEmergencyVoiceAssessment(){
+    setSensorAlert(false);
+    setEmergencyVoice(true);
+    setEmergencyTranscript("");
+    setEmergencyAssessment("");
+    const question="Saya mendeteksi kemungkinan kejadian darurat. Apakah Anda sadar dan bisa berbicara? Tolong jawab dengan suara: ya atau tidak.";
+    Speech.stop();
+    Speech.speak(question,{language:"id-ID",rate:0.9,onDone:async()=>{
+      try{
+        const p=await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+        if(!p.granted){ setEmergencyVoice(false); Alert.alert("Mikrofon diperlukan","Izinkan mikrofon dan pengenalan suara agar AI dapat menanyakan kondisi Anda tanpa mengetik."); return; }
+        ExpoSpeechRecognitionModule.start({lang:"id-ID",interimResults:false,continuous:false});
+      }catch(e){ setEmergencyVoice(false); Alert.alert("Voice AI tidak tersedia","Perangkat belum menyediakan layanan pengenalan suara. Anda tetap dapat mengirim bantuan dengan tombol darurat."); }
+    }});
+  }
   async function triggerEmergency(source="MANUAL",confidence=1){
     if(!session){setAuthMode("signin");setAuthOpen(true);return;}
     const permission=await Location.requestForegroundPermissionsAsync();
@@ -131,7 +164,8 @@ export default function App(){
     </ScrollView>
     <Nav tab={tab} setTab={setTab}/>
     <Modal visible={!!detail} transparent animationType="slide" onRequestClose={()=>setDetail(null)}><View style={s.backdrop}><View style={s.sheet}><ScrollView contentContainerStyle={s.sheetContent}>{detail?.image_url?<Image source={{uri:detail.image_url}} style={s.detailImage}/>:null}<Pressable onPress={()=>setDetail(null)} style={s.close}><Text style={s.link}>Tutup ×</Text></Pressable><Text style={s.eyebrow}>{detail?.category||detail?.type}</Text><Text style={s.heroTitle}>{detail?.title}</Text><Text style={s.text}>{detail?.content||detail?.description||detail?.summary}</Text>{detail?.location?<View style={s.card}><Text style={s.title}>{detail.time} · {detail.location}</Text><Text style={s.text}>{detail.description}</Text></View>:null}</ScrollView></View></View></Modal>
-    <AuthModal visible={authOpen} mode={authMode} setMode={setAuthMode} close={()=>setAuthOpen(false)} onNotice={setNotice}/><Modal visible={aiOpen} transparent animationType="slide" onRequestClose={()=>setAiOpen(false)}><View style={s.backdrop}><View style={s.aiSheet}><View style={s.aiOrb}><Text style={s.aiOrbText}>AI</Text></View><Text style={s.eyebrow}>AI COMPANION · {role}</Text><Text style={s.heroTitle}>Teman yang menggerakkan partisipasi.</Text><Text style={s.aiReply}>{aiReply}</Text><TextInput style={s.input} placeholder="Ceritakan ide, masalah, atau kebutuhan Anda…" onSubmitEditing={e=>askCompanion(e.nativeEvent.text)}/><View style={s.row}><Pressable style={[s.secondaryButton,{flex:1}]} onPress={()=>Speech.speak(aiReply,{language:"id-ID"})}><Text style={s.secondaryButtonText}>🔊 Dengarkan</Text></Pressable><Pressable style={[s.primaryButton,{flex:1}]} onPress={()=>setAiOpen(false)}><Text style={s.primaryButtonText}>Selesai</Text></Pressable></View></View></View></Modal><Modal visible={sensorAlert} transparent animationType="fade" onRequestClose={()=>setSensorAlert(false)}><View style={s.backdrop}><View style={s.aiSheet}><Text style={s.emergencyTitle}>PERLINDUNGAN DARURAT</Text><Text style={s.heroTitle}>Gerakan kuat terdeteksi.</Text><Text style={s.text}>Sensor perangkat mendeteksi pola guncangan yang tidak biasa. Ini bukan diagnosis kecelakaan. Jika Anda membutuhkan pertolongan, kirim lokasi darurat sekarang.</Text><Pressable style={s.emergencyButton} onPress={()=>{setSensorAlert(false);triggerEmergency("SENSOR",0.75)}}><Text style={s.emergencyButtonText}>KIRIM BANTUAN SEKARANG</Text></Pressable><Pressable style={s.secondaryButton} onPress={()=>setSensorAlert(false)}><Text style={s.secondaryButtonText}>Saya aman</Text></Pressable></View></View></Modal>
+    <AuthModal visible={authOpen} mode={authMode} setMode={setAuthMode} close={()=>setAuthOpen(false)} onNotice={setNotice}/><Modal visible={aiOpen} transparent animationType="slide" onRequestClose={()=>setAiOpen(false)}><View style={s.backdrop}><View style={s.aiSheet}><View style={s.aiOrb}><Text style={s.aiOrbText}>AI</Text></View><Text style={s.eyebrow}>AI COMPANION · {role}</Text><Text style={s.heroTitle}>Teman yang menggerakkan partisipasi.</Text><Text style={s.aiReply}>{aiReply}</Text><TextInput style={s.input} placeholder="Ceritakan ide, masalah, atau kebutuhan Anda…" onSubmitEditing={e=>askCompanion(e.nativeEvent.text)}/><View style={s.row}><Pressable style={[s.secondaryButton,{flex:1}]} onPress={()=>Speech.speak(aiReply,{language:"id-ID"})}><Text style={s.secondaryButtonText}>🔊 Dengarkan</Text></Pressable><Pressable style={[s.primaryButton,{flex:1}]} onPress={()=>setAiOpen(false)}><Text style={s.primaryButtonText}>Selesai</Text></Pressable></View></View></View></Modal><Modal visible={sensorAlert} transparent animationType="fade" onRequestClose={()=>setSensorAlert(false)}><View style={s.backdrop}><View style={s.aiSheet}><Text style={s.emergencyTitle}>PERLINDUNGAN DARURAT</Text><Text style={s.heroTitle}>Gerakan kuat terdeteksi.</Text><Text style={s.text}>Sensor perangkat mendeteksi pola guncangan yang tidak biasa. Ini bukan diagnosis kecelakaan. Jika Anda membutuhkan pertolongan, kirim lokasi darurat sekarang.</Text><Pressable style={s.emergencyButton} onPress={()=>startEmergencyVoiceAssessment()}><Text style={s.emergencyButtonText}>🎙 TANYA KONDISI DENGAN SUARA</Text></Pressable><Pressable style={s.emergencyButton} onPress={()=>{setSensorAlert(false);triggerEmergency("SENSOR",0.75)}}><Text style={s.emergencyButtonText}>KIRIM BANTUAN SEKARANG</Text></Pressable><Pressable style={s.secondaryButton} onPress={()=>setSensorAlert(false)}><Text style={s.secondaryButtonText}>Saya aman</Text></Pressable></View></View></Modal>
+    <Modal visible={emergencyVoice} transparent animationType="fade" onRequestClose={()=>{ExpoSpeechRecognitionModule.stop();setEmergencyVoice(false)}}><View style={s.backdrop}><View style={s.aiSheet}><View style={s.aiOrb}><Text style={s.aiOrbText}>🎙</Text></View><Text style={s.emergencyTitle}>VOICE EMERGENCY AI</Text><Text style={s.heroTitle}>{emergencyRecognizing?"Saya sedang mendengarkan…":"Pemeriksaan kondisi"}</Text><Text style={s.text}>{emergencyRecognizing?"Jawab dengan suara. Tidak perlu mengetik.":"AI akan menilai jawaban Anda dan menentukan langkah berikutnya."}</Text>{emergencyTranscript?<View style={s.card}><Text style={s.meta}>JAWABAN TERDENGAR</Text><Text style={s.text}>{emergencyTranscript}</Text></View>:null}{emergencyAssessment?<Text style={s.aiReply}>{emergencyAssessment}</Text>:null}<View style={s.row}><Pressable style={[s.emergencyButton,{flex:1}]} onPress={()=>{ExpoSpeechRecognitionModule.stop();setEmergencyVoice(false);triggerEmergency("VOICE_MANUAL",1)}}><Text style={s.emergencyButtonText}>KIRIM BANTUAN</Text></Pressable><Pressable style={[s.secondaryButton,{flex:1}]} onPress={()=>{ExpoSpeechRecognitionModule.stop();setEmergencyVoice(false);Speech.stop()}}><Text style={s.secondaryButtonText}>Saya aman</Text></Pressable></View></View></View></Modal>
   </View></SafeAreaView>;
 }
 
