@@ -280,6 +280,7 @@ function Services({ session, setAuth, setQueueSize, setNotice }: any) {
           </View>
         </Pressable>
       ))}
+      <DataIntakePanel session={session} setAuth={setAuth} setNotice={setNotice} />
     </View>
   );
 }
