@@ -105,7 +105,7 @@ export default function App(){
   async function loadIdentity(s:Session|null){
     if(!s){setProfile(null);setRole("PUBLIC");return;}
     const p=await sb.from("citizen_profiles").select("*").eq("user_id",s.user.id).maybeSingle();
-    setProfile(p.data||null);
+    if(p.data?.avatar_url){ const signed=await sb.storage.from("sv-profile-avatars").createSignedUrl(p.data.avatar_url,3600); if(!signed.error&&signed.data?.signedUrl) p.data.avatar_display_url=signed.data.signedUrl; }\n    setProfile(p.data||null);
     const r=await sb.from("role_assignments").select("active,roles(role_code)").eq("user_id",s.user.id).eq("active",true).limit(10);
     const codes=(r.data||[]).map((x:any)=>x.roles?.role_code).filter(Boolean);
     const normalized = codes.map((x:string)=>x==="RT_OPERATOR"?"PENGURUS_RT":x==="RW_REVIEWER"?"PENGURUS_RW":x).filter((x:string): x is Role => ROLES.some(y=>y.code===x));
@@ -155,7 +155,7 @@ export default function App(){
       const pub=sb.storage.from("sv-profile-avatars").getPublicUrl(path).data.publicUrl;
       const u=await sb.from("citizen_profiles").update({avatar_url:pub,avatar_visibility:"RT_RW"}).eq("user_id",session.user.id);
       if(u.error) throw u.error;
-      setProfile((p:any)=>({...p,avatar_url:pub,avatar_visibility:"RT_RW"}));setNotice("Foto profil diperbarui.");
+      setProfile((p:any)=>({...p,avatar_url:path,avatar_display_url:displayUrl,avatar_visibility:"RT_RW"}));setNotice("Foto profil diperbarui.");
     }catch(e:any){setNotice("Foto profil gagal disimpan: "+String(e?.message||e));}finally{setBusy(false);}
   }
   async function startEmergencyVoiceAssessment(){
@@ -206,7 +206,7 @@ export default function App(){
 
 function Landing({openAuth}:any){return <SafeAreaView style={s.safe}><StatusBar barStyle="light-content"/><ScrollView contentContainerStyle={s.landing}><View style={s.landingBadge}>SMART VILLAGE</View><Text style={s.landingTitle}>RT/RW · DESA CERDAS ENGINE</Text><Text style={s.landingText}>Satu ruang digital untuk warga, RT, RW dan pemerintahan desa.</Text><View style={s.landingMap}><Text style={s.mapGlyph}>⌖</Text><Text style={s.mapTitle}>Wilayah terhubung</Text><Text style={s.mapText}>Master warga · RT/RW · GIS · layanan · emergency</Text></View><Pressable style={s.landingPrimary} onPress={()=>openAuth("signin")}><Text style={s.landingPrimaryText}>Masuk</Text></Pressable><Pressable style={s.landingSecondary} onPress={()=>openAuth("signup")}><Text style={s.landingSecondaryText}>Daftar akun</Text></Pressable><Text style={s.landingFoot}>Informasi publik dapat dijelajahi setelah masuk. Data pribadi dan kewenangan mengikuti role & territory.</Text></ScrollView></SafeAreaView>}
 
-function Header({session,profile,onAuth,onChat}:any){return <View style={s.header}><View style={s.brandRow}><Pressable onPress={session?onChat:undefined} style={s.headerAvatar}>{profile?.avatar_url?<Image source={{uri:profile.avatar_url}} style={s.headerAvatarImage}/>:<Text style={s.headerAvatarText}>{session?(profile?.full_name||"W").slice(0,1).toUpperCase():"SV"}</Text>}</Pressable><View><Text style={s.brand}>SMART VILLAGE</Text><Text style={s.sub}>RT/RW-SID CONNECT</Text></View></View><View style={s.headerActions}>{session?<Pressable style={s.chatMini} onPress={onChat}><Text style={s.chatMiniText}>💬</Text></Pressable>:null}<Pressable style={s.login} onPress={onAuth}><Text style={s.loginText}>{session?"Keluar":"Masuk"}</Text></Pressable></View></View>}
+function Header({session,profile,onAuth,onChat}:any){return <View style={s.header}><View style={s.brandRow}><Pressable onPress={session?onChat:undefined} style={s.headerAvatar}>{(profile?.avatar_display_url||profile?.avatar_url)?<Image source={{uri:profile.avatar_display_url||profile.avatar_url}} style={s.headerAvatarImage}/>:<Text style={s.headerAvatarText}>{session?(profile?.full_name||"W").slice(0,1).toUpperCase():"SV"}</Text>}</Pressable><View><Text style={s.brand}>SMART VILLAGE</Text><Text style={s.sub}>RT/RW-SID CONNECT</Text></View></View><View style={s.headerActions}>{session?<Pressable style={s.chatMini} onPress={onChat}><Text style={s.chatMiniText}>💬</Text></Pressable>:null}<Pressable style={s.login} onPress={onAuth}><Text style={s.loginText}>{session?"Keluar":"Masuk"}</Text></Pressable></View></View>}
 
 function Home({profile,role,setTab,emergency,contacts,askCompanion,sensorProtection,setSensorProtection,plan,onAvatar,onChat}:any){
   const title=role==="PENDING"?"Pendaftaran sedang diverifikasi":role==="WARGA"?"Ruang warga Anda.":role==="KETUA_RT"||role==="PENGURUS_RT"?"Ruang RT Anda.":role==="KETUA_RW"||role==="PENGURUS_RW"?"Ruang RW Anda.":"Ruang Smart Village.";
