@@ -1,4 +1,4 @@
-import "react-native-url-polyfill/auto";
+import "react-native-url-polyfill/auto"; // demo-account acceptance build
 import React, { useEffect, useMemo, useState } from "react";
 import * as SecureStore from "expo-secure-store";
 import * as ImagePicker from "expo-image-picker";
