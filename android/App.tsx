@@ -89,7 +89,19 @@ export default function App(){
     const r=await sb.rpc("sv_public_map_territories");
     if(!r.error && Array.isArray(r.data)) setTerritories(r.data);
   }
-  async function loadPlan(){ const r=await sb.from("sv_account_entitlements").select("plan_code,status,expires_at,next_renewal_at,source").eq("user_id",session?.user.id).maybeSingle(); if(!r.error) setPlan(r.data||null); }\n  async function loadEmergencyContacts(){\n    const r=await sb.from("sv_emergency_contacts").select("id,category,name,phone,whatsapp,address").eq("active",true).order("priority",{ascending:true});\n    if(!r.error) setContacts(r.data||[]);\n  }\n  async function askCompanion(message:string){\n    setAiOpen(true);\n    const r=await sb.functions.invoke("ai-companion",{body:{message,role:role==="PUBLIC"?"WARGA":role}});\n    const reply=r.error?"Saya belum dapat terhubung ke mesin AI. Namun saya bisa tetap membantu Anda dengan menu layanan dan saran yang tersedia.":String(r.data?.reply||"Mari kita mulai dari satu ide kecil yang bisa berdampak bagi lingkungan.");\n    setAiReply(reply);\n    if(r.data?.voice!==false) Speech.speak(reply,{language:"id-ID",rate:0.96});\n  }\n  async function loadEmergency(){
+  async function loadPlan(){ const r=await sb.from("sv_account_entitlements").select("plan_code,status,expires_at,next_renewal_at,source").eq("user_id",session?.user.id).maybeSingle(); if(!r.error) setPlan(r.data||null); }
+  async function loadEmergencyContacts(){
+    const r=await sb.from("sv_emergency_contacts").select("id,category,name,phone,whatsapp,address").eq("active",true).order("priority",{ascending:true});
+    if(!r.error) setContacts(r.data||[]);
+  }
+  async function askCompanion(message:string){
+    setAiOpen(true);
+    const r=await sb.functions.invoke("ai-companion",{body:{message,role:role==="PUBLIC"?"WARGA":role}});
+    const reply=r.error?"Saya belum dapat terhubung ke mesin AI. Namun saya bisa tetap membantu Anda dengan menu layanan dan saran yang tersedia.":String(r.data?.reply||"Mari kita mulai dari satu ide kecil yang bisa berdampak bagi lingkungan.");
+    setAiReply(reply);
+    if(r.data?.voice!==false) Speech.speak(reply,{language:"id-ID",rate:0.96});
+  }
+  async function loadEmergency(){
     const r=await sb.from("sv_emergency_events").select("id,latitude,longitude,category,status,expires_at,created_at").eq("requester_user_id",session?.user.id).order("created_at",{ascending:false}).limit(10);
     if(!r.error) setEmergency(r.data||[]);
   }
