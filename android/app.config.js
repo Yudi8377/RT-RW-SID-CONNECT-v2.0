@@ -26,7 +26,7 @@ module.exports = ({ config }) => ({
       NSLocationWhenInUseUsageDescription: "Lokasi digunakan saat Anda membuka peta wilayah atau mengaktifkan bantuan darurat."
     }
   },
-  plugins: ["expo-secure-store", "expo-location", ["expo-sensors", { motionPermission: "RT/RW-SID CONNECT menggunakan sensor gerak untuk mendeteksi kemungkinan kejadian darurat." }], ["expo-speech-recognition", { microphonePermission: "RT/RW-SID CONNECT menggunakan mikrofon untuk pemeriksaan darurat berbasis suara.", speechRecognitionPermission: "RT/RW-SID CONNECT menggunakan pengenalan suara agar AI dapat menanyakan kondisi saat darurat.", androidSpeechServicePackages: ["com.google.android.googlequicksearchbox"] }]],
+  plugins: ["./plugins/withEmergencyForegroundService", "expo-secure-store", "expo-location", ["expo-sensors", { motionPermission: "RT/RW-SID CONNECT menggunakan sensor gerak untuk mendeteksi kemungkinan kejadian darurat." }], ["expo-speech-recognition", { microphonePermission: "RT/RW-SID CONNECT menggunakan mikrofon untuk pemeriksaan darurat berbasis suara.", speechRecognitionPermission: "RT/RW-SID CONNECT menggunakan pengenalan suara agar AI dapat menanyakan kondisi saat darurat.", androidSpeechServicePackages: ["com.google.android.googlequicksearchbox"] }]],
   extra: {
     ...(config.extra || {}),
     smartVillage: true,
