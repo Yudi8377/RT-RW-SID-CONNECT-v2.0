@@ -65,7 +65,8 @@ export default function App(){
   const [emergencyRecognizing,setEmergencyRecognizing]=useState(false);
   const [emergencyTranscript,setEmergencyTranscript]=useState("");
   const [emergencyAssessment,setEmergencyAssessment]=useState("");
-  const [plan,setPlan]=useState<any>(null);\n  const emergencyMonitoring = NativeModules.EmergencyMonitoring;
+  const [plan,setPlan]=useState<any>(null);
+  const emergencyMonitoring = NativeModules.EmergencyMonitoring;
 
   useEffect(()=>{ sb.auth.getSession().then(async r=>{setSession(r.data.session);await loadIdentity(r.data.session)}); const sub=sb.auth.onAuthStateChange((_,s)=>{setSession(s);loadIdentity(s)}); return()=>sub.data.subscription.unsubscribe(); },[]);
   useEffect(()=>{ loadPublic(); },[]);
@@ -86,7 +87,17 @@ export default function App(){
     setEmergencyAssessment(reply);
     Speech.speak(reply,{language:"id-ID",rate:0.9,onDone:()=>{ if(needHelp){ setTimeout(()=>triggerEmergency("VOICE_AI",0.9),250); } }});
   });
-  useEffect(()=>{\n    if(!session || !sensorProtection){\n      if(emergencyMonitoring?.stop) void emergencyMonitoring.stop();\n      return;\n    }\n    if(emergencyMonitoring?.start) void emergencyMonitoring.start().catch((e:any)=>Alert.alert("Perlindungan latar belakang gagal",String(e?.message||e)));\n    let last=0;\n    Accelerometer.setUpdateInterval(120);\n    const sub=Accelerometer.addListener(async ({x,y,z})=>{ const g=Math.sqrt(x*x+y*y+z*z); if(g>3.0 && Date.now()-last>30000){last=Date.now();setSensorAlert(true);} });\n    return()=>{ sub.remove(); if(emergencyMonitoring?.stop) void emergencyMonitoring.stop(); };\n  },[session,sensorProtection]);
+  useEffect(()=>{
+    if(!session || !sensorProtection){
+      if(emergencyMonitoring?.stop) void emergencyMonitoring.stop();
+      return;
+    }
+    if(emergencyMonitoring?.start) void emergencyMonitoring.start().catch((e:any)=>Alert.alert("Perlindungan latar belakang gagal",String(e?.message||e)));
+    let last=0;
+    Accelerometer.setUpdateInterval(120);
+    const sub=Accelerometer.addListener(async ({x,y,z})=>{ const g=Math.sqrt(x*x+y*y+z*z); if(g>3.0 && Date.now()-last>30000){last=Date.now();setSensorAlert(true);} });
+    return()=>{ sub.remove(); if(emergencyMonitoring?.stop) void emergencyMonitoring.stop(); };
+  },[session,sensorProtection]);
 
   async function loadIdentity(s:Session|null){
     if(!s){setProfile(null);setRole("PUBLIC");return;}
