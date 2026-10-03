@@ -33,6 +33,15 @@ jobs:
           cache: npm
           cache-dependency-path: desktop/package.json
 
+      - name: Prepare RT/RW-SID CONNECT branding
+        shell: powershell
+        run: |
+          choco install imagemagick.app -y --no-progress
+          New-Item -ItemType Directory -Force desktop\build | Out-Null
+          magick assets\app-icon.svg -background none -resize 256x256 desktop\build\icon.png
+          magick assets\app-icon.svg -background none -define icon:auto-resize=16,24,32,48,64,128,256 desktop\build\icon.ico
+          if (-not (Test-Path desktop\build\icon.ico)) { throw "Application icon was not generated." }
+
       - name: Install desktop build dependencies
         working-directory: desktop
         run: npm install
