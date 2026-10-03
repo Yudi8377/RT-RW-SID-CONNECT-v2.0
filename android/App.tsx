@@ -153,8 +153,10 @@ export default function App(){
       const bytes=await (await fetch(asset.uri)).arrayBuffer();
       const up=await sb.storage.from("sv-profile-avatars").upload(path,bytes,{contentType:asset.mimeType||"image/jpeg",upsert:true});
       if(up.error) throw up.error;
-      const pub=sb.storage.from("sv-profile-avatars").getPublicUrl(path).data.publicUrl;
-      const u=await sb.from("citizen_profiles").update({avatar_url:pub,avatar_visibility:"RT_RW"}).eq("user_id",session.user.id);
+      const signed=await sb.storage.from("sv-profile-avatars").createSignedUrl(path,3600);
+      if(signed.error||!signed.data?.signedUrl) throw signed.error||new Error("URL foto profil privat gagal dibuat");
+      const displayUrl=signed.data.signedUrl;
+      const u=await sb.from("citizen_profiles").update({avatar_url:path,avatar_visibility:"RT_RW"}).eq("user_id",session.user.id);
       if(u.error) throw u.error;
       setProfile((p:any)=>({...p,avatar_url:path,avatar_display_url:displayUrl,avatar_visibility:"RT_RW"}));setNotice("Foto profil diperbarui.");
     }catch(e:any){setNotice("Foto profil gagal disimpan: "+String(e?.message||e));}finally{setBusy(false);}
