@@ -149,21 +149,7 @@ export default function App() {
   }
 
   if (auth) {
-    return (
-      <SafeAreaView style={s.safe}>
-        <StatusBar barStyle="dark-content" />
-        <Auth
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-          busy={busy}
-          error={error}
-          back={() => setAuth(false)}
-          signIn={signIn}
-        />
-      </SafeAreaView>
-    );
+    return <SafeAreaView style={s.safe}><StatusBar barStyle="dark-content" /><AuthV2 mode={authMode} setMode={setAuthMode} email={email} setEmail={setEmail} password={password} setPassword={setPassword} fullName={fullName} setFullName={setFullName} phone={phone} setPhone={setPhone} requestedRole={requestedRole} setRequestedRole={setRequestedRole} village={village} setVillage={setVillage} rtNumber={rtNumber} setRtNumber={setRtNumber} rwNumber={rwNumber} setRwNumber={setRwNumber} busy={busy} error={error} back={()=>{setAuth(false);setError("");}} signIn={signIn} signUp={signUp} /></SafeAreaView>;
   }
 
   return (
@@ -182,8 +168,7 @@ export default function App() {
             accessibilityRole="button"
             style={s.login}
             onPress={async () => {
-              if (session) await sb.auth.signOut();
-              else setAuth(true);
+              if (session) { await sb.auth.signOut(); setNotice("Anda sudah keluar."); } else { setAuthMode("signin"); setAuth(true); }
             }}
           >
             <Text style={s.loginText}>{session ? "Keluar" : "Masuk"}</Text>
@@ -193,14 +178,14 @@ export default function App() {
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
           {notice ? <Pressable style={s.notice} onPress={() => setNotice("")}><Text style={s.noticeText}>{notice}</Text></Pressable> : null}
           {queueSize > 0 ? <View style={s.queuePill}><Text style={s.queueText}>{queueSize} permohonan menunggu sinkronisasi</Text></View> : null}
-          {tab === "home" && <Home setTab={setTab} session={session} />}
+          {tab === "home" && <HomeV2 setTab={setTab} session={session} roleLabel={roleCode || profile?.requested_role || "PUBLIK"} rolePending={profile?.approval_status === "PENDING_REVIEW"} profile={profile} />}
           {tab === "services" && <Services session={session} setAuth={setAuth} setQueueSize={setQueueSize} setNotice={setNotice} />}
-          {tab === "news" && <News data={news} />}
-          {tab === "agenda" && <Agenda open={setDetail} />}
-          {tab === "room" && <Room session={session} setAuth={setAuth} />}
+          {tab === "news" && <NewsV2 data={news} open={(x:any)=>{setDetail(x);setDetailType("news");}} />}
+          {tab === "agenda" && <AgendaV2 data={agenda} open={(x:any)=>{setDetail(x);setDetailType("agenda");}} />}
+          {tab === "room" && <RoomV2 session={session} setAuth={()=>{setAuthMode("signin");setAuth(true);}} roleLabel={roleCode || profile?.requested_role || "PUBLIK"} />}
         </ScrollView>
 
-        {detail && <Detail item={detail} close={() => setDetail(null)} />}
+        <DetailV2 item={detail} type={detailType} close={()=>{setDetail(null);setDetailType(null);}} />
 
         <View style={s.nav}>
           <Nav label="Beranda" icon="⌂" active={tab === "home"} go={() => setTab("home")} />
