@@ -1,0 +1,2 @@
+drop policy if exists sv_profile_avatar_select on storage.objects;
+create policy sv_profile_avatar_select on storage.objects for select to authenticated using(bucket_id='sv-profile-avatars' and (storage.foldername(name))[1]=(select auth.uid())::text);
