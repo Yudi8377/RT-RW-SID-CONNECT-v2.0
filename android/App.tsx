@@ -132,12 +132,13 @@ export default function App(){
     setEmergencyAssessment("");
     const question="Saya mendeteksi kemungkinan kejadian darurat. Apakah Anda terluka atau membutuhkan bantuan sekarang? Tolong jawab dengan suara: ya atau tidak.";
     Speech.stop();
-    Speech.speak(question,{language:"id-ID",rate:0.9,onDone:async()=>{
+    Speech.speak(question,{language:"id-ID",rate:0.9,onDone:()=>{ void (async()=>{
       try{
         const p=await ExpoSpeechRecognitionModule.requestPermissionsAsync();
         if(!p.granted){ setEmergencyVoice(false); Alert.alert("Mikrofon diperlukan","Izinkan mikrofon dan pengenalan suara agar AI dapat menanyakan kondisi Anda tanpa mengetik."); return; }
         ExpoSpeechRecognitionModule.start({lang:"id-ID",interimResults:false,continuous:false});
       }catch(e){ setEmergencyVoice(false); Alert.alert("Voice AI tidak tersedia","Perangkat belum menyediakan layanan pengenalan suara. Anda tetap dapat mengirim bantuan dengan tombol darurat."); }
+      })();
     }});
   }
   async function triggerEmergency(source="MANUAL",confidence=1){
@@ -146,7 +147,7 @@ export default function App(){
     if(permission.status!=="granted"){Alert.alert("Izin lokasi diperlukan","Lokasi hanya digunakan setelah Anda menyetujui izin untuk bantuan darurat.");return;}
     const pos=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High});
     const expires=new Date(Date.now()+30*60*1000).toISOString();
-    const r=await sb.from("sv_emergency_events").insert({requester_user_id:session.user.id,latitude:pos.coords.latitude,longitude:pos.coords.longitude,category:"GENERAL",message:source==="SENSOR"?"Kemungkinan insiden terdeteksi sensor gerak; dikonfirmasi pengguna.":"Permintaan bantuan darurat warga",expires_at:expires,detection_source:source,confidence,alert_deadline_at:new Date(Date.now()+2*60*1000).toISOString()});
+    const r:any=await sb.from("sv_emergency_events").insert({requester_user_id:session.user.id,latitude:pos.coords.latitude,longitude:pos.coords.longitude,category:"GENERAL",message:source==="SENSOR"?"Kemungkinan insiden terdeteksi sensor gerak; dikonfirmasi pengguna.":"Permintaan bantuan darurat warga",expires_at:expires,detection_source:source,confidence,alert_deadline_at:new Date(Date.now()+2*60*1000).toISOString()}).select("id").single();
     if(r.error){setNotice("Permintaan darurat gagal dikirim: "+r.error.message);return;}
     if(source==="SENSOR" && r.data?.[0]?.id){ await sb.from("sv_emergency_sensor_events").insert({emergency_event_id:r.data[0].id,user_id:session.user.id,sensor_type:"ACCELEROMETER",confidence,evidence:{threshold_g:3.0}}); }
     await loadEmergency();setNotice("Bantuan darurat dikirim. Lokasi aktif selama 30 menit.");
