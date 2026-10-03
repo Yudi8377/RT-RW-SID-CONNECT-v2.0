@@ -18,7 +18,7 @@ import { createClient, Session } from "@supabase/supabase-js";
 import { enqueueRequest, flushQueue, queuedCount } from "./src/offlineQueue";
 
 const URL = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://gzdusguveeeflmlvvmwe.supabase.co";
-const KEY = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
+const KEY = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_nSqPHZf1-1CAJMFNmrpNqA_lafobeV-";
 const storage = {
   getItem: (k: string) => SecureStore.getItemAsync(k),
   setItem: (k: string, v: string) => SecureStore.setItemAsync(k, v),
