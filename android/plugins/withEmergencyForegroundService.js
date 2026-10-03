@@ -177,10 +177,10 @@ module.exports = function withEmergencyForegroundService(config) {
 
   config = withAndroidManifest(config, (mod) => {
     const manifest = mod.modResults.manifest;
-    manifest.usesPermission = manifest.usesPermission || [];
+    manifest["uses-permission"] = manifest["uses-permission"] || [];
     const addPermission = (name) => {
-      if (!manifest.usesPermission.some((p) => p.$?.["android:name"] === name)) {
-        manifest.usesPermission.push({ $: { "android:name": name } });
+      if (!manifest["uses-permission"].some((p) => p.$?.["android:name"] === name)) {
+        manifest["uses-permission"].push({ $: { "android:name": name } });
       }
     };
     addPermission("android.permission.FOREGROUND_SERVICE");
