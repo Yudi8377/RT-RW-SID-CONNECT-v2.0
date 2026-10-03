@@ -5,6 +5,8 @@ import * as ImagePicker from "expo-image-picker";
 import * as SecureStore from "expo-secure-store";
 import {
   ActivityIndicator,
+  Image,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -55,18 +57,29 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("home");
   const [session, setSession] = useState<Session | null>(null);
   const [auth, setAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin"|"signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [requestedRole, setRequestedRole] = useState<"WARGA"|"RT"|"RW">("WARGA");
+  const [village, setVillage] = useState("Desa Pilot");
+  const [rtNumber, setRtNumber] = useState("");
+  const [rwNumber, setRwNumber] = useState("");
+  const [profile, setProfile] = useState<any>(null);
+  const [roleCode, setRoleCode] = useState<string|null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [detail, setDetail] = useState<any>(null);
-  const [news, setNews] = useState(newsDemo);
+  const [detailType, setDetailType] = useState<"news"|"agenda"|null>(null);
+  const [news, setNews] = useState<any[]>(newsDemo.map((x:any[],i:number)=>({id:String(i),category:x[0],date:x[1],title:x[2],summary:x[3],content:x[3],image_url:["https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80","https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80","https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80"][i]}))));
+  const [agenda, setAgenda] = useState<any[]>(agendaDemo);
   const [queueSize, setQueueSize] = useState(0);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    sb.auth.getSession().then(async (r) => { setSession(r.data.session); await syncQueuedRequests(r.data.session); });
-    const sub = sb.auth.onAuthStateChange((_, s) => setSession(s));
+    sb.auth.getSession().then(async (r) => { setSession(r.data.session); await loadProfile(r.data.session); await syncQueuedRequests(r.data.session); });
+    const sub = sb.auth.onAuthStateChange((_, s) => { setSession(s); loadProfile(s); });
     return () => sub.data.subscription.unsubscribe();
   }, []);
 
