@@ -11,6 +11,11 @@
       "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#16352C"
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "process.env.GOOGLE_MAPS_API_KEY"
+        }
       }
     },
     "ios": {
@@ -23,6 +28,12 @@
         "expo-sensors",
         {
           "motionPermission": "RT/RW-SID CONNECT menggunakan sensor gerak untuk mendeteksi kemungkinan kejadian darurat."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "RT/RW-SID CONNECT menggunakan lokasi hanya saat Anda meminta peta atau bantuan darurat."
         }
       ]
     ]
