@@ -2,13 +2,17 @@ module.exports = ({ config }) => ({
   ...config,
   name: "RT/RW-SID CONNECT",
   slug: "rt-rw-sid-connect",
-  version: "1.3.0",
+  version: "1.3.1",
   orientation: "portrait",
+  icon: "./assets/icon.png",
+  splash: { image: "./assets/icon.png", resizeMode: "contain", backgroundColor: "#0B1F3A" },
   scheme: "rtrwsidconnect",
   android: {
     ...config.android,
     package: "id.rtrwsid.connect",
-    versionCode: 3,
+    icon: "./assets/icon.png",
+    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#0B1F3A" },
+    versionCode: 4,
     config: {
       ...(config.android?.config || {}),
       googleMaps: {
