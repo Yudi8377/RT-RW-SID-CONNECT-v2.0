@@ -102,6 +102,7 @@ export default function App(){
     const expires=new Date(Date.now()+30*60*1000).toISOString();
     const r=await sb.from("sv_emergency_events").insert({requester_user_id:session.user.id,latitude:pos.coords.latitude,longitude:pos.coords.longitude,category:"GENERAL",message:source==="SENSOR"?"Kemungkinan insiden terdeteksi sensor gerak; dikonfirmasi pengguna.":"Permintaan bantuan darurat warga",expires_at:expires,detection_source:source,confidence,alert_deadline_at:new Date(Date.now()+2*60*1000).toISOString()});
     if(r.error){setNotice("Permintaan darurat gagal dikirim: "+r.error.message);return;}
+    if(source==="SENSOR" && r.data?.[0]?.id){ await sb.from("sv_emergency_sensor_events").insert({emergency_event_id:r.data[0].id,user_id:session.user.id,sensor_type:"ACCELEROMETER",confidence,evidence:{threshold_g:3.0}}); }
     await loadEmergency();setNotice("Bantuan darurat dikirim. Lokasi aktif selama 30 menit.");
   }
 
