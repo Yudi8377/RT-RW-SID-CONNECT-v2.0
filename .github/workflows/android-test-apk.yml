@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - 'feat/android-apk-test-build-v1'
   workflow_dispatch:
 
 jobs:
@@ -45,8 +44,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s android/android/app/build/outputs/apk/release/app-release.apk
-          sha256sum android/android/app/build/outputs/apk/release/app-release.apk
+          test -s android/app/build/outputs/apk/release/app-release.apk
+          sha256sum android/app/build/outputs/apk/release/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
