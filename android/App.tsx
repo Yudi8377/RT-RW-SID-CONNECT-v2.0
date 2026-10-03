@@ -72,7 +72,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [detail, setDetail] = useState<any>(null);
   const [detailType, setDetailType] = useState<"news"|"agenda"|null>(null);
-  const [news, setNews] = useState<any[]>(newsDemo.map((x:any[],i:number)=>({id:String(i),category:x[0],date:x[1],title:x[2],summary:x[3],content:x[3],image_url:["https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80","https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80","https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80"][i]}))));
+  const [news, setNews] = useState<any[]>(newsDemo.map((x:any[],i:number)=>({id:String(i),category:x[0],date:x[1],title:x[2],summary:x[3],content:x[3],image_url:["https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80","https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80","https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80"][i]})));
   const [agenda, setAgenda] = useState<any[]>(agendaDemo);
   const [queueSize, setQueueSize] = useState(0);
   const [notice, setNotice] = useState("");
