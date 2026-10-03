@@ -307,12 +307,26 @@ function Services({ session, setAuth, setQueueSize, setNotice }: any) {
 }
 
 function DataIntakePanel({ session, setAuth, setNotice }: any) {
-  async function createBatch(sourceType: string, sourceName: string) {
+  async function createBatch(sourceType: string, sourceName: string, fileUri?: string) {
     if (!session?.user) {
       setAuth(true);
       return;
     }
+    const scope = await sb.from("role_assignments")
+      .select("scope_territory_id")
+      .eq("user_id", session.user.id)
+      .eq("active", true)
+      .not("scope_territory_id", "is", null)
+      .limit(1)
+      .maybeSingle();
+    const territoryId = scope.data?.scope_territory_id;
+    if (!territoryId) {
+      setNotice("Akun ini belum memiliki wilayah kerja aktif untuk Data Intake.");
+      return;
+    }
+
     const r = await sb.from("data_intake_batches").insert({
+      territory_id: territoryId,
       source_type: sourceType,
       source_name: sourceName,
       status: "UPLOADED",
@@ -322,7 +336,28 @@ function DataIntakePanel({ session, setAuth, setNotice }: any) {
       setNotice("Pusat data belum dapat menerima input saat ini: " + r.error.message);
       return;
     }
-    setNotice("Input diterima. Batch " + String(r.data?.id || "").slice(0, 8) + " menunggu ekstraksi AI dan verifikasi operator.");
+
+    const batchId = String(r.data?.id || "");
+    if (sourceType === "CSV" && fileUri && batchId) {
+      try {
+        const csv = await (await fetch(fileUri)).text();
+        const extraction = await sb.functions.invoke("ai-data-intake", {
+          body: { batch_id: batchId, source_type: "CSV", content: csv },
+        });
+        if (extraction.error) {
+          setNotice("Batch tersimpan, tetapi ekstraksi CSV belum berhasil: " + extraction.error.message);
+          return;
+        }
+        const d = extraction.data || {};
+        setNotice("Batch " + batchId.slice(0, 8) + " diproses: " + String(d.rows || 0) + " baris, " + String(d.matched || 0) + " cocok, " + String(d.review || 0) + " perlu review.");
+        return;
+      } catch (e: any) {
+        setNotice("Batch tersimpan, tetapi file CSV belum dapat dibaca: " + String(e?.message || e));
+        return;
+      }
+    }
+
+    setNotice("Input diterima. Batch " + batchId.slice(0, 8) + " menunggu ekstraksi/provider dan verifikasi operator.");
   }
 
   async function pickFile() {
@@ -338,10 +373,11 @@ function DataIntakePanel({ session, setAuth, setNotice }: any) {
       multiple: false,
     });
     if (!result.canceled && result.assets?.[0]) {
-      const name = result.assets[0].name || "dokumen";
-      const mime = result.assets[0].mimeType || "";
+      const asset = result.assets[0];
+      const name = asset.name || "dokumen";
+      const mime = asset.mimeType || "";
       const type = mime.includes("spreadsheet") || mime.includes("excel") ? "EXCEL" : mime.includes("csv") ? "CSV" : mime.includes("pdf") ? "PDF" : "IMAGE";
-      await createBatch(type, name);
+      await createBatch(type, name, asset.uri);
     }
   }
 
@@ -359,9 +395,9 @@ function DataIntakePanel({ session, setAuth, setNotice }: any) {
 
   return (
     <View style={s.intakeCard}>
-      <Text style={s.intakeEyebrow}>AI DATA INTAKE</Text>
+      <Text style={s.intakeEyebrow}>DATA INTAKE</Text>
       <Text style={s.intakeTitle}>Masukkan data tanpa mengetik ulang.</Text>
-      <Text style={s.intakeText}>Excel, CSV, PDF, foto, dan scan dapat menjadi batch data untuk ekstraksi, mapping kolom, pencocokan NIK/KK, dan verifikasi operator.</Text>
+      <Text style={s.intakeText}>CSV sudah dapat diproses untuk mapping, normalisasi, pencocokan NIK/KK, duplicate detection, dan review. PDF, foto, scan, dan Excel menunggu provider/parser yang disetujui.</Text>
       <View style={s.intakeActions}>
         <Pressable style={s.intakeButton} onPress={pickFile}>
           <Text style={s.intakeButtonText}>Pilih file</Text>
@@ -370,7 +406,7 @@ function DataIntakePanel({ session, setAuth, setNotice }: any) {
           <Text style={s.intakeButtonText}>Foto / scan</Text>
         </Pressable>
       </View>
-      <Text style={s.intakeNote}>AI tidak langsung mengubah data sensitif. Hasil ekstraksi dan matching melewati review sebelum masuk data inti.</Text>
+      <Text style={s.intakeNote}>AI tidak langsung mengubah data sensitif. Hasil extraction dan matching melewati review sebelum masuk data inti.</Text>
     </View>
   );
 }
