@@ -1,5 +1,8 @@
 import "react-native-url-polyfill/auto";
 import React, { useEffect, useMemo, useState } from "react";
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import * as SecureStore from "expo-secure-store";
 import {
   ActivityIndicator,
   Pressable,
@@ -124,10 +127,10 @@ export default function App() {
       <View style={s.app}>
         <View style={s.header}>
           <View style={s.brandRow}>
-            <View style={s.brandMark}><Text style={s.brandMarkText}>SV</Text></View>
+            <View style={s.brandMark}><Text style={s.brandMarkText}>RT</Text></View>
             <View>
-              <Text style={s.brand}>SMART VILLAGE</Text>
-              <Text style={s.sub}>RT/RW · DESA CERDAS ENGINE</Text>
+              <Text style={s.brand}>RT/RW-SID CONNECT</Text>
+              <Text style={s.sub}>SISTEM INFORMASI RT/RW</Text>
             </View>
           </View>
           <Pressable
@@ -281,6 +284,75 @@ function Services({ session, setAuth, setQueueSize, setNotice }: any) {
   );
 }
 
+function DataIntakePanel({ session, setAuth, setNotice }: any) {
+  async function createBatch(sourceType: string, sourceName: string) {
+    if (!session?.user) {
+      setAuth(true);
+      return;
+    }
+    const r = await sb.from("data_intake_batches").insert({
+      source_type: sourceType,
+      source_name: sourceName,
+      status: "UPLOADED",
+      created_by: session.user.id,
+    }).select("id").single();
+    if (r.error) {
+      setNotice("Pusat data belum dapat menerima input saat ini: " + r.error.message);
+      return;
+    }
+    setNotice("Input diterima. Batch " + String(r.data?.id || "").slice(0, 8) + " menunggu ekstraksi AI dan verifikasi operator.");
+  }
+
+  async function pickFile() {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: [
+        "text/csv",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/pdf",
+        "image/*",
+      ],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      const name = result.assets[0].name || "dokumen";
+      const mime = result.assets[0].mimeType || "";
+      const type = mime.includes("spreadsheet") || mime.includes("excel") ? "EXCEL" : mime.includes("csv") ? "CSV" : mime.includes("pdf") ? "PDF" : "IMAGE";
+      await createBatch(type, name);
+    }
+  }
+
+  async function capturePhoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      setNotice("Izin kamera diperlukan untuk memotret KK/KTP/dokumen.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.85 });
+    if (!result.canceled && result.assets?.[0]) {
+      await createBatch("SCAN", "camera-" + Date.now() + ".jpg");
+    }
+  }
+
+  return (
+    <View style={s.intakeCard}>
+      <Text style={s.intakeEyebrow}>AI DATA INTAKE</Text>
+      <Text style={s.intakeTitle}>Masukkan data tanpa mengetik ulang.</Text>
+      <Text style={s.intakeText}>Excel, CSV, PDF, foto, dan scan dapat menjadi batch data untuk ekstraksi, mapping kolom, pencocokan NIK/KK, dan verifikasi operator.</Text>
+      <View style={s.intakeActions}>
+        <Pressable style={s.intakeButton} onPress={pickFile}>
+          <Text style={s.intakeButtonText}>Pilih file</Text>
+        </Pressable>
+        <Pressable style={s.intakeButton} onPress={capturePhoto}>
+          <Text style={s.intakeButtonText}>Foto / scan</Text>
+        </Pressable>
+      </View>
+      <Text style={s.intakeNote}>AI tidak langsung mengubah data sensitif. Hasil ekstraksi dan matching melewati review sebelum masuk data inti.</Text>
+    </View>
+  );
+}
+
 function News({ data }: any) {
   return (
     <View>
@@ -365,7 +437,7 @@ function Auth({ email, setEmail, password, setPassword, busy, error, back, signI
     <View style={s.auth}>
       <View style={s.authMark}><Text style={s.brandMarkText}>SV</Text></View>
       <Text style={s.eyebrow}>RUANG PRIBADI WARGA</Text>
-      <Text style={s.heroTitle}>Masuk ke Smart Village.</Text>
+      <Text style={s.heroTitle}>Masuk ke RT/RW-SID CONNECT.</Text>
       <Text style={s.intro}>Gunakan akun warga yang sudah terdaftar pada sistem wilayah.</Text>
       <TextInput style={s.input} placeholder="Email" placeholderTextColor="#82908A" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
       <TextInput style={s.input} placeholder="Password" placeholderTextColor="#82908A" secureTextEntry value={password} onChangeText={setPassword} />
@@ -432,6 +504,14 @@ const s = StyleSheet.create({
   featureTag: { alignSelf: "flex-start", backgroundColor: "#D5E4DD", borderRadius: 12, paddingHorizontal: 9, paddingVertical: 6, marginBottom: 13 },
   featureTagText: { color: "#356557", fontSize: 8.5, fontWeight: "900", letterSpacing: 1.1 },
   featureTitle: { color: "#16352C", fontSize: 19, lineHeight: 25, fontWeight: "900" },
+  intakeCard: { backgroundColor: "#16352C", borderRadius: 22, padding: 18, marginTop: 12, marginBottom: 14 },
+  intakeEyebrow: { color: "#AFC7BD", fontSize: 9, fontWeight: "900", letterSpacing: 1.45, marginBottom: 7 },
+  intakeTitle: { color: "#FFFFFF", fontSize: 19, lineHeight: 25, fontWeight: "900" },
+  intakeText: { color: "#C7D5CF", fontSize: 12.5, lineHeight: 19, marginTop: 8 },
+  intakeActions: { flexDirection: "row", gap: 8, marginTop: 14 },
+  intakeButton: { backgroundColor: "#E6F0EB", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  intakeButtonText: { color: "#16352C", fontSize: 12, fontWeight: "900" },
+  intakeNote: { color: "#9FB6AC", fontSize: 10.5, lineHeight: 16, marginTop: 11 },
   featureText: { color: "#63736C", fontSize: 13, lineHeight: 19, marginTop: 9 },
   arrowLink: { color: "#356557", fontSize: 12, fontWeight: "900", marginTop: 14 },
   intro: { color: "#687770", fontSize: 13, lineHeight: 20, marginTop: 8, marginBottom: 18 },
