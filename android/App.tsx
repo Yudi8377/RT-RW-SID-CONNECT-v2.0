@@ -23,6 +23,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{storage,persistSessi
 
 type Role = "WARGA"|"KETUA_RT"|"PENGURUS_RT"|"KETUA_RW"|"PENGURUS_RW"|"VILLAGE_VALIDATOR"|"PLATFORM_ADMIN";
 type Tab = "home"|"map"|"news"|"agenda"|"room";
+const DEMO_ACCOUNTS: any[] = [];
 const ROLES: {code:Role; title:string; note:string}[] = [
   {code:"WARGA",title:"Warga",note:"Layanan pribadi & informasi publik"},
   {code:"KETUA_RT",title:"Ketua RT",note:"Kepemimpinan & verifikasi RT"},
