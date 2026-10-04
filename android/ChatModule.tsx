@@ -10,7 +10,7 @@ const U8:any=(value:any)=>naclUtil.decodeBase64(String(value)) as any;
 const UTF8:any=(value:any)=>naclUtil.decodeUTF8(String(value));
 const box:any=nacl.box; // E2EE v1: established NaCl primitive; no custom cryptography
 
-export default function ChatModule({visible,onClose,sb,session,profile}:any){
+export default function ChatModule({visible,onClose,sb,session,profile,role}:any){
   const [device,setDevice]=useState<any>(null),[conversations,setConversations]=useState<any[]>([]),[active,setActive]=useState<any>(null);
   const [messages,setMessages]=useState<any[]>([]),[text,setText]=useState(""),[phone,setPhone]=useState(""),[busy,setBusy]=useState(false),[newChat,setNewChat]=useState(false);
   const [secret,setSecret]=useState<Uint8Array|null>(null),[notice,setNotice]=useState("");
@@ -27,7 +27,7 @@ export default function ChatModule({visible,onClose,sb,session,profile}:any){
     "demo-kar":[["2026-07-20T16:00:00Z","Rizky Maulana","Latihan futsal pemuda Sabtu sore.","theirs"],["2026-08-22T19:00:00Z","Budi Santoso","Siapa yang ikut kegiatan sosial bulan depan?","mine"],["2026-09-21T20:05:00Z","Rizky Maulana","Karang Taruna siap membantu kegiatan lingkungan.","theirs"]],
     "demo-siti":[["2026-08-14T10:20:00Z","Siti Rahma","Budi, apakah sudah melihat agenda warga?","theirs"],["2026-08-14T10:22:00Z","Budi Santoso","Sudah, saya akan hadir.","mine"]]
   };
-  useEffect(()=>{if(!visible)return; if(session) boot(); else {setDevice(null);setSecret(null);setConversations(DEMO_CHATS);setActive(null);setMessages([]);setNotice("Mode demo: riwayat NUSA CHAT tiga bulan terakhir.");}},[visible,session?.user?.id]);
+  useEffect(()=>{if(!visible)return; if(session) boot(); else {setDevice(null);setSecret(null);const allowed=role==="WARGA"?["demo-rt","demo-siti"]:role==="PENGURUS_RT"||role==="KETUA_RT"?["demo-rt","demo-kar"]:role==="PENGURUS_RW"||role==="KETUA_RW"?["demo-rw","demo-rt"]:role==="VILLAGE_VALIDATOR"?["demo-rw"]:role==="PLATFORM_ADMIN"?DEMO_CHATS.map((x:any)=>x.id):DEMO_CHATS.map((x:any)=>x.id);setConversations(DEMO_CHATS.filter((x:any)=>allowed.includes(x.id)));setActive(null);setMessages([]);setNotice("Mode demo: riwayat NUSA CHAT tiga bulan terakhir.");}},[visible,session?.user?.id,role]);
 
   async function boot(){
     const key=await loadDeviceKey();
