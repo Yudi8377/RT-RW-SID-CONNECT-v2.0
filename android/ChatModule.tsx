@@ -10,12 +10,24 @@ const U8:any=(value:any)=>naclUtil.decodeBase64(String(value)) as any;
 const UTF8:any=(value:any)=>naclUtil.decodeUTF8(String(value));
 const box:any=nacl.box; // E2EE v1: established NaCl primitive; no custom cryptography
 
-export default function ChatModule({visible,onClose,sb,session,profile}:any){
+export default function ChatModule({visible,onClose,sb,session,profile,role}:any){
   const [device,setDevice]=useState<any>(null),[conversations,setConversations]=useState<any[]>([]),[active,setActive]=useState<any>(null);
   const [messages,setMessages]=useState<any[]>([]),[text,setText]=useState(""),[phone,setPhone]=useState(""),[busy,setBusy]=useState(false),[newChat,setNewChat]=useState(false);
   const [secret,setSecret]=useState<Uint8Array|null>(null),[notice,setNotice]=useState("");
 
-  useEffect(()=>{if(visible&&session) boot();},[visible,session?.user?.id]);
+  const DEMO_CHATS:any[]=[
+    {id:"demo-rw",kind:"GROUP",title:"RW 02 · Koordinasi Warga",updated_at:"2026-10-02T19:20:00Z",created_by:"demo"},
+    {id:"demo-rt",kind:"GROUP",title:"RT 04 · Pengurus & Warga",updated_at:"2026-09-28T18:10:00Z",created_by:"demo"},
+    {id:"demo-kar",kind:"GROUP",title:"Karang Taruna RT 04",updated_at:"2026-09-21T20:05:00Z",created_by:"demo"},
+    {id:"demo-siti",kind:"DIRECT",title:"Siti Rahma",updated_at:"2026-08-14T10:22:00Z",created_by:"demo"}
+  ];
+  const DEMO_MESSAGES:any={
+    "demo-rw":[["2026-07-08T09:10:00Z","Siti Rahma","Selamat pagi, agenda kerja bakti bulan ini sudah disepakati.","theirs"],["2026-07-08T09:15:00Z","Andi Pratama","Siap. RT 04 akan kirim daftar peserta sore ini.","mine"],["2026-08-14T18:30:00Z","Budi Santoso","Lampu jalan di gang 3 sudah dilaporkan.","theirs"],["2026-09-02T19:12:00Z","Maya Lestari","Terima kasih. Laporan akan masuk rekap wilayah.","theirs"],["2026-10-02T19:20:00Z","Siti Rahma","Pengingat: rapat RW besok pukul 19.30.","theirs"]],
+    "demo-rt":[["2026-07-11T08:00:00Z","Andi Pratama","Pendataan warga RT 04 dimulai minggu ini.","theirs"],["2026-08-18T17:45:00Z","Budi Santoso","Data keluarga saya sudah saya perbarui.","mine"],["2026-09-28T18:10:00Z","Andi Pratama","Terima kasih, besok kita verifikasi bersama.","theirs"]],
+    "demo-kar":[["2026-07-20T16:00:00Z","Rizky Maulana","Latihan futsal pemuda Sabtu sore.","theirs"],["2026-08-22T19:00:00Z","Budi Santoso","Siapa yang ikut kegiatan sosial bulan depan?","mine"],["2026-09-21T20:05:00Z","Rizky Maulana","Karang Taruna siap membantu kegiatan lingkungan.","theirs"]],
+    "demo-siti":[["2026-08-14T10:20:00Z","Siti Rahma","Budi, apakah sudah melihat agenda warga?","theirs"],["2026-08-14T10:22:00Z","Budi Santoso","Sudah, saya akan hadir.","mine"]]
+  };
+  useEffect(()=>{if(!visible)return; if(session) boot(); else {setDevice(null);setSecret(null);const allowed=role==="WARGA"?["demo-rt","demo-siti"]:role==="PENGURUS_RT"||role==="KETUA_RT"?["demo-rt","demo-kar"]:role==="PENGURUS_RW"||role==="KETUA_RW"?["demo-rw","demo-rt"]:role==="VILLAGE_VALIDATOR"?["demo-rw"]:role==="PLATFORM_ADMIN"?DEMO_CHATS.map((x:any)=>x.id):DEMO_CHATS.map((x:any)=>x.id);setConversations(DEMO_CHATS.filter((x:any)=>allowed.includes(x.id)));setActive(null);setMessages([]);setNotice("Mode demo: riwayat NUSA CHAT tiga bulan terakhir.");}},[visible,session?.user?.id,role]);
 
   async function boot(){
     const key=await loadDeviceKey();
@@ -53,7 +65,9 @@ export default function ChatModule({visible,onClose,sb,session,profile}:any){
     setNewChat(false);setPhone("");await loadConversations();openConversation(c.data);setBusy(false);
   }
   async function openConversation(c:any){
-    setActive(c);await loadMessages(c.id);
+    setActive(c);
+    if(!session && String(c.id).startsWith("demo-")){setMessages((DEMO_MESSAGES[c.id]||[]).map((m:any,i:number)=>({id:c.id+"-"+i,created_at:m[0],sender_user_id:m[1],body:m[2],self:m[3]==="mine"})));return;}
+    await loadMessages(c.id);
     const channel=sb.channel("sv-chat-"+c.id).on("postgres_changes",{event:"INSERT",schema:"public",table:"sv_chat_messages",filter:"conversation_id=eq."+c.id},()=>loadMessages(c.id)).subscribe();
     (c as any)._channel=channel;
   }
@@ -74,6 +88,7 @@ export default function ChatModule({visible,onClose,sb,session,profile}:any){
     setMessages(decoded);
   }
   async function send(){
+    if(!session){setNotice("Mode trial hanya dapat membaca riwayat chat contoh. Masuk untuk mengirim pesan terenkripsi.");return;}
     const body=text.trim();if(!body||!active||!device||!secret)return;
     setText("");setBusy(true);
     const members=await sb.from("sv_chat_members").select("user_id").eq("conversation_id",active.id).is("left_at",null);
@@ -99,8 +114,8 @@ export default function ChatModule({visible,onClose,sb,session,profile}:any){
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
     <SafeAreaView style={st.safe}><View style={st.header}><View><Text style={st.eyebrow}>NUSA CHAT</Text><Text style={st.title}>{active?.title||"Komunikasi warga"}</Text></View><Pressable onPress={onClose}><Text style={st.close}>Tutup</Text></Pressable></View>
     {!active?<ScrollView contentContainerStyle={st.list}>
-      <View style={st.security}><Text style={st.securityTitle}>🔐 E2EE AKTIF</Text><Text style={st.securityText}>Isi pesan dienkripsi di perangkat. Server menyimpan ciphertext, bukan teks percakapan.</Text></View>
-      <Pressable style={st.newButton} onPress={()=>setNewChat(true)}><Text style={st.newButtonText}>＋ Mulai percakapan</Text></Pressable>
+      <View style={st.security}><Text style={st.securityTitle}>🔐 E2EE AKTIF</Text><Text style={st.securityText}>{session?"Isi pesan dienkripsi di perangkat. Server menyimpan ciphertext, bukan teks percakapan.":"Riwayat di bawah adalah data contoh untuk simulasi tiga bulan. Tidak mewakili warga nyata."}</Text></View>
+      {session?<Pressable style={st.newButton} onPress={()=>setNewChat(true)}><Text style={st.newButtonText}>＋ Mulai percakapan</Text></Pressable>:null}
       {!conversations.length?<View style={st.empty}><Text style={st.emptyTitle}>Belum ada percakapan</Text><Text style={st.emptyText}>Mulai chat dengan nomor HP warga yang sudah mengaktifkan NUSA CHAT.</Text></View>:conversations.map((c:any)=><Pressable key={c.id} style={st.chatRow} onPress={()=>openConversation(c)}><View style={st.avatar}><Text style={st.avatarText}>{String(c.title||"?").slice(0,1).toUpperCase()}</Text></View><View style={{flex:1}}><Text style={st.chatTitle}>{c.title||"Percakapan"}</Text><Text style={st.chatMeta}>{c.kind==="DIRECT"?"Percakapan pribadi terenkripsi":"Ruang komunitas"}</Text></View><Text style={st.chev}>›</Text></Pressable>)}
     </ScrollView>:<View style={{flex:1}}><ScrollView contentContainerStyle={st.messages}>{messages.map((m:any)=><View key={m.id} style={[st.bubble,m.self?st.mine:st.theirs]}><Text style={[st.bubbleText,m.self&&{color:"#fff"}]}>{m.body}</Text><Text style={[st.time,m.self&&{color:"#C7D5CF"}]}>{new Date(m.created_at).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}</Text></View>)}</ScrollView><View style={st.composer}><TextInput style={st.composeInput} value={text} onChangeText={setText} placeholder="Tulis pesan terenkripsi…" onSubmitEditing={send}/><Pressable style={st.send} onPress={send} disabled={busy}>{busy?<ActivityIndicator color="#fff"/>:<Text style={st.sendText}>➤</Text>}</Pressable></View><Pressable style={st.back} onPress={()=>{if(active?._channel)sb.removeChannel(active._channel);setActive(null);loadConversations()}}><Text style={st.backText}>← Semua chat</Text></Pressable></View>}
     <Modal visible={newChat} transparent animationType="slide" onRequestClose={()=>setNewChat(false)}><View style={st.overlay}><View style={st.newSheet}><Text style={st.eyebrow}>CHAT PRIBADI</Text><Text style={st.sheetTitle}>Hubungi warga</Text><Text style={st.sheetText}>Masukkan nomor HP persis seperti yang terdaftar. Pencarian hanya mengembalikan kecocokan tepat.</Text><TextInput style={st.input} keyboardType="phone-pad" placeholder="08xxxxxxxxxx" value={phone} onChangeText={setPhone}/>{notice?<Text style={st.notice}>{notice}</Text>:null}<Pressable style={st.newButton} onPress={startChat}><Text style={st.newButtonText}>{busy?"Menyiapkan enkripsi…":"Cari & mulai chat"}</Text></Pressable><Pressable style={st.cancel} onPress={()=>setNewChat(false)}><Text style={st.cancelText}>Batal</Text></Pressable></View></View></Modal>
