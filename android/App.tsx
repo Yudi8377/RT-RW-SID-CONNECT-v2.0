@@ -81,10 +81,11 @@ export default function App(){
   const [selectedPlan,setSelectedPlan]=useState<"TRIAL"|"COMMUNITY"|"PRO"|"ENTERPRISE">("TRIAL");
   const [guestTrialUntil,setGuestTrialUntil]=useState<string|null>(null);
   const [guestTrialDays,setGuestTrialDays]=useState(0);
+  const [guestRole,setGuestRole]=useState<Role>("WARGA");
   const emergencyMonitoring = NativeModules.EmergencyMonitoring;
 
   useEffect(()=>{ sb.auth.getSession().then(async r=>{setSession(r.data.session);await loadIdentity(r.data.session)}); const sub=sb.auth.onAuthStateChange((_,s)=>{setSession(s);loadIdentity(s)}); return()=>sub.data.subscription.unsubscribe(); },[]);
-  useEffect(()=>{ loadPublic(); (async()=>{ const raw=await SecureStore.getItemAsync("sv.guest.trial.until"); if(raw){ const left=Math.ceil((new Date(raw).getTime()-Date.now())/86400000); if(left>0){setGuestTrialUntil(raw);setGuestTrialDays(left);} else await SecureStore.deleteItemAsync("sv.guest.trial.until"); } })(); },[]);
+  useEffect(()=>{ loadPublic(); (async()=>{ const raw=await SecureStore.getItemAsync("sv.guest.trial.until"); const savedRole=await SecureStore.getItemAsync("sv.guest.trial.role"); if(raw){ const left=Math.ceil((new Date(raw).getTime()-Date.now())/86400000); if(left>0){setGuestTrialUntil(raw);setGuestTrialDays(left);if(savedRole&&ROLES.some(x=>x.code===savedRole))setGuestRole(savedRole as Role);} else {await SecureStore.deleteItemAsync("sv.guest.trial.until");await SecureStore.deleteItemAsync("sv.guest.trial.role");} } })(); },[]);
   useEffect(()=>{ if(session) loadEmergency(); },[session]);
   useEffect(()=>{ loadTerritories(); loadEmergencyContacts(); },[]);
   useEffect(()=>{ if(session){ sb.rpc("sv_ensure_trial_entitlement",{p_user_id:session.user.id}); loadPlan(); } },[session]);
@@ -152,8 +153,11 @@ export default function App(){
     if(!r.error) setEmergency(r.data||[]);
   }
   async function signOut(){await sb.auth.signOut();setNotice("Anda sudah keluar.");setTab("home");}
-  async function startGuestTrial(){const until=new Date(Date.now()+7*86400000).toISOString();await SecureStore.setItemAsync("sv.guest.trial.until",until);setGuestTrialUntil(until);setGuestTrialDays(7);setTab("home");setNotice("Trial 7 hari aktif. Anda dapat menjelajahi aplikasi tanpa login.");}
+  async function startGuestTrial(role:Role="WARGA"){const until=new Date(Date.now()+7*86400000).toISOString();await SecureStore.setItemAsync("sv.guest.trial.until",until);await SecureStore.setItemAsync("sv.guest.trial.role",role);setGuestTrialUntil(until);setGuestTrialDays(7);setGuestRole(role);setTab("home");setNotice("Trial 7 hari aktif sebagai "+roleTitle(role)+". Tidak perlu email atau password.");}
   function guestTrialActive(){return Boolean(guestTrialUntil&&new Date(guestTrialUntil).getTime()>Date.now());}
+  function roleTitle(r:Role){return ROLES.find(x=>x.code===r)?.title||r;}
+  function guestProfile(){const d=DEMO_ACCOUNTS.find(x=>x.role===guestRole)||DEMO_ACCOUNTS[0];return {full_name:d.name,rt_number:guestRole==="PENGURUS_RT"||guestRole==="KETUA_RT"?"04":"04",rw_number:guestRole==="PENGURUS_RT"||guestRole==="KETUA_RT"||guestRole==="PENGURUS_RW"||guestRole==="KETUA_RW"?"02":"02",village_label:"Desa Demo Cerdas"};}
+  function guestEnter(role:Role){void startGuestTrial(role);}
   async function changeAvatar(){
     if(!session) return;
     const perm=await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -192,7 +196,7 @@ export default function App(){
     });
   }
   async function triggerEmergency(source="MANUAL",confidence=1){
-    if(!session){setAuthMode("signin");setAuthOpen(true);return;}
+    if(!session){setNotice("Mode Trial 7 Hari: tindakan darurat resmi dan pengiriman lokasi memerlukan akun serta kewenangan terverifikasi. Data dan tombol tetap dapat dipelajari dalam mode demo.");return;}
     const permission=await Location.requestForegroundPermissionsAsync();
     if(permission.status!=="granted"){Alert.alert("Izin lokasi diperlukan","Lokasi hanya digunakan setelah Anda menyetujui izin untuk bantuan darurat.");return;}
     const pos=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High});
@@ -203,12 +207,12 @@ export default function App(){
     await loadEmergency();setNotice("Bantuan darurat dikirim. Lokasi aktif selama 30 menit.");
   }
 
-  if(!session && !authOpen && !guestTrialActive()) return <Landing openAuth={(m:any,p:any)=>{setAuthMode(m);setAuthOpen(true);setSelectedPlan(p||"TRIAL")}} startTrial={startGuestTrial}/>;
+  if(!session && !authOpen && !guestTrialActive()) return <Landing startTrial={startGuestTrial}/>;
   return <SafeAreaView style={s.safe}><StatusBar barStyle="dark-content"/><View style={s.app}>
     <Header session={session} profile={profile} onAuth={()=>session?signOut():(setAuthMode("signin"),setAuthOpen(true))} onChat={()=>setChatOpen(true)}/>
     {notice?<Pressable style={s.notice} onPress={()=>setNotice("")}><Text style={s.noticeText}>{notice}</Text></Pressable>:null}
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-      {tab==="home"&&(role==="PUBLIC"?<TrialHome days={guestTrialDays} setTab={setTab} onLogin={()=>{setAuthMode("signin");setAuthOpen(true)}} onChat={()=>setChatOpen(true)}/>:<Home profile={profile} role={role} setTab={setTab} onAvatar={changeAvatar} onChat={()=>setChatOpen(true)} emergency={triggerEmergency} contacts={contacts} askCompanion={askCompanion} sensorProtection={sensorProtection} setSensorProtection={setSensorProtection} plan={plan}/>)}
+      {tab==="home"&&(role==="PUBLIC"?<TrialHome days={guestTrialDays} guestRole={guestRole} setRole={(r:Role)=>{setGuestRole(r);void SecureStore.setItemAsync("sv.guest.trial.role",r);}} setTab={setTab} onChat={()=>setChatOpen(true)}/>:<Home profile={session?profile:guestProfile()} role={session?role:guestRole} setTab={setTab} onAvatar={session?changeAvatar:()=>setNotice("Mode demo: perubahan profil resmi terkunci.")} onChat={()=>setChatOpen(true)} emergency={triggerEmergency} contacts={contacts} askCompanion={askCompanion} sensorProtection={session?sensorProtection:false} setSensorProtection={(v:boolean)=>{if(session)setSensorProtection(v);else setNotice("Mode demo: perlindungan sensor dan tindakan darurat resmi memerlukan akun terverifikasi.")}} plan={session?plan:{plan_code:"TRIAL",status:"DEMO"}}/>)}
       {tab==="map"&&<GIS location={location} setLocation={setLocation} emergency={triggerEmergency} mapReady={mapReady} setMapReady={setMapReady} territories={territories}/>}
       {tab==="news"&&<News data={news} open={setDetail}/>}
       {tab==="agenda"&&<Agenda data={agenda} open={setDetail}/>}
@@ -221,23 +225,17 @@ export default function App(){
   <ChatModule visible={chatOpen} onClose={()=>setChatOpen(false)} sb={sb} session={session} profile={profile} role={role}/></View></SafeAreaView>;
 }
 
-function Landing({openAuth,startTrial}:any){
- const plans=[
-  ["TRIAL","Trial","Gratis · 7 hari","Coba alur aplikasi dan layanan inti."],
-  ["COMMUNITY","Community","Dukungan/donasi RT/RW · Rp250.000/bulan","Untuk operasional komunitas; layanan warga inti tetap terbuka."],
-  ["PRO","Pro","Langganan · sesuai paket","Fitur operasional, AI dan analitik yang lebih lengkap."],
-  ["ENTERPRISE","Enterprise","Kontrak · sesuai kebutuhan","Integrasi, tata kelola dan dukungan organisasi."]
- ];
+function Landing({startTrial}:any){
+ const trialRoles=[["WARGA","Warga","Layanan pribadi, informasi publik dan ruang warga."],["PENGURUS_RT","RT","Data contoh RT, laporan, organisasi dan usaha lokal."],["PENGURUS_RW","RW","Review wilayah RW, koordinasi dan data agregat."],["VILLAGE_VALIDATOR","Desa / Kelurahan","Validasi agregat, GIS dan program wilayah."],["PLATFORM_ADMIN","Platform Admin","Dashboard administrasi platform dalam data demo."]];
  return <SafeAreaView style={s.safe}><StatusBar barStyle="light-content"/><ScrollView contentContainerStyle={s.landing}>
-  <View style={s.landingBadge}>SMART VILLAGE</View><Text style={s.landingTitle}>RT/RW · DESA CERDAS ENGINE</Text><Text style={s.landingText}>Satu ruang digital untuk warga, RT, RW dan pemerintahan desa.</Text>
-  <View style={s.landingMap}><Text style={s.mapGlyph}>⌖</Text><Text style={s.mapTitle}>Wilayah terhubung</Text><Text style={s.mapText}>Warga · RT/RW · GIS · usaha · organisasi · NUSA CHAT · layanan</Text></View>
-  <Text style={s.landingPlanTitle}>Pilih akses awal</Text><Text style={s.landingPlanHint}>Pilihan paket hanya menentukan jalur akses/permintaan. Aktivasi Community, Pro dan Enterprise tetap melalui proses resmi.</Text>
-  {plans.map(([code,title,price,note])=><Pressable key={code} style={[s.landingPlan,selectedPlanStyle(code)]} onPress={()=>openAuth("signup",code)}><View style={{flex:1}}><Text style={s.landingPlanName}>{title}</Text><Text style={s.landingPlanPrice}>{price}</Text><Text style={s.landingPlanNote}>{note}</Text></View><Text style={s.landingPlanArrow}>›</Text></Pressable>)}
-  <Pressable style={s.landingPrimary} onPress={startTrial}><Text style={s.landingPrimaryText}>Mulai Trial 7 Hari — Tanpa Login</Text></Pressable><View style={s.row}><Pressable style={[s.landingPrimary,s.half]} onPress={()=>openAuth("signin","TRIAL")}><Text style={s.landingPrimaryText}>Masuk</Text></Pressable><Pressable style={[s.landingSecondary,s.half]} onPress={()=>openAuth("signup","TRIAL")}><Text style={s.landingSecondaryText}>Daftar</Text></Pressable></View>
-  <Text style={s.landingFoot}>Data pribadi, kewenangan wilayah, privasi dan keamanan percakapan mengikuti role serta kebijakan akses yang terverifikasi.</Text>
+  <View style={s.landingBadge}>SMART VILLAGE</View><Text style={s.landingTitle}>RT/RW · DESA CERDAS ENGINE</Text><Text style={s.landingText}>Masuk ke ruang demo sesuai role tanpa email, password, atau pendaftaran akun.</Text>
+  <View style={s.landingMap}><Text style={s.mapGlyph}>⌖</Text><Text style={s.mapTitle}>Trial 7 Hari · Tanpa Login</Text><Text style={s.mapText}>Pilih role untuk langsung membuka RT/RW CONNECT OS. Data yang tampil adalah data contoh; kewenangan resmi tetap terkunci.</Text></View>
+  <Text style={s.landingPlanTitle}>Pilih ruang demo</Text><Text style={s.landingPlanHint}>Setiap role memiliki tampilan dan menu berbeda. Anda dapat berganti role selama trial.</Text>
+  {trialRoles.map(([code,title,note])=><Pressable key={code} style={s.landingPlan} onPress={()=>startTrial(code as Role)}><View style={{flex:1}}><Text style={s.landingPlanName}>{title}</Text><Text style={s.landingPlanNote}>{note}</Text></View><Text style={s.landingPlanArrow}>→</Text></Pressable>)}
+  <Text style={s.landingFoot}>Tidak ada sign-in/sign-up untuk trial. Data pribadi, verifikasi, perubahan data resmi, dan pengiriman layanan resmi hanya tersedia setelah otorisasi.</Text>
  </ScrollView></SafeAreaView>}
 function selectedPlanStyle(code:string){return code==="TRIAL"?s.landingPlanActive:null}
-function TrialHome({days,setTab,onLogin,onChat}:any){return <View><Text style={s.eyebrow}>TRIAL PUBLIK · {days} HARI TERSISA</Text><Text style={s.pageTitle}>Jelajahi RT/RW CONNECT.</Text><Text style={s.intro}>Mode trial tanpa login. Data yang ditampilkan adalah data contoh dan tidak memberi kewenangan administrasi.</Text><View style={s.hero}><Text style={s.heroEyebrow}>MODE DEMO TERBATAS</Text><Text style={s.heroText}>Warga · RT · RW · Desa</Text><Text style={s.heroSub}>Lihat contoh alur layanan, GIS, Ruang, organisasi, usaha lokal dan NUSA CHAT tanpa membuat akun.</Text><Pressable style={s.heroButton} onPress={onLogin}><Text style={s.heroButtonText}>Masuk untuk hak akses sesuai role →</Text></Pressable></View><Text style={s.section}>Jelajahi</Text><View style={s.grid}><Quick title="Peta GIS" icon="⌖" go={()=>setTab("map")}/><Quick title="Kabar Desa" icon="◉" go={()=>setTab("news")}/><Quick title="Agenda" icon="◷" go={()=>setTab("agenda")}/><Quick title="Ruang Demo" icon="◎" go={()=>setTab("room")}/></View><Pressable style={s.chatHero} onPress={onChat}><View style={s.chatHeroIcon}><Text>💬</Text></View><View style={{flex:1}}><Text style={s.chatHeroTitle}>NUSA CHAT · DEMO 3 BULAN</Text><Text style={s.text}>Lihat contoh anggota dan riwayat percakapan sesuai ruang publik demo.</Text></View><Text style={s.chatArrow}>→</Text></Pressable><View style={s.card}><Text style={s.title}>Batas trial</Text><Text style={s.text}>Trial berlaku 7 hari pada perangkat ini. Administrasi, verifikasi RT/RW dan tindakan darurat memerlukan akun serta kewenangan yang sesuai.</Text></View></View>}
+function TrialHome({days,guestRole,setRole,setTab,onChat}:any){const title=roleTitle(guestRole);return <View><Text style={s.eyebrow}>TRIAL 7 HARI · {days} HARI TERSISA · {title.toUpperCase()}</Text><Text style={s.pageTitle}>RT/RW CONNECT OS · Demo {title}.</Text><Text style={s.intro}>Anda sudah berada di ruang demo. Tidak ada login atau password. Data contoh dibatasi sesuai role.</Text><View style={s.hero}><Text style={s.heroEyebrow}>RUANG DEMO AKTIF</Text><Text style={s.heroText}>{title}</Text><Text style={s.heroSub}>Menu dan data akan mengikuti kewenangan role. Tindakan resmi tetap terkunci selama trial.</Text><Pressable style={s.heroButton} onPress={()=>setTab("room")}><Text style={s.heroButtonText}>Buka ruang {title} →</Text></Pressable></View><Text style={s.section}>Pilih role demo</Text><View style={s.grid}><Quick title="Warga" icon="♙" go={()=>setRole("WARGA")}/><Quick title="RT" icon="⌂" go={()=>setRole("PENGURUS_RT")}/><Quick title="RW" icon="◇" go={()=>setRole("PENGURUS_RW")}/><Quick title="Desa" icon="▦" go={()=>setRole("VILLAGE_VALIDATOR")}/><Quick title="Admin" icon="◆" go={()=>setRole("PLATFORM_ADMIN")}/></View><Text style={s.section}>Jelajahi</Text><View style={s.grid}><Quick title="Peta GIS" icon="⌖" go={()=>setTab("map")}/><Quick title="Kabar Desa" icon="◉" go={()=>setTab("news")}/><Quick title="Agenda" icon="◷" go={()=>setTab("agenda")}/><Quick title="Ruang Demo" icon="◎" go={()=>setTab("room")}/></View><Pressable style={s.chatHero} onPress={onChat}><View style={s.chatHeroIcon}><Text>💬</Text></View><View style={{flex:1}}><Text style={s.chatHeroTitle}>NUSA CHAT · DEMO 3 BULAN</Text><Text style={s.text}>Lihat contoh anggota dan riwayat percakapan sesuai ruang publik demo.</Text></View><Text style={s.chatArrow}>→</Text></Pressable><View style={s.card}><Text style={s.title}>Batas trial</Text><Text style={s.text}>Trial berlaku 7 hari pada perangkat ini. Administrasi, verifikasi RT/RW dan tindakan darurat memerlukan akun serta kewenangan yang sesuai.</Text></View></View>}
 
 async function speakIndonesian(text:string,rate=0.90,onDone?:()=>void){
  try{
