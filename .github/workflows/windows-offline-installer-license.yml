@@ -1,0 +1,46 @@
+name: Windows Offline Installer - License Selection
+
+on:
+  push:
+    branches:
+      - installer/windows-offline-license-v1
+      - main
+    paths:
+      - 'installer/**'
+      - '.github/workflows/windows-offline-installer-license.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force installer/output | Out-Null
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' 'installer\RT-RW-SID-CONNECT-v2.0.1.iss'
+
+      - name: Generate SHA-256
+        shell: pwsh
+        run: |
+          $file = Get-ChildItem 'installer/output/*.exe' | Select-Object -First 1
+          $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($file.Name)" | Out-File 'installer/output/SHA256SUMS.txt' -Encoding utf8
+
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rt-rw-sid-connect-windows-offline-installer-license-v2.0.1
+          path: installer/output/
+          if-no-files-found: error
+          retention-days: 30
