@@ -97,3 +97,5 @@ begin
     end;
   end;
 end;
+
+// Build-safe: avoid unsupported helper functions in Inno Setup Pascal Script.
