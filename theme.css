@@ -160,3 +160,17 @@
 .identity-form-panel .form-section{margin-top:18px;padding-top:16px;border-top:1px solid #e8eee9}.identity-form-panel .form-section:first-of-type{margin-top:0;padding-top:0;border-top:0}.identity-form-panel h3{font-size:13px;margin:0 0 10px;color:#294638}.identity-flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#557065;font-size:10px}.identity-flow span{padding:8px 10px;background:#f1f6f2;border:1px solid #dfe8e1;border-radius:8px}.identity-flow b{color:#6ca281}.letterhead-preview{display:flex;gap:16px;align-items:center;border:1px solid #d9e2dc;padding:18px;background:#fff}.letterhead-logo{width:60px;height:60px;display:grid;place-items:center;border:1px solid #dce5df;border-radius:8px;overflow:hidden}.letterhead-logo img{width:100%;height:100%;object-fit:contain}.letterhead-text{text-align:center;flex:1}.letterhead-text b,.letterhead-text span,.letterhead-text small{display:block}.letterhead-text b{font-size:16px}.letterhead-text span{font-size:11px;margin-top:3px}.letterhead-text small{font-size:8px;color:#718078;margin-top:8px}.print-identity{display:none}
 @media(max-width:560px){.identity-banner{align-items:flex-start;flex-direction:column}.identity-banner>div:last-child{text-align:left}.letterhead-preview{align-items:flex-start}.identity-flow{gap:6px}}
 @media print{.print-identity{display:block;border-bottom:2px solid #173c2b;margin:0 0 18px;padding:0 0 10px}.print-identity-main{text-align:center}.print-identity-main b,.print-identity-main span,.print-identity-main small{display:block}.print-identity-main b{font-size:15pt}.print-identity-main span{font-size:10pt;margin-top:2px}.print-identity-main small{font-size:8pt;margin-top:5px}.identity-banner{display:none}}
+
+/* Admin Trial Center */
+.trial-admin-panel{margin-bottom:18px;border:1px solid rgba(53,211,153,.22);background:linear-gradient(135deg,rgba(10,28,36,.98),rgba(8,19,29,.98))}
+.trial-admin-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:center;padding:6px 0}
+.trial-admin-grid h3{margin:8px 0 6px;font-size:22px}
+.trial-admin-grid p{margin:0;max-width:760px;color:var(--muted,#91a4b7);line-height:1.65}
+.trial-admin-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.trial-admin-pills span{padding:7px 10px;border:1px solid rgba(255,255,255,.09);border-radius:999px;background:rgba(255,255,255,.035);font-size:12px}
+.trial-admin-action{display:flex;flex-direction:column;gap:10px;padding:20px;border-radius:16px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.08);text-align:center}
+.trial-admin-action>strong{font-size:38px;line-height:1}
+.trial-admin-action>strong small{font-size:12px;letter-spacing:.12em}
+.trial-admin-action .primary{width:100%}
+.trial-admin-action>small{color:var(--muted,#91a4b7);line-height:1.45}
+@media(max-width:800px){.trial-admin-grid{grid-template-columns:1fr}.trial-admin-action{max-width:none}}
