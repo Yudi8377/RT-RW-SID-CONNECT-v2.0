@@ -225,33 +225,34 @@ function Landing({startTrial}:any){return null;}
 function selectedPlanStyle(code:string){return code==="TRIAL"?s.landingPlanActive:null}
 function TrialHome({days,guestRole,setRole,setTab,onChat}:any){const title=roleTitle(guestRole);return <View><Text style={s.eyebrow}>TRIAL 7 HARI · {days} HARI TERSISA · {title.toUpperCase()}</Text><Text style={s.pageTitle}>RT/RW CONNECT OS · Demo {title}.</Text><Text style={s.intro}>Anda sudah berada di ruang demo. Tidak ada login atau password. Data contoh dibatasi sesuai role.</Text><View style={s.hero}><Text style={s.heroEyebrow}>RUANG DEMO AKTIF</Text><Text style={s.heroText}>{title}</Text><Text style={s.heroSub}>Menu dan data akan mengikuti kewenangan role. Tindakan resmi tetap terkunci selama trial.</Text><Pressable style={s.heroButton} onPress={()=>setTab("room")}><Text style={s.heroButtonText}>Buka ruang {title} →</Text></Pressable></View><Text style={s.section}>Pilih role demo</Text><View style={s.grid}><Quick title="Warga" icon="♙" go={()=>setRole("WARGA")}/><Quick title="RT" icon="⌂" go={()=>setRole("PENGURUS_RT")}/><Quick title="RW" icon="◇" go={()=>setRole("PENGURUS_RW")}/><Quick title="Desa" icon="▦" go={()=>setRole("VILLAGE_VALIDATOR")}/><Quick title="Admin" icon="◆" go={()=>setRole("PLATFORM_ADMIN")}/></View><Text style={s.section}>Jelajahi</Text><View style={s.grid}><Quick title="Peta GIS" icon="⌖" go={()=>setTab("map")}/><Quick title="Kabar Desa" icon="◉" go={()=>setTab("news")}/><Quick title="Agenda" icon="◷" go={()=>setTab("agenda")}/><Quick title="Ruang Demo" icon="◎" go={()=>setTab("room")}/></View><Pressable style={s.chatHero} onPress={onChat}><View style={s.chatHeroIcon}><Text>💬</Text></View><View style={{flex:1}}><Text style={s.chatHeroTitle}>NUSA CHAT · DEMO 3 BULAN</Text><Text style={s.text}>Lihat contoh anggota dan riwayat percakapan sesuai ruang publik demo.</Text></View><Text style={s.chatArrow}>→</Text></Pressable><View style={s.card}><Text style={s.title}>Batas trial</Text><Text style={s.text}>Trial berlaku 7 hari pada perangkat ini. Administrasi, verifikasi RT/RW dan tindakan darurat memerlukan akun serta kewenangan yang sesuai.</Text></View></View>}
 
-const ZOFIA_TTS_VOICE_KEY="zofia_indonesian_voice_v2";
+const ZOFIA_TTS_VOICE_KEY="zofia_indonesian_voice_v3";
 function terbilang(n:number):string{
  const s=["nol","satu","dua","tiga","empat","lima","enam","tujuh","delapan","sembilan","sepuluh","sebelas"];
  if(n<12)return s[n]; if(n<20)return terbilang(n-10)+" belas"; if(n<100)return terbilang(Math.floor(n/10))+" puluh"+(n%10?" "+terbilang(n%10):""); if(n<200)return "seratus"+(n%100?" "+terbilang(n-100):""); if(n<1000)return terbilang(Math.floor(n/100))+" ratus"+(n%100?" "+terbilang(n%100):""); if(n<2000)return "seribu"+(n%1000?" "+terbilang(n-1000):""); if(n<1000000)return terbilang(Math.floor(n/1000))+" ribu"+(n%1000?" "+terbilang(n%1000):""); if(n<1000000000)return terbilang(Math.floor(n/1000000))+" juta"+(n%1000000?" "+terbilang(n%1000000):""); return String(n);
 }
 function normalizeZofiaIndonesian(text:string){
- return String(text||"")
-  .replace(/\bRT\b/gi,"er te").replace(/\bRW\b/gi,"er we")
-  .replace(/\bRp\.?\s*([\d.]+)\b/gi,(_,n)=>terbilang(Number(n.replace(/\./g,"")))+" rupiah")
-  .replace(/\b(\d{1,9})\b/g,(_,n)=>Number(n)<=999999999?terbilang(Number(n)):_)
-  .replace(/\s+/g," ").trim();
+ return String(text||"").replace(/\bRT\b/gi,"er te").replace(/\bRW\b/gi,"er we")
+ .replace(/\bRp\.?\s*([\d.]+)\b/gi,(_,n)=>terbilang(Number(n.replace(/\./g,"")))+" rupiah")
+ .replace(/\b(\d{1,9})\b/g,(_,n)=>Number(n)<=999999999?terbilang(Number(n)):_).replace(/\s+/g," ").trim();
 }
 function pickIndonesianVoice(voices:any[]){
- const list=(voices||[]).filter((v:any)=>String(v.language||"").toLowerCase().replace("_","-").startsWith("id"));
+ const list=(voices||[]).filter((v:any)=>/^id(?:[-_]ID)?$/i.test(String(v.language||""))||/^id[-_]/i.test(String(v.language||"")));
  if(!list.length)return null;
- let saved=""; try{saved=String(localStorage.getItem(ZOFIA_TTS_VOICE_KEY)||"");}catch{}
- return list.find((v:any)=>saved&&String(v.identifier)===saved)||list.find((v:any)=>/indonesia|bahasa|indonesian/i.test(String(v.name||"")+" "+String(v.identifier||"")) )||list[0];
+ return list.find((v:any)=>/indonesia|bahasa|indonesian/i.test(String(v.name||"")+" "+String(v.identifier||"")))||list[0];
 }
-async function speakIndonesian(text:string,rate=0.90,onDone?:()=>void){
+async function speakIndonesian(text:string,rate=0.88,onDone?:()=>void){
  try{
+  Speech.stop();
+  const normalized=normalizeZofiaIndonesian(text);
   const voices=await Speech.getAvailableVoicesAsync();
   const idVoice=pickIndonesianVoice(voices);
-  Speech.stop();
-  if(!idVoice){console.warn("Zofia: voice id-ID tidak tersedia di perangkat"); onDone?.(); return;}
-  try{localStorage.setItem(ZOFIA_TTS_VOICE_KEY,String(idVoice.identifier));}catch{}
-  Speech.speak(normalizeZofiaIndonesian(text),{language:"id-ID",voice:idVoice.identifier,rate,pitch:1.0,onDone});
- }catch(e){console.warn("Zofia TTS Indonesia gagal",e);onDone?.();}
+  if(idVoice){
+   Speech.speak(normalized,{language:"id-ID",voice:idVoice.identifier,rate,pitch:0.98,onDone});
+   return;
+  }
+  // Fallback ke engine sistem dengan locale Indonesia; jangan memilih voice Inggris secara manual.
+  Speech.speak(normalized,{language:"id-ID",rate,pitch:0.98,onDone});
+ }catch(e){console.warn("Zofia TTS id-ID gagal",e);onDone?.();}
 }  return <Modal visible={visible} animationType="slide" onRequestClose={close}><SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.authScroll}><View style={s.auth}><Pressable onPress={close}><Text style={s.link}>Tutup ×</Text></Pressable><View style={s.mark}><Text style={s.markText}>SV</Text></View><Text style={s.eyebrow}>{mode==="signup"?"DAFTAR AKUN":"MASUK"}</Text><Text style={s.heroTitle}>{mode==="signup"?"Pilih peran Anda.":"Selamat datang kembali."}</Text><Text style={s.intro}>{mode==="signup"?"Pilihan peran menentukan alur verifikasi, bukan kewenangan otomatis.":"Gunakan akun demo di bawah untuk menguji privilege dan scope masing-masing role."}</Text>
   {mode==="signin"?<View style={s.card}><Text style={s.meta}>AKUN DEMO SIAP UJI</Text>{DEMO_ACCOUNTS.map(d=><Pressable key={d.email} style={s.demoLogin} onPress={()=>demoFill(d)}><View style={{flex:1}}><Text style={s.title}>{d.name} · {d.role}</Text><Text style={s.caption}>{d.email} · {d.plan} · {d.scope}</Text></View><View style={s.demoActions}><Pressable onPress={()=>demoFill(d,"signin")}><Text style={s.link}>Masuk</Text></Pressable><Pressable onPress={()=>demoFill(d,"signup")}><Text style={s.link}>Buat</Text></Pressable></View></Pressable>)}</View>:null}
   {mode==="signup"?<View style={s.card}><Text style={s.meta}>PAKET DIPILIH</Text><Text style={s.planTitle}>{selectedPlan}</Text><Text style={s.text}>{selectedPlan==="COMMUNITY"?"Dukungan/donasi RT/RW.":selectedPlan==="PRO"?"Langganan Pro.":selectedPlan==="ENTERPRISE"?"Kontrak Enterprise.":"Trial 7 hari."}</Text></View>:null}
