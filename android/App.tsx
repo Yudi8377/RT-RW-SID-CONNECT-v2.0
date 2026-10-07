@@ -236,9 +236,21 @@ function normalizeZofiaIndonesian(text:string){
  .replace(/\b(\d{1,9})\b/g,(_,n)=>Number(n)<=999999999?terbilang(Number(n)):_).replace(/\s+/g," ").trim();
 }
 function pickIndonesianVoice(voices:any[]){
- const list=(voices||[]).filter((v:any)=>/^id(?:[-_]ID)?$/i.test(String(v.language||""))||/^id[-_]/i.test(String(v.language||"")));
+ const list=(voices||[]).filter((v:any)=>{
+  const lang=String(v.language||"").replace("_","-").toLowerCase();
+  return lang==="id-id"||lang==="id";
+ });
  if(!list.length)return null;
- return list.find((v:any)=>/indonesia|bahasa|indonesian/i.test(String(v.name||"")+" "+String(v.identifier||"")))||list[0];
+ const score=(v:any)=>{
+  const meta=(String(v.name||"")+" "+String(v.identifier||"")).toLowerCase();
+  let n=0;
+  if(meta.includes("indonesia")||meta.includes("bahasa")||meta.includes("indonesian"))n+=50;
+  if(meta.includes("google"))n+=10;
+  if(meta.includes("network"))n+=2;
+  if(meta.includes("english")||meta.includes("en-us")||meta.includes("en-gb"))n-=100;
+  return n;
+ };
+ return [...list].sort((a,b)=>score(b)-score(a))[0];
 }
 async function speakIndonesian(text:string,rate=0.88,onDone?:()=>void){
  try{
@@ -246,12 +258,11 @@ async function speakIndonesian(text:string,rate=0.88,onDone?:()=>void){
   const normalized=normalizeZofiaIndonesian(text);
   const voices=await Speech.getAvailableVoicesAsync();
   const idVoice=pickIndonesianVoice(voices);
-  if(idVoice){
-   Speech.speak(normalized,{language:"id-ID",voice:idVoice.identifier,rate,pitch:0.98,onDone});
-   return;
-  }
-  // Fallback ke engine sistem dengan locale Indonesia; jangan memilih voice Inggris secara manual.
-  Speech.speak(normalized,{language:"id-ID",rate,pitch:0.98,onDone});
+  const options:any={language:"id-ID",rate,pitch:0.98,onDone};
+  if(idVoice?.identifier) options.voice=idVoice.identifier;
+  Speech.speak(normalized,options);
+  // Tidak pernah memilih voice Inggris. Jika id-ID belum terpasang di Android,
+  // engine sistem akan menentukan ketersediaan voice berdasarkan locale perangkat.
  }catch(e){console.warn("Zofia TTS id-ID gagal",e);onDone?.();}
 }  return <Modal visible={visible} animationType="slide" onRequestClose={close}><SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.authScroll}><View style={s.auth}><Pressable onPress={close}><Text style={s.link}>Tutup ×</Text></Pressable><View style={s.mark}><Text style={s.markText}>SV</Text></View><Text style={s.eyebrow}>{mode==="signup"?"DAFTAR AKUN":"MASUK"}</Text><Text style={s.heroTitle}>{mode==="signup"?"Pilih peran Anda.":"Selamat datang kembali."}</Text><Text style={s.intro}>{mode==="signup"?"Pilihan peran menentukan alur verifikasi, bukan kewenangan otomatis.":"Gunakan akun demo di bawah untuk menguji privilege dan scope masing-masing role."}</Text>
   {mode==="signin"?<View style={s.card}><Text style={s.meta}>AKUN DEMO SIAP UJI</Text>{DEMO_ACCOUNTS.map(d=><Pressable key={d.email} style={s.demoLogin} onPress={()=>demoFill(d)}><View style={{flex:1}}><Text style={s.title}>{d.name} · {d.role}</Text><Text style={s.caption}>{d.email} · {d.plan} · {d.scope}</Text></View><View style={s.demoActions}><Pressable onPress={()=>demoFill(d,"signin")}><Text style={s.link}>Masuk</Text></Pressable><Pressable onPress={()=>demoFill(d,"signup")}><Text style={s.link}>Buat</Text></Pressable></View></Pressable>)}</View>:null}
