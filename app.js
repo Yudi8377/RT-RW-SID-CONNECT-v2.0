@@ -455,7 +455,7 @@ async function liveCount(table,filters={}){
   for(const [k,v] of Object.entries(filters)){if(v!==undefined&&v!==null)q=q.eq(k,v)}
   const r=await q; return r.error?0:(r.count||0);
 }
-async function refreshLiveWorkspace(){
+function titleForLiveModule(code){return modules[code]?.[0]||code.toUpperCase()}\nasync function refreshLiveWorkspace(){
   if(!sb)return;
   const host=document.querySelector(".workspace-table"); if(!host)return;
   const scope=liveDemoScope(), module=state.view.toUpperCase(), sub=state.sub;
@@ -494,6 +494,14 @@ async function refreshLiveWorkspace(){
     }else if(state.view==="layanan"){
       rows=await demoRows("LAYANAN",sub);
       updateLiveKpis([["LAYANAN",rows.length,"Record layanan"],["SUBMITTED",rows.filter(x=>x.status==="SUBMITTED").length,"Submitted"],["RESOLVED",rows.filter(x=>x.status==="RESOLVED").length,"Resolved"]]);
+    }else{
+      // All remaining menu surfaces read their own seeded operational records.
+      // This keeps the demo dataset visible across modules without exposing canonical PII in public preview.
+      const sourceMap={identitas:["IDENTITY",sub],jolie:["JOLIE_BUSINESS",sub],gis:["GIS",sub],whatsapp:["WHATSAPP",sub],sid:["SID_BRIDGE",sub],gpffe:["GPFFE_EXCHANGE",sub],admin:["PLATFORM_ADMIN",sub],dataquality:["DATA_QUALITY",sub],smart:["SMART_VILLAGE",sub],dokumen:["DOC_TTE",sub],desa:["DESA_DIGITAL",sub],rw:["RW_DIGITAL",sub],kegiatan:["COMMUNITY",sub],warga:["WARGA_PORTAL",sub],rt:["RT_DIGITAL",sub],layanan:["LAYANAN",sub]};
+      const source=sourceMap[state.view]||[state.view.toUpperCase(),sub];
+      rows=await demoRows(source[0],source[1]);
+      if(!rows.length)rows=await demoRows(source[0],null);
+      updateLiveKpis([["MENU",titleForLiveModule(state.view),"Workspace aktif"],["DATASET",rows.length,"Record contoh tersimpan"],["STATUS","DEMO","Data simulasi; bukan data resmi"]]);
     }
     if(rows.length)renderLiveRows(rows);
   }catch(e){console.warn("live workspace",e)}
