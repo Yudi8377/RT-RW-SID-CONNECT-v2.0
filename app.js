@@ -502,9 +502,16 @@ async function canonicalDemoRows(view,sub,scope){
     return (r.data||[]).map(x=>asDomainDemoRow("rt_business_profiles",x.id,x.business_name,x.verification_status,{nama_usaha:x.business_name,jenis_usaha:x.business_type,sektor:x.sector,produk_jasa:x.products_services,skala:x.scale,jumlah_pekerja:x.worker_count,kanal_penjualan:x.sales_channels,status_perizinan:x.licensing_status,kebutuhan:x.needs,potensi:x.potential,catatan:"Profil UMKM sintetis untuk demo"},sub,x.created_at));
   }
   if(isDesa&&["transparency","services"].includes(sub)){
-    const r=await sb.from("public_announcements").select("id,title,summary,content,category,status,published_at,created_at,image_url").eq("territory_id",scope).eq("status","PUBLISHED").order("published_at",{ascending:false,nullsFirst:false}).limit(50);
-    if(r.error)throw r.error;
-    return (r.data||[]).map(x=>asDomainDemoRow("public_announcements",x.id,x.title,x.status,{judul:x.title,ringkasan:x.summary||"",isi:x.content||"",kategori:x.category||"Pengumuman",tanggal_publikasi:x.published_at,catatan:"Pengumuman wilayah demo"},sub,x.created_at));
+    const res=await Promise.all([
+      sb.from("public_announcements").select("id,title,summary,content,category,status,published_at,created_at,image_url").eq("territory_id",scope).eq("status","PUBLISHED").order("published_at",{ascending:false,nullsFirst:false}).limit(30),
+      sb.from("news_articles").select("id,title,excerpt,content,category,status,published_at,created_at,source_system").eq("status","PUBLISHED").eq("source_system","SMART_VILLAGE").order("published_at",{ascending:false,nullsFirst:false}).limit(20)
+    ]);
+    const a=res[0],n=res[1];
+    if(a.error)throw a.error;
+    if(n.error)throw n.error;
+    const announcements=(a.data||[]).map(x=>asDomainDemoRow("public_announcements",x.id,x.title,x.status,{judul:x.title,ringkasan:x.summary||"",isi:x.content||"",kategori:x.category||"Pengumuman",tanggal_publikasi:x.published_at,jenis_konten:"Pengumuman wilayah",catatan:"Pengumuman wilayah demo"},sub,x.created_at));
+    const articles=(n.data||[]).map(x=>asDomainDemoRow("news_articles",x.id,x.title,x.status,{judul:x.title,ringkasan:x.excerpt||"",isi:x.content||"",kategori:x.category||"Berita",tanggal_publikasi:x.published_at,jenis_konten:"Berita Smart Village",sumber:x.source_system},sub,x.created_at));
+    return announcements.concat(articles).sort((x,y)=>new Date(y.created_at||0).getTime()-new Date(x.created_at||0).getTime());
   }
   return null;
 }
