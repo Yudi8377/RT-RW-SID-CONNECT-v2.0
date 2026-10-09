@@ -130,16 +130,16 @@ from (values
 ) x(module,title,detail)
 where not exists(select 1 from public.demo_events e where e.event_type=x.module and e.title=x.title);
 
-insert into public.demo_requests(requester_name,service_type,status)
-select x.name,x.service,x.status
+insert into public.demo_requests(request_number,requester_name,service_type,status)
+select x.req,x.name,x.service,x.status
 from (values
- ('Adi Santoso','Surat Pengantar','SUBMITTED'),
- ('Citra Pratama','Surat Keterangan Domisili','RT_VERIFIED'),
- ('Dewi Kusuma','Surat Keterangan Usaha','RW_REVIEW'),
- ('Eko Hidayat','Perubahan Kartu Keluarga','SUBMITTED'),
- ('Fitri Nugraha','Pelaporan Pendatang','RT_VERIFIED')
-) x(name,service,status)
-where not exists(select 1 from public.demo_requests r where r.requester_name=x.name and r.service_type=x.service);
+ ('DEMO-REQ-2026-001','Adi Santoso','Surat Pengantar','SUBMITTED'),
+ ('DEMO-REQ-2026-002','Citra Pratama','Surat Keterangan Domisili','RT_VERIFIED'),
+ ('DEMO-REQ-2026-003','Dewi Kusuma','Surat Keterangan Usaha','RW_REVIEW'),
+ ('DEMO-REQ-2026-004','Eko Hidayat','Perubahan Kartu Keluarga','SUBMITTED'),
+ ('DEMO-REQ-2026-005','Fitri Nugraha','Pelaporan Pendatang','RT_VERIFIED')
+) x(req,name,service,status)
+where not exists(select 1 from public.demo_requests r where r.request_number=x.req);
 
 insert into public.demo_documents(document_number,document_type,status,classification)
 select x.num,x.kind,x.status,'INTERNAL'
