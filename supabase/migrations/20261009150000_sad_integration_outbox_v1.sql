@@ -33,7 +33,7 @@ create table if not exists public.sad_integration_outbox (
   target_territory_ref text not null,
   classification text not null default 'INTERNAL' check (classification in ('PUBLIC','INTERNAL','CONFIDENTIAL','SENSITIVE')),
   purpose_code text not null default 'VILLAGE_SERVICE_PROCESSING' check (purpose_code = 'VILLAGE_SERVICE_PROCESSING'),
-  verification_status text not null check (verification_status in ('SUBMITTED','RT_VERIFIED','RW_REVIEWED','VILLAGE_REVIEW')),
+  verification_status text not null check (verification_status in ('SUBMITTED','RT_VERIFIED','RW_REVIEW','VILLAGE_REVIEW','VILLAGE_VALIDATED')),
   payload jsonb not null,
   payload_sha256 text not null check (payload_sha256 ~ '^[a-f0-9]{64}$'),
   status text not null default 'PENDING' check (status in ('PENDING','DELIVERED','ACCEPTED','REJECTED','RETRYING','CONFLICT','DEAD_LETTER')),
