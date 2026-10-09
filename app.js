@@ -635,6 +635,7 @@ function openLiveUpdate(id){
 async function saveLiveUpdate(id){
   if(!sb){toast("Supabase belum tersambung");return}
   const r=liveRowCache.get(id);if(!r){toast("Record live tidak ditemukan");return}
+  if(r.source_table){toast("Record domain hanya-baca; tidak dapat disimpan melalui editor operasional");return}
   const payload=r.payload&&typeof r.payload==="object"?{...r.payload}:{};
   Object.keys(payload).forEach((k,i)=>{const el=document.getElementById("live_payload_"+i);if(el){const raw=el.value;try{payload[k]=JSON.parse(raw)}catch{payload[k]=raw}}});
   const patch={title:document.getElementById("live_title")?.value?.trim()||r.title,status:document.getElementById("live_status")?.value||r.status,priority:document.getElementById("live_priority")?.value?.trim()||null,payload,updated_at:new Date().toISOString()};
