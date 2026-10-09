@@ -30,6 +30,9 @@ Deno.serve(async (req: Request) => {
   if (!supabaseUrl || !anonKey || !serviceKey) return response(503, { ok: false, error: "SERVER_NOT_CONFIGURED" });
   if (!authorization) return response(401, { ok: false, error: "AUTHENTICATION_REQUIRED" });
 
+  const declaredLength = Number(req.headers.get("Content-Length") ?? "0");
+  if (declaredLength > 8192) return response(413, { ok: false, error: "PAYLOAD_TOO_LARGE" });
+
   let raw: string;
   try {
     raw = await req.text();
@@ -65,16 +68,22 @@ Deno.serve(async (req: Request) => {
 
   const { data: assignments, error: assignmentError } = await admin
     .from("role_assignments")
-    .select("organization_id,scope_territory_id,roles(role_code)")
+    .select("organization_id,scope_territory_id,starts_at,ends_at,roles(role_code)")
     .eq("user_id", authData.user.id)
     .eq("scope_territory_id", body.territory_id)
     .eq("active", true);
   if (assignmentError) return response(503, { ok: false, error: "AUTHORIZATION_LOOKUP_FAILED" });
 
-  const authorized = (assignments ?? []).filter((item: any) =>
-    rolesAllowed.has(String(item.roles?.role_code ?? "")) &&
-    typeof item.organization_id === "string"
-  );
+  const now = Date.now();
+  const authorized = (assignments ?? []).filter((item: any) => {
+    const starts = item.starts_at ? Date.parse(item.starts_at) : Number.NEGATIVE_INFINITY;
+    const ends = item.ends_at ? Date.parse(item.ends_at) : Number.POSITIVE_INFINITY;
+    return rolesAllowed.has(String(item.roles?.role_code ?? "")) &&
+      typeof item.organization_id === "string" &&
+      (!item.starts_at || Number.isFinite(starts)) &&
+      (!item.ends_at || Number.isFinite(ends)) &&
+      now >= starts && now <= ends;
+  });
   if (!authorized.length) return response(403, { ok: false, error: "TERRITORY_ACCESS_DENIED" });
 
   const { data: record, error: recordError } = await admin
