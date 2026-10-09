@@ -58,11 +58,40 @@ create index if not exists sad_outbox_source_scope_idx
 alter table public.sad_integration_mappings enable row level security;
 alter table public.sad_integration_outbox enable row level security;
 
--- No browser/user role may inspect or mutate integration configuration or queue directly.
 revoke all on table public.sad_integration_mappings from anon, authenticated;
 revoke all on table public.sad_integration_outbox from anon, authenticated;
 grant all on table public.sad_integration_mappings to service_role;
 grant all on table public.sad_integration_outbox to service_role;
+
+create or replace function public.sad_integration_outbox_audit_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.audit_logs(
+    actor_user_id, action, entity_type, entity_id, scope_territory_id,
+    after_data, reason, source, authority
+  ) values (
+    new.created_by,
+    'SAD_INTEGRATION_EVENT_QUEUED',
+    'sad_integration_outbox',
+    new.id,
+    new.source_territory_id,
+    jsonb_build_object('event_id', new.event_id, 'event_type', new.event_type, 'status', new.status),
+    'Minimized service-request event staged for approved SAD mapping; no network delivery performed.',
+    'SAD_INTEGRATION_OUTBOX',
+    'SAD_INTEGRATION_OUTBOX'
+  );
+  return new;
+end;
+$$;
+
+drop trigger if exists sad_integration_outbox_audit_insert_trigger on public.sad_integration_outbox;
+create trigger sad_integration_outbox_audit_insert_trigger
+after insert on public.sad_integration_outbox
+for each row execute function public.sad_integration_outbox_audit_insert();
 
 comment on table public.sad_integration_mappings is
   'Explicitly approved source-to-SAD scope mapping. Inactive by default; no automatic territory creation.';
