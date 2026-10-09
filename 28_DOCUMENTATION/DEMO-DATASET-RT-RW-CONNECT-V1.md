@@ -26,3 +26,17 @@ Jalankan migration melalui pipeline migration Supabase proyek yang sesuai. File 
 
 ## Batasan
 Pemuatan workspace kini diarahkan ke module_code spesifik dan memakai fallback dalam modul yang sama untuk submenu yang belum memiliki record khusus. Ini memperbaiki keterlihatan dataset, tetapi bukan bukti bahwa semua menu telah melewati pengujian browser end-to-end. Tombol Update pada record operasional memerlukan autentikasi dan kebijakan RLS yang sesuai; jangan membuka akses tulis anonim ke database warga.
+
+
+## Integrasi menu domain (9 Oktober 2026)
+
+Menu yang telah dihubungkan ke tabel domain untuk tampilan data contoh:
+
+- **RT → Data Warga / Warga Portal → Profil Warga:** `persons` yang dibatasi ke klasifikasi `CONFIDENTIAL` pada dataset demo (60 warga sintetis).
+- **RT → Data Keluarga / KK / Warga Portal → Kartu Keluarga:** `households` dengan penanda `DEMO-KK-%` (20 KK sintetis), alamat contoh dari `addresses`.
+- **RT → Data Kematian:** `death_records` yang ditautkan ke warga demo (2 record).
+- **RT → Pindah / Datang dan Domisili & Pendatang:** `demo_residency_movements` yang ditautkan ke warga demo (6 record).
+- **RT → Ekonomi & Usaha Warga / Perdagangan Lokal; Jolie Business OS → Marketplace/CRM:** `rt_business_profiles` dengan `source like DEMO_SEED%` (61 record pada wilayah demo).
+- **Desa → Transparansi / Pelayanan Desa:** `public_announcements` pada wilayah demo (30 pengumuman terbit) dan `news_articles` dari sumber `SMART_VILLAGE` (maksimal 20 artikel terbaru per tampilan).
+
+Tampilan domain menggunakan **baca-saja** untuk mencegah tombol Update generik menyimpan record dari tabel domain ke `demo_operational_records`. Tombol Update generik tetap hanya untuk record operasional demo. CRUD resmi untuk tabel domain harus menggunakan form dan kebijakan akses khusus masing-masing tabel; tidak membuka penulisan anonim untuk mengakomodasi trial publik.
