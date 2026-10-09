@@ -497,10 +497,11 @@ function titleForLiveModule(code){return modules[code]?.[0]||code.toUpperCase()}
     }else{
       // All remaining menu surfaces read their own seeded operational records.
       // This keeps the demo dataset visible across modules without exposing canonical PII in public preview.
-      const sourceMap={identitas:["IDENTITY",sub],jolie:["JOLIE_BUSINESS",sub],gis:["GIS",sub],whatsapp:["WHATSAPP",sub],sid:["SID_BRIDGE",sub],gpffe:["GPFFE_EXCHANGE",sub],admin:["PLATFORM_ADMIN",sub],dataquality:["DATA_QUALITY",sub],smart:["SMART_VILLAGE",sub],dokumen:["DOC_TTE",sub],desa:["DESA_DIGITAL",sub],rw:["RW_DIGITAL",sub],kegiatan:["COMMUNITY",sub],warga:["WARGA_PORTAL",sub],rt:["RT_DIGITAL",sub],layanan:["LAYANAN",sub]};
+      const sourceMap={identitas:["RT_DIGITAL",sub],jolie:["SMART_VILLAGE",sub],gis:["DESA_DIGITAL",sub],whatsapp:["DESA_DIGITAL",sub],sid:["DESA_DIGITAL",sub],gpffe:["PUBLIC",sub],admin:["DESA_DIGITAL",sub],dataquality:["RT_DIGITAL",sub],smart:["SMART_VILLAGE",sub],dokumen:["DOC_TTE",sub],desa:["DESA_DIGITAL",sub],rw:["RW_DIGITAL",sub],kegiatan:["RT_DIGITAL",sub],warga:["WARGA_PORTAL",sub],rt:["RT_DIGITAL",sub],layanan:["PUBLIC",sub]};
       const source=sourceMap[state.view]||[state.view.toUpperCase(),sub];
       rows=await demoRows(source[0],source[1]);
       if(!rows.length)rows=await demoRows(source[0],null);
+      if(!rows.length)rows=await demoRows("PUBLIC",null);
       updateLiveKpis([["MENU",titleForLiveModule(state.view),"Workspace aktif"],["DATASET",rows.length,"Record contoh tersimpan"],["STATUS","DEMO","Data simulasi; bukan data resmi"]]);
     }
     if(rows.length)renderLiveRows(rows);
