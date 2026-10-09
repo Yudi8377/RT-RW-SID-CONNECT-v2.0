@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
   if (!record) return response(404, { ok: false, error: "SOURCE_RECORD_NOT_FOUND_IN_SCOPE" });
 
   const verification = String(record.status ?? "").toUpperCase();
-  const allowedStatuses = new Set(["SUBMITTED", "RT_VERIFIED", "RW_REVIEWED", "VILLAGE_REVIEW"]);
+  const allowedStatuses = new Set(["SUBMITTED", "RT_VERIFIED", "RW_REVIEW", "VILLAGE_REVIEW", "VILLAGE_VALIDATED"]);
   if (!allowedStatuses.has(verification)) return response(422, { ok: false, error: "SOURCE_RECORD_NOT_ELIGIBLE" });
 
   const matchingAssignments = authorized.filter((item: any) => item.scope_territory_id === record.territory_id);
