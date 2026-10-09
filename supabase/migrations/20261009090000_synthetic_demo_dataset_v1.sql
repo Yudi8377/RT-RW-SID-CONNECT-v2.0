@@ -29,15 +29,15 @@ where not exists(select 1 from public.territories t where t.code=format('DEMO-RT
 
 -- Address and household records (20 family cards).
 insert into public.addresses(territory_id,address_line,postal_code)
-select t.id,format('Jalan Contoh Blok %s No. %s, RT %s/RW %s',chr(64+((g-1)/4)+1),lpad(((g-1)%4)+1::text,2,'0'),lpad(((g-1)%5)+1::text,2,'0'),lpad((case when ((g-1)%5)+1<=3 then 1 else 2 end)::text,2,'0')),'00000'
+select t.id,format('Jalan Contoh Blok %s No. %s, RT %s/RW %s',chr(64+((g-1)/4)+1),lpad((((g-1)%4)+1)::text,2,'0'),lpad(((g-1)%5)+1::text,2,'0'),lpad((case when ((g-1)%5)+1<=3 then 1 else 2 end)::text,2,'0')),'00000'
 from generate_series(1,20) g
 join public.territories t on t.code=format('DEMO-RT-%s',lpad((((g-1)%5)+1)::text,2,'0'))
-where not exists(select 1 from public.addresses a where a.address_line like format('Jalan Contoh Blok %s No. %s,%%',chr(64+((g-1)/4)+1),lpad(((g-1)%4)+1::text,2,'0')));
+where not exists(select 1 from public.addresses a where a.address_line like format('Jalan Contoh Blok %s No. %s,%%',chr(64+((g-1)/4)+1),lpad((((g-1)%4)+1)::text,2,'0')));
 
 insert into public.households(household_number_hash,address_id,status)
 select format('DEMO-KK-%s',lpad(g::text,4,'0')),a.id,'ACTIVE'
 from generate_series(1,20) g
-join public.addresses a on a.address_line like format('Jalan Contoh Blok %s No. %s,%%',chr(64+((g-1)/4)+1),lpad(((g-1)%4)+1::text,2,'0'))
+join public.addresses a on a.address_line like format('Jalan Contoh Blok %s No. %s,%%',chr(64+((g-1)/4)+1),lpad((((g-1)%4)+1)::text,2,'0'))
 where not exists(select 1 from public.households h where h.household_number_hash=format('DEMO-KK-%s',lpad(g::text,4,'0')));
 
 -- 60 synthetic residents. The generated names and DEMO identifiers are not real civil records.
