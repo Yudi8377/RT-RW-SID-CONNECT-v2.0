@@ -79,19 +79,20 @@ Deno.serve(async (req: Request) => {
 
   const { data: record, error: recordError } = await admin
     .from("rt_service_requests")
-    .select("id,territory_id,service_type,status,verification_status,created_at,updated_at")
+    .select("id,territory_id,service_type,status,created_at,updated_at")
     .eq("id", body.record_id)
     .eq("territory_id", body.territory_id)
     .maybeSingle();
   if (recordError) return response(503, { ok: false, error: "SOURCE_RECORD_LOOKUP_FAILED" });
   if (!record) return response(404, { ok: false, error: "SOURCE_RECORD_NOT_FOUND_IN_SCOPE" });
 
-  const verification = String(record.verification_status ?? record.status ?? "").toUpperCase();
+  const verification = String(record.status ?? "").toUpperCase();
   const allowedStatuses = new Set(["SUBMITTED", "RT_VERIFIED", "RW_REVIEWED", "VILLAGE_REVIEW"]);
   if (!allowedStatuses.has(verification)) return response(422, { ok: false, error: "SOURCE_RECORD_NOT_ELIGIBLE" });
 
   const matchingAssignments = authorized.filter((item: any) => item.scope_territory_id === record.territory_id);
   let mapping: any = null;
+  let mappingAssignment: any = null;
   for (const assignment of matchingAssignments) {
     const { data, error } = await admin.from("sad_integration_mappings")
       .select("target_organization_ref,target_territory_ref")
@@ -101,7 +102,7 @@ Deno.serve(async (req: Request) => {
       .eq("active", true)
       .maybeSingle();
     if (error) return response(503, { ok: false, error: "APPROVED_MAPPING_LOOKUP_FAILED" });
-    if (data) { mapping = data; break; }
+    if (data) { mapping = data; mappingAssignment = assignment; break; }
   }
   if (!mapping) return response(409, { ok: false, error: "APPROVED_SAD_MAPPING_REQUIRED" });
 
@@ -119,7 +120,7 @@ Deno.serve(async (req: Request) => {
     event_type: "service_request.submitted",
     source_record_id: record.id,
     source_updated_at: sourceUpdatedAt,
-    source_organization_id: matchingAssignments[0].organization_id,
+    source_organization_id: mappingAssignment.organization_id,
     source_territory_id: record.territory_id,
     target_organization_ref: mapping.target_organization_ref,
     target_territory_ref: mapping.target_territory_ref,
@@ -142,18 +143,6 @@ Deno.serve(async (req: Request) => {
     return response(200, { ok: true, queued: true, duplicate: true, event_id: existing.event_id, status: existing.status });
   }
   if (insertError || !inserted) return response(503, { ok: false, error: "OUTBOX_PERSISTENCE_FAILED" });
-
-  await admin.from("audit_logs").insert({
-    actor_user_id: authData.user.id,
-    action: "SAD_INTEGRATION_EVENT_QUEUED",
-    entity_type: "sad_integration_outbox",
-    entity_id: inserted.id,
-    scope_territory_id: record.territory_id,
-    reason: "Minimized service-request event staged for approved SAD mapping; no network delivery performed.",
-    source: "SAD_INTEGRATION_OUTBOX",
-    authority: authorized.map((item: any) => item.roles?.role_code).filter(Boolean).join(","),
-    after_data: { event_id: inserted.event_id, event_type: "service_request.submitted", status: inserted.status },
-  });
 
   return response(202, { ok: true, queued: true, duplicate: false, event_id: inserted.event_id, status: inserted.status, delivery_enabled: false });
 });
