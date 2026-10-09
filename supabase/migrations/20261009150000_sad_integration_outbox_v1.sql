@@ -88,6 +88,8 @@ begin
 end;
 $$;
 
+revoke all on function public.sad_integration_outbox_audit_insert() from public, anon, authenticated;
+
 drop trigger if exists sad_integration_outbox_audit_insert_trigger on public.sad_integration_outbox;
 create trigger sad_integration_outbox_audit_insert_trigger
 after insert on public.sad_integration_outbox
