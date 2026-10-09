@@ -455,7 +455,8 @@ async function liveCount(table,filters={}){
   for(const [k,v] of Object.entries(filters)){if(v!==undefined&&v!==null)q=q.eq(k,v)}
   const r=await q; return r.error?0:(r.count||0);
 }
-function titleForLiveModule(code){return modules[code]?.[0]||code.toUpperCase()}\nasync function refreshLiveWorkspace(){
+function titleForLiveModule(code){return modules[code]?.[0]||code.toUpperCase()}
+async function refreshLiveWorkspace(){
   if(!sb)return;
   const host=document.querySelector(".workspace-table"); if(!host)return;
   const scope=liveDemoScope(), module=state.view.toUpperCase(), sub=state.sub;
