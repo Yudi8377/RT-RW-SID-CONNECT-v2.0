@@ -504,7 +504,12 @@ async function refreshLiveWorkspace(){
       if(!rows.length)rows=await demoRows(source[0],null);
       updateLiveKpis([["MENU",titleForLiveModule(state.view),"Workspace aktif"],["DATASET",rows.length,"Record contoh tersimpan"],["STATUS","DEMO","Data simulasi; bukan data resmi"]]);
     }
-    if(rows.length)renderLiveRows(rows);
+    if(!rows.length){
+      const fallbackMap={dashboard:"PLATFORM_ADMIN",warga:"WARGA_PORTAL",rt:"RT_DIGITAL",rw:"RW_DIGITAL",desa:"DESA_DIGITAL",smart:"SMART_VILLAGE",dokumen:"DOC_TTE",kegiatan:"COMMUNITY",layanan:"LAYANAN",identitas:"IDENTITY",jolie:"JOLIE_BUSINESS",gis:"GIS",whatsapp:"WHATSAPP",sid:"SID_BRIDGE",gpffe:"GPFFE_EXCHANGE",admin:"PLATFORM_ADMIN",dataquality:"DATA_QUALITY"};
+      const fallbackModule=fallbackMap[state.view];
+      if(fallbackModule)rows=await demoRows(fallbackModule,null);
+    }
+    renderLiveRows(rows);
   }catch(e){console.warn("live workspace",e)}
 }
 const liveRowCache=new Map();
