@@ -110,42 +110,42 @@ join public.persons p on p.national_id_hash='DEMO-NIK-'||lpad(x.person_no::text,
 where not exists(select 1 from public.demo_residency_movements m where m.demo_code='DEMO-MOVE-'||x.code);
 
 -- Give existing menu surfaces realistic synthetic activity examples.
-insert into public.demo_events(module,title,detail,severity)
-select x.module,x.title,x.detail,x.severity
+insert into public.demo_events(event_type,title,scope)
+select x.module,x.title,x.detail
 from (values
- ('WARGA','Data contoh 60 warga dan 20 KK','Dataset simulasi tersedia untuk demo; tidak berisi NIK/KK asli.','INFO'),
- ('KEPENDUDUKAN','Contoh laporan kelahiran dan perubahan data','Contoh alur pengajuan, verifikasi RT, pemeriksaan RW, dan validasi desa.','INFO'),
- ('KEMATIAN','2 catatan kematian simulasi','Catatan demo terhubung ke penduduk sintetis dan tidak menggantikan dokumen resmi.','INFO'),
- ('PENDATANG','2 permohonan pendatang simulasi','Contoh pendatang baru dengan status verifikasi RT/RW.','INFO'),
- ('PINDAH','4 peristiwa perpindahan simulasi','Contoh pindah masuk, pindah keluar, pindah RT, dan pindah RW.','INFO'),
- ('UMKM','57 profil UMKM contoh','Data usaha sintetis untuk menampilkan direktori dan indikator ekonomi.','INFO'),
- ('BERITA_DESA','33 artikel berita contoh','Berita simulasi 2024–2026; konten bukan pengumuman resmi desa.','INFO'),
- ('LAYANAN','Contoh surat dan pelacakan layanan','Surat domisili, keterangan usaha, pengantar, dan permohonan layanan.','INFO'),
- ('KEGIATAN','Contoh agenda warga','Rapat RT/RW, kerja bakti, posyandu, pengajian, dan kegiatan komunitas.','INFO'),
- ('KEUANGAN','Contoh kas RT/RW','Ringkasan penerimaan dan pengeluaran simulasi untuk demonstrasi laporan.','INFO'),
- ('GIS','Contoh wilayah RT/RW','Wilayah contoh bersifat fiktif; koordinat tidak merepresentasikan alamat warga nyata.','INFO'),
- ('BANTUAN_SOSIAL','Contoh registri program bantuan','Status kelayakan merupakan simulasi dan tidak menentukan hak bantuan nyata.','INFO'),
- ('KEAMANAN','Contoh laporan keamanan lingkungan','Gunakan data simulasi; jangan kirim laporan darurat nyata ke demo.','INFO'),
- ('ADMIN','Dataset demo siap ditinjau','Gunakan penanda DEMO untuk membedakan data latihan dari data operasional.','INFO')
-) x(module,title,detail,severity)
-where not exists(select 1 from public.demo_events e where e.module=x.module and e.title=x.title);
+ ('WARGA','Data contoh 60 warga dan 20 KK','DATA SIMULASI; bukan data resmi'),
+ ('KEPENDUDUKAN','Contoh layanan kependudukan','Simulasi pengajuan dan verifikasi RT/RW/Desa'),
+ ('KEMATIAN','2 catatan kematian simulasi','Bukan catatan kematian resmi'),
+ ('PENDATANG','2 permohonan pendatang simulasi','Status verifikasi contoh'),
+ ('PINDAH','4 peristiwa perpindahan simulasi','Pindah masuk/keluar dan antar-RT/RW'),
+ ('UMKM','Profil UMKM contoh','Dataset ekonomi sintetis'),
+ ('BERITA_DESA','Berita desa contoh','Konten simulasi, bukan pengumuman resmi'),
+ ('LAYANAN','Contoh surat dan pelacakan layanan','Domisili, usaha, pengantar, dan layanan'),
+ ('KEGIATAN','Agenda warga contoh','Rapat, kerja bakti, posyandu, komunitas'),
+ ('KEUANGAN','Contoh kas RT/RW','Transaksi latihan'),
+ ('GIS','Contoh wilayah RT/RW','Wilayah fiktif'),
+ ('BANTUAN_SOSIAL','Contoh registri bantuan','Tidak menentukan hak bantuan nyata'),
+ ('KEAMANAN','Laporan keamanan contoh','Hanya untuk latihan'),
+ ('ADMIN','Dataset demo siap ditinjau','Data latihan harus dipisahkan dari data operasional')
+) x(module,title,detail)
+where not exists(select 1 from public.demo_events e where e.event_type=x.module and e.title=x.title);
 
-insert into public.demo_requests(request_number,citizen_name,service_name,scope_label,status,classification)
-select x.req,x.name,x.service,x.scope,x.status,'INTERNAL'
+insert into public.demo_requests(requester_name,service_type,status)
+select x.name,x.service,x.status
 from (values
- ('DEMO-REQ-2026-001','Adi Santoso','Surat Pengantar','RT 01 / RW 01','SUBMITTED'),
- ('DEMO-REQ-2026-002','Citra Pratama','Surat Keterangan Domisili','RT 02 / RW 01','RT_VERIFIED'),
- ('DEMO-REQ-2026-003','Dewi Kusuma','Surat Keterangan Usaha','RT 03 / RW 01','RW_REVIEW'),
- ('DEMO-REQ-2026-004','Eko Hidayat','Perubahan Kartu Keluarga','RT 04 / RW 02','SUBMITTED'),
- ('DEMO-REQ-2026-005','Fitri Nugraha','Pelaporan Pendatang','RT 05 / RW 02','RT_VERIFIED')
-) x(req,name,service,scope,status)
-where not exists(select 1 from public.demo_requests r where r.request_number=x.req);
+ ('Adi Santoso','Surat Pengantar','SUBMITTED'),
+ ('Citra Pratama','Surat Keterangan Domisili','RT_VERIFIED'),
+ ('Dewi Kusuma','Surat Keterangan Usaha','RW_REVIEW'),
+ ('Eko Hidayat','Perubahan Kartu Keluarga','SUBMITTED'),
+ ('Fitri Nugraha','Pelaporan Pendatang','RT_VERIFIED')
+) x(name,service,status)
+where not exists(select 1 from public.demo_requests r where r.requester_name=x.name and r.service_type=x.service);
 
-insert into public.demo_documents(document_number,title,document_type,status,signer_label,verification_code)
-select x.num,x.title,x.kind,x.status,x.signer,x.code
+insert into public.demo_documents(document_number,document_type,status,classification)
+select x.num,x.kind,x.status,'INTERNAL'
 from (values
- ('DEMO-DOC-2026-001','Surat Keterangan Domisili — Simulasi','SURAT','READY','Ketua RT','DEMO-VERIFY-001'),
- ('DEMO-DOC-2026-002','Surat Keterangan Usaha — Simulasi','SURAT','DRAFT','Ketua RW','DEMO-VERIFY-002'),
- ('DEMO-DOC-2026-003','Laporan Rekap Penduduk — Simulasi','LAPORAN','DRAFT','Operator Desa','DEMO-VERIFY-003')
-) x(num,title,kind,status,signer,code)
+ ('DEMO-DOC-2026-001','SURAT_DOMISILI','READY'),
+ ('DEMO-DOC-2026-002','SURAT_USAHA','DRAFT'),
+ ('DEMO-DOC-2026-003','LAPORAN_PENDUDUK','DRAFT')
+) x(num,kind,status)
 where not exists(select 1 from public.demo_documents d where d.document_number=x.num);
