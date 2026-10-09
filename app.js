@@ -456,13 +456,68 @@ async function liveCount(table,filters={}){
   const r=await q; return r.error?0:(r.count||0);
 }
 function titleForLiveModule(code){return modules[code]?.[0]||code.toUpperCase()}
+function asDomainDemoRow(sourceTable,id,title,statusValue,payload,submenu,createdAt=null,extra={}) {
+  const row={id,title,status:statusValue||"DEMO",priority:"NORMAL",module_code:"DOMAIN_DEMO",submenu_code:submenu||"records",record_type:sourceTable.toUpperCase(),classification:"DEMO · READ ONLY",payload:{data_simulasi:true,...payload},created_at:createdAt,updated_at:null,source_table:sourceTable,...extra};
+  liveRowCache.set(String(id),row);
+  return row;
+}
+async function canonicalDemoRows(view,sub,scope){
+  if(!sb)return null;
+  const isRT=view==="rt",isWarga=view==="warga",isJolie=view==="jolie",isDesa=view==="desa";
+  if((isRT&&["residents","births","deaths","moves","domicile","households"].includes(sub))||(isWarga&&["registry","household","address"].includes(sub))){
+    const peopleR=await sb.from("persons").select("id,full_name,birth_place,birth_date,gender,status,classification,created_at").eq("classification","CONFIDENTIAL").order("full_name").limit(100);
+    if(peopleR.error)throw peopleR.error;
+    const people=peopleR.data||[], personMap=new Map(people.map(p=>[p.id,p]));
+    if((isRT&&["residents","births"].includes(sub))||(isWarga&&sub==="registry")){
+      let chosen=people;
+      if(sub==="births")chosen=people.filter(p=>p.birth_date&&new Date(p.birth_date).getFullYear()>=2020);
+      return chosen.map(p=>asDomainDemoRow("persons",p.id,p.full_name,p.status,{nama:p.full_name,tempat_lahir:p.birth_place,tanggal_lahir:p.birth_date,jenis_kelamin:p.gender,catatan:"Warga sintetis untuk demo; bukan data kependudukan resmi"},sub,p.created_at));
+    }
+    if(isRT&&sub==="deaths"){
+      const ids=people.filter(p=>p.status==="DECEASED").map(p=>p.id);
+      if(!ids.length)return [];
+      const d=await sb.from("death_records").select("id,person_id,date_of_death,place_of_death,cause_category,verification_status,notes,created_at").in("person_id",ids).order("date_of_death",{ascending:false}).limit(50);
+      if(d.error)throw d.error;
+      return (d.data||[]).map(x=>asDomainDemoRow("death_records",x.id,"Data kematian · "+(personMap.get(x.person_id)?.full_name||"Warga demo"),x.verification_status,{nama_warga:personMap.get(x.person_id)?.full_name||"Warga demo",tanggal_kematian:x.date_of_death,tempat_kematian:x.place_of_death,kategori_penyebab:x.cause_category,keterangan:x.notes||"DATA SIMULASI"},sub,x.created_at));
+    }
+    if(isRT&&["moves","domicile"].includes(sub)){
+      const ids=people.map(p=>p.id);
+      const m=await sb.from("demo_residency_movements").select("id,demo_code,person_id,movement_type,event_date,origin_label,destination_label,status,notes").in("person_id",ids).order("event_date",{ascending:false}).limit(50);
+      if(m.error)throw m.error;
+      return (m.data||[]).map(x=>asDomainDemoRow("demo_residency_movements",x.id,(x.movement_type||"Perpindahan")+" · "+(personMap.get(x.person_id)?.full_name||x.demo_code),x.status,{nama_warga:personMap.get(x.person_id)?.full_name||"Warga demo",jenis_perpindahan:x.movement_type,tanggal:x.event_date,dari:x.origin_label,tujuan:x.destination_label,keterangan:x.notes||"DATA SIMULASI"},sub,x.event_date));
+    }
+    if((isRT&&sub==="households")||(isWarga&&["household","address"].includes(sub))){
+      const h=await sb.from("households").select("id,household_number_hash,address_id,status,created_at").like("household_number_hash","DEMO-KK-%").order("household_number_hash").limit(50);
+      if(h.error)throw h.error;
+      const addressIds=[...new Set((h.data||[]).map(x=>x.address_id).filter(Boolean))];
+      let addressMap=new Map();
+      if(addressIds.length){const ar=await sb.from("addresses").select("id,address_line,postal_code,territory_id").in("id",addressIds);if(ar.error)throw ar.error;addressMap=new Map((ar.data||[]).map(x=>[x.id,x]));}
+      return (h.data||[]).map(x=>{const a=addressMap.get(x.address_id)||{};return asDomainDemoRow("households",x.id,"Kartu Keluarga Demo "+String(x.household_number_hash||"").replace("DEMO-KK-",""),x.status,{label_kk:"KK Demo "+String(x.household_number_hash||"").replace("DEMO-KK-",""),alamat:a.address_line||"Alamat demo",kode_pos:a.postal_code||"",catatan:"KK sintetis; bukan dokumen resmi"},sub,x.created_at);});
+    }
+  }
+  if((isRT&&["economy","trade"].includes(sub))||(isJolie&&["marketplace","customers","crm"].includes(sub))){
+    let q=sb.from("rt_business_profiles").select("id,business_name,business_type,sector,products_services,scale,worker_count,sales_channels,licensing_status,needs,constraints,potential,verification_status,classification,source,created_at").like("source","DEMO_SEED%").order("business_name").limit(50);
+    if(scope)q=q.eq("territory_id",scope);
+    const r=await q;if(r.error)throw r.error;
+    return (r.data||[]).map(x=>asDomainDemoRow("rt_business_profiles",x.id,x.business_name,x.verification_status,{nama_usaha:x.business_name,jenis_usaha:x.business_type,sektor:x.sector,produk_jasa:x.products_services,skala:x.scale,jumlah_pekerja:x.worker_count,kanal_penjualan:x.sales_channels,status_perizinan:x.licensing_status,kebutuhan:x.needs,potensi:x.potential,catatan:"Profil UMKM sintetis untuk demo"},sub,x.created_at));
+  }
+  if(isDesa&&["transparency","services"].includes(sub)){
+    const r=await sb.from("public_announcements").select("id,title,summary,content,category,status,published_at,created_at,image_url").eq("territory_id",scope).eq("status","PUBLISHED").order("published_at",{ascending:false,nullsFirst:false}).limit(50);
+    if(r.error)throw r.error;
+    return (r.data||[]).map(x=>asDomainDemoRow("public_announcements",x.id,x.title,x.status,{judul:x.title,ringkasan:x.summary||"",isi:x.content||"",kategori:x.category||"Pengumuman",tanggal_publikasi:x.published_at,catatan:"Pengumuman wilayah demo"},sub,x.created_at));
+  }
+  return null;
+}
 async function refreshLiveWorkspace(){
   if(!sb)return;
   const host=document.querySelector(".workspace-table"); if(!host)return;
   const scope=liveDemoScope(), module=state.view.toUpperCase(), sub=state.sub;
   try{
-    let rows=[];
-    if(state.view==="warga"){
+    let rows=await canonicalDemoRows(state.view,sub,scope);
+    if(rows===null)rows=[];
+    if(rows.length){
+      updateLiveKpis([["DATA DOMAIN",rows.length,"Record demo terhubung ke tabel domain"],["SUMBER","CANONICAL","Data sintetis / baca-saja"],["AKSI","DETAIL","Perubahan resmi memerlukan alur CRUD terpisah"]]);
+    }else if(state.view==="warga"){
       const [portal,people,households]=await Promise.all([
         liveCount("demo_portal_items",{territory_id:scope}),
         liveCount("persons",{status:"ACTIVE"}),
@@ -539,14 +594,16 @@ function liveFieldRows(record){
 function openLiveRecord(id){
   const r=liveRowCache.get(id);
   if(!r){toast("Record live tidak ditemukan");return}
-  const html='<div class="detail-grid"><div><small>ID RECORD</small><b>'+esc(r.id)+'</b></div><div><small>STATUS</small><b>'+esc(r.status||"-")+'</b></div><div><small>MODULE</small><b>'+esc(r.module_code||"-")+'</b></div><div><small>SUBMENU</small><b>'+esc(r.submenu_code||"-")+'</b></div><div><small>CLASSIFICATION</small><b>'+esc(r.classification||"-")+'</b></div><div><small>PRIORITY</small><b>'+esc(r.priority||"-")+'</b></div></div><h4 style="margin:20px 0 8px">Data Record</h4><div class="table-wrap"><table><tbody>'+liveFieldRows(r)+'</tbody></table></div><div class="form-actions"><button type="button" class="btn" data-live-modal-close>Tutup</button><button type="button" class="btn primary" data-live-modal-update="1">✎ Update</button></div>';
+  const domain=!!r.source_table;
+  const html='<div class="detail-grid"><div><small>ID RECORD</small><b>'+esc(r.id)+'</b></div><div><small>STATUS</small><b>'+esc(r.status||"-")+'</b></div><div><small>SUMBER TABEL</small><b>'+esc(r.source_table||r.module_code||"-")+'</b></div><div><small>SUBMENU</small><b>'+esc(r.submenu_code||"-")+'</b></div><div><small>KLASIFIKASI</small><b>'+esc(r.classification||"-")+'</b></div><div><small>PRIORITAS</small><b>'+esc(r.priority||"-")+'</b></div></div><h4 style="margin:20px 0 8px">Data Record</h4><div class="table-wrap"><table><tbody>'+liveFieldRows(r)+'</tbody></table></div><div class="form-actions"><button type="button" class="btn" data-live-modal-close>Tutup</button>'+(domain?'<span class="status">BACA SAJA · DATA DOMAIN</span>':'<button type="button" class="btn primary" data-live-modal-update="1">✎ Update</button>')+'</div>';
   modal("Detail · "+(r.title||r.id),html,true);
   document.querySelector("[data-live-modal-close]")?.addEventListener("click",closeModal);
-  document.querySelector("[data-live-modal-update]")?.addEventListener("click",()=>openLiveUpdate(id));
+  if(!domain)document.querySelector("[data-live-modal-update]")?.addEventListener("click",()=>openLiveUpdate(id));
 }
 function openLiveUpdate(id){
   const r=liveRowCache.get(id);
   if(!r){toast("Record live tidak ditemukan");return}
+  if(r.source_table){toast("Record domain tampil baca-saja agar tidak salah menulis ke tabel lain");return}
   const payload=r.payload&&typeof r.payload==="object"?r.payload:{};
   const fields=Object.entries(payload);
   const ro=(label,key,value)=>'<div class="detail-field"><small>'+label+'</small><b>'+esc(value??"-")+'</b><span>'+key+'</span></div>';
@@ -588,10 +645,10 @@ function updateLiveKpis(items){
   const box=document.querySelector(".module-kpis");if(!box)return;
   box.innerHTML=items.map(x=>'<div><small>'+esc(x[0])+'</small><strong>'+esc(x[1])+'</strong><span>'+esc(x[2])+'</span></div>').join("");
 }
-function liveRecordDescription(r){const p=r?.payload&&typeof r.payload==="object"?r.payload:{};const preferred=["description","keterangan","uraian","nama_bayi","full_name","name","title","event_name","activity_name","business_name","applicant_name","subject_name"];for(const k of preferred){if(p[k]!==undefined&&p[k]!==null&&String(p[k]).trim())return String(p[k]);}const vals=Object.entries(p).map(([k,v])=>{if(v===undefined||v===null||v==="")return "";return typeof v==="object"?JSON.stringify(v):String(v)}).filter(Boolean);return vals.slice(0,3).join(" · ")||r?.title||"Record";}
+function liveRecordDescription(r){const p=r?.payload&&typeof r.payload==="object"?r.payload:{};const preferred=["description","keterangan","uraian","nama_bayi","full_name","nama","label_kk","business_name","nama_usaha","event_name","activity_name","applicant_name","subject_name","judul","title"];for(const k of preferred){if(p[k]!==undefined&&p[k]!==null&&String(p[k]).trim())return String(p[k]);}const vals=Object.entries(p).map(([k,v])=>{if(v===undefined||v===null||v==="")return "";return typeof v==="object"?JSON.stringify(v):String(v)}).filter(Boolean);return vals.slice(0,3).join(" · ")||r?.title||"Record";}
 function renderLiveRows(rows){
   const tb=document.querySelector(".workspace-table tbody");if(!tb)return;
-  tb.innerHTML=rows.map((r,i)=>'<tr><td><input class="row-check" type="checkbox" data-live-select="'+esc(String(r.id||""))+'" '+(state.selected.has(r.id)?"checked":"")+'></td><td><b>'+esc(r.id||("REC-"+i))+'</b></td><td><button type="button" class="row-link" data-live-action="view" data-live-id="'+esc(String(r.id||""))+'">'+esc(liveRecordDescription(r))+'</button></td><td>RT 001 / RW 001</td><td>'+status(r.status||"PENDING")+'</td><td>'+esc(r.priority||"NORMAL")+'</td><td><button type="button" class="row-action live-view-btn" data-live-action="view" data-live-id="'+esc(String(r.id||""))+'">Detail</button><button type="button" class="row-action live-update-btn" data-live-action="update" data-live-id="'+esc(String(r.id||""))+'">Update</button></td></tr>').join("");
+  tb.innerHTML=rows.map((r,i)=>'<tr><td>'+(r.source_table?'':('<input class="row-check" type="checkbox" data-live-select="'+esc(String(r.id||""))+'" '+(state.selected.has(r.id)?"checked":"")+'/>'))+'</td><td><b>'+esc(r.source_table?String(r.source_table).toUpperCase():String(r.id||("REC-"+i)))+'</b></td><td><button type="button" class="row-link" data-live-action="view" data-live-id="'+esc(String(r.id||""))+'">'+esc(liveRecordDescription(r))+'</button></td><td>'+esc(r.payload?.wilayah||"RT 001 / RW 001")+'</td><td>'+status(r.status||"PENDING")+'</td><td>'+esc(r.priority||"NORMAL")+'</td><td><button type="button" class="row-action live-view-btn" data-live-action="view" data-live-id="'+esc(String(r.id||""))+'">Detail</button>'+(r.source_table?'<span class="row-action">Baca saja</span>':'<button type="button" class="row-action live-update-btn" data-live-action="update" data-live-id="'+esc(String(r.id||""))+'">Update</button>')+'</td></tr>').join("");
   const foot=document.querySelector(".table-foot span");if(foot)foot.textContent=rows.length+" records";
 }
 
