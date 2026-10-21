@@ -27,7 +27,8 @@ Deno.serve(async (req: Request) => {
     if (authError || !auth.user) return Response.json({ ok: false, error: "AUTH_REQUIRED" }, { status: 401, headers });
     const { data: assignments, error: roleError } = await sb.from("role_assignments")
       .select("scope_territory_id,roles(role_code)").eq("user_id", auth.user.id).eq("active", true);
-    if (roleError || !assignments?.length) return Response.json({ ok: false, error: "ACTIVE_ROLE_REQUIRED" }, { status: 403, headers });
+    const allowedRoles = ["PLATFORM_ADMIN", "RT_OPERATOR", "RW_REVIEWER", "VILLAGE_VALIDATOR", "DISTRICT_COORDINATOR", "REGENCY_CITY_ADMIN"];
+    if (roleError || !assignments?.some((x: any) => allowedRoles.includes(x.roles?.role_code))) return Response.json({ ok: false, error: "EDITORIAL_ROLE_REQUIRED" }, { status: 403, headers });
     const body = await req.json();
     const title = String(body.title || "").trim().slice(0, 180);
     const excerpt = String(body.excerpt || "").trim().slice(0, 1000);
