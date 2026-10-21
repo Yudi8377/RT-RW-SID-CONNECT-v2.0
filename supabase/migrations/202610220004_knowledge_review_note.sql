@@ -1,0 +1,1 @@
+alter table public.public_knowledge_documents add column if not exists review_note text;
