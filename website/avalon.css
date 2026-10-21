@@ -1,0 +1,59 @@
+/* Avalon-inspired public UX layer for RT/RW CONNECT Smart Village. */
+:root{--av-ink:#25231f;--av-paper:#fbf8f1;--av-orange:#f07842;--av-red:#b94135;--av-yellow:#f2c94c;--av-line:rgba(37,35,31,.13)}
+body{background:var(--av-paper);color:var(--av-ink)}
+.site-header{background:rgba(251,248,241,.94);border-bottom-color:var(--av-line)}
+.brand-mark{background:var(--av-orange);color:#fff;border-radius:2px}
+.nav-link:hover,.nav-link.active{color:var(--av-red)!important}
+.btn-civic{background:var(--av-orange);border-color:var(--av-orange);border-radius:2px;color:#201c19}
+.btn-civic:hover{background:var(--av-red);border-color:var(--av-red);color:#fff}
+.btn-gold{background:var(--av-yellow);border-color:var(--av-yellow);border-radius:2px}
+.hero{background:#f1e6d4;color:var(--av-ink);min-height:unset;padding:88px 0 76px}
+.hero:after{background:linear-gradient(125deg,rgba(240,120,66,.08),transparent 54%,rgba(242,201,76,.14))}
+.hero h1{font-family:var(--ui);font-weight:800;letter-spacing:-.065em;line-height:.99}
+.hero h1 em,.section-head h2 em,.economy-section h2 em,.signal-main h2 em{color:var(--av-red)}
+.hero .eyebrow,.eyebrow.dark{color:var(--av-red)}
+.hero-copy{color:#625b51}.hero-proof div{border-color:rgba(37,35,31,.2)}.hero-proof span{color:#71675c}
+.hero-visual-card{padding:12px;background:#fff;border:1px solid var(--av-line);box-shadow:12px 12px 0 rgba(240,120,66,.17)}
+.hero-image-wrap{position:relative;overflow:hidden;min-height:260px}.hero-image-wrap img{width:100%;height:100%;min-height:260px;object-fit:cover;display:block}
+.hero-image-overlay{background:linear-gradient(0deg,rgba(37,35,31,.8),transparent);position:absolute;inset:auto 0 0;padding:22px;color:white}
+.living-map-card{border-radius:2px;background:#292720;box-shadow:12px 12px 0 rgba(242,201,76,.35)}
+.quick-strip{background:var(--av-yellow);border:0}.quick-strip .row{border:0}
+.quick-item{border-color:rgba(37,35,31,.16);color:#292720}.quick-item:hover{background:#f8d86c;color:var(--av-red)}
+.quick-icon{background:#fff0c1;color:var(--av-red);border-radius:2px}
+.section-pad,.agenda-section{background:var(--av-paper)}
+.section-head h2,.economy-section h2,.signal-main h2{font-family:var(--ui);font-weight:800;letter-spacing:-.06em}
+.text-link{color:var(--av-red);border-color:rgba(185,65,53,.35)}
+.service-card,.info-card{border-radius:2px;border-color:var(--av-line);box-shadow:5px 5px 0 rgba(37,35,31,.035)}
+.service-card:hover,.info-card:hover{box-shadow:8px 8px 0 rgba(240,120,66,.18)}
+.service-card.featured{background:#f7dfcf;border-color:#f0c2a8}.service-card>i,.info-card>i{color:var(--av-red)}
+.signal-section{background:#f5d6bd;border-color:var(--av-line)}.signal-stats strong{color:var(--av-red)}
+.news-section{background:#292720}.news-section .text-link{color:var(--av-yellow)}
+.chat-window{border-radius:2px;border-color:var(--av-line);box-shadow:10px 10px 0 rgba(240,120,66,.14)}
+.chat-head{background:var(--av-yellow);color:#292720}.chat-bubble{border-radius:2px}.chat-bubble.outgoing{background:#f7dfcf}
+.economy-section{background:var(--av-red);color:#fff}.economy-section .eyebrow{color:#f8d66c}.economy-section p{color:#f6ded7}
+.agenda-date{border-radius:2px;background:#f7dfcf}.agenda-date strong{color:var(--av-red)}.agenda-thumb{border-radius:2px}
+.footer{background:#24231f}.footer .brand-mark{background:var(--av-orange)}
+.avalon-highlights{padding:94px 0 100px;background:var(--av-paper)}
+.avalon-intro{max-width:760px;margin:0 0 38px}
+.avalon-intro h2{font:800 clamp(2.2rem,4.5vw,4.1rem)/1.02 var(--ui);letter-spacing:-.065em;margin:15px 0}
+.avalon-intro h2 em{font-family:var(--display);font-weight:500;color:var(--av-red)}
+.avalon-intro p{max-width:610px;color:#6d655c;line-height:1.8}
+.avalon-mosaic{display:grid;grid-template-columns:1.2fr .9fr .9fr;grid-template-rows:230px 230px;gap:14px}
+.avalon-tile{display:flex;flex-direction:column;align-items:flex-start;min-width:0;overflow:hidden;padding:24px;text-decoration:none;color:var(--av-ink);background:#f1e6d4;border:1px solid var(--av-line);transition:transform .22s ease,box-shadow .22s ease}
+.avalon-tile:hover{transform:translateY(-4px);box-shadow:8px 8px 0 rgba(37,35,31,.12);color:var(--av-ink)}
+.avalon-tile:focus-visible{outline:3px solid var(--av-red);outline-offset:3px}
+.avalon-tile-main{grid-row:span 2;background:var(--av-orange);padding:30px}.avalon-tile-map{background:var(--av-yellow)}
+.avalon-tile-news{background:#e9d9c5}.avalon-tile-agenda{background:#c6d4c1}
+.avalon-tile-community{background:var(--av-red);color:#fff}.avalon-tile-community:hover{color:#fff}
+.avalon-tile-index{font:800 9px var(--ui);letter-spacing:.15em;opacity:.72}
+.avalon-tile-icon{display:grid;place-items:center;width:43px;height:43px;margin:20px 0 15px;background:rgba(255,255,255,.48);font-size:20px}
+.avalon-tile-community .avalon-tile-icon{background:rgba(255,255,255,.15)}
+.avalon-tile strong{font:800 clamp(1.15rem,2vw,1.65rem)/1.1 var(--ui);letter-spacing:-.04em;max-width:300px}
+.avalon-tile-main strong{font-size:clamp(1.7rem,3vw,2.7rem);max-width:350px}
+.avalon-tile-copy{font-size:12px;line-height:1.6;opacity:.82;max-width:300px;margin-top:9px}
+.avalon-tile-cta{display:flex;align-items:center;gap:9px;margin-top:auto;padding-top:16px;font:800 10px var(--ui)}
+.avalon-tile-cta i{font-size:14px;transition:transform .2s}.avalon-tile:hover .avalon-tile-cta i{transform:translate(3px,-3px)}
+.sv-coverflow-section{border-top:8px solid var(--av-orange)}
+@media(max-width:767px){.hero{padding:60px 0 50px}.hero h1{font-size:clamp(2.7rem,12vw,4.5rem)}.avalon-highlights{padding:65px 0}.avalon-mosaic{grid-template-columns:1fr 1fr;grid-template-rows:auto}.avalon-tile{min-height:220px;padding:18px}.avalon-tile-main{grid-row:auto;grid-column:span 2;min-height:280px}.avalon-tile-community{grid-column:span 2}.avalon-tile-icon{margin:14px 0 12px}}
+@media(max-width:420px){.avalon-mosaic{grid-template-columns:1fr}.avalon-tile-main,.avalon-tile-community{grid-column:auto}.avalon-tile{min-height:205px}.quick-item{padding:14px 10px;gap:8px}.quick-item strong{font-size:10px}.quick-icon{width:32px;height:32px}}
+@media(prefers-reduced-motion:reduce){.avalon-tile,.avalon-tile-cta i,.service-card{transition:none!important}}
