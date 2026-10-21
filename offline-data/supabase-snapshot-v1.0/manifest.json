@@ -1,0 +1,62 @@
+{
+  "package": "RT/RW-SID CONNECT Offline Data Package",
+  "version": "1.0.0",
+  "source": {
+    "provider": "Supabase",
+    "project_ref": "gzdusguveeeflmlvvmwe",
+    "project_name": "Yudi8377's Project",
+    "region": "ap-southeast-1",
+    "database_engine": "PostgreSQL 17"
+  },
+  "purpose": "Safe bootstrap/reference dataset for the Windows Offline Installer v2.0.0.",
+  "export_policy": {
+    "mode": "controlled-seed",
+    "includes_personal_production_data": false,
+    "includes_sensitive_resident_tables": false,
+    "notes": [
+      "This package is not a full production database dump.",
+      "Resident/person/household/address/health/death and transactional production records are intentionally excluded.",
+      "The offline application must create local operational records separately and synchronize through an authenticated sync layer."
+    ]
+  },
+  "included_tables": [
+    "platform_core",
+    "territories",
+    "roles",
+    "permissions",
+    "role_permissions",
+    "organizations",
+    "exchange_datasets"
+  ],
+  "source_migrations": [
+    "202609280001_initial",
+    "202609280002_security_performance_baseline",
+    "202609280003_canonical_identity_rbac",
+    "202609280004_rbac_index_cleanup",
+    "202609280005_pilot_seed",
+    "202609280007_pilot_read_rls",
+    "202609280008_fix_death_rls",
+    "202609280009_intelligence_views_core",
+    "202609280010_intelligence_views_exchange",
+    "202609280011_rt_service_workflow",
+    "202609280012_rt_service_requests_rls",
+    "rt_digital_domain_data",
+    "rw_review_workflow",
+    "202609280014_demo_full_platform_dataset",
+    "public_agenda_start_at",
+    "community_events_public_visibility",
+    "public_business_visibility",
+    "emergency_command_notification"
+  ],
+  "edge_functions_present": [
+    "bootstrap-pilot",
+    "rt-transaction",
+    "workflow-transition",
+    "rw-review",
+    "admin-access-management",
+    "public-service-request",
+    "citizen-room",
+    "public-experience",
+    "citizen-location"
+  ]
+}

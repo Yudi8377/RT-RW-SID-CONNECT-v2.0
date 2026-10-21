@@ -1,0 +1,27 @@
+appId: id.akvisio.rtrw.sidconnect
+productName: RT-RW-SID CONNECT
+artifactName: RT-RW-SID-CONNECT-v2.0-Setup-${version}.${ext}
+directories:
+  output: dist
+  buildResources: build
+extraResources:
+  - from: ../
+    to: app-content
+    filter:
+      - "**/*"
+      - "!desktop/**"
+      - "!.git/**"
+      - "!28_DOCUMENTATION/**"
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: RT-RW-SID-CONNECT-v2.0-Setup-${version}.exe
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: RT/RW-SID CONNECT
+  uninstallDisplayName: RT/RW-SID CONNECT v2.0
