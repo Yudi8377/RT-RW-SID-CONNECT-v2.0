@@ -29,6 +29,7 @@
 - 202610220006_regional_video_moderation.sql
 - 202610220007_video_submission_scope.sql
 - 202610220008_regional_curator_scope.sql
+- 202610220009_public_column_grants.sql
 
 Ketiganya diterapkan pada project Supabase gzdusguveeeflmlvvmwe; tabel baru menggunakan RLS aktif dan FORCE RLS. Realtime publication mencakup community_chat_messages.
 
