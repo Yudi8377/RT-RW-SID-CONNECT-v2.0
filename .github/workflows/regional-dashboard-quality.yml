@@ -1,0 +1,43 @@
+name: Regional dashboard quality
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app.js'
+      - 'supabase/migrations/**'
+      - 'docs/regional-dashboard-hierarchy.md'
+      - '.github/workflows/regional-dashboard-quality.yml'
+  push:
+    branches: [feat/regional-dashboard-hierarchy-v1]
+    paths:
+      - 'app.js'
+      - 'supabase/migrations/**'
+      - 'docs/regional-dashboard-hierarchy.md'
+      - '.github/workflows/regional-dashboard-quality.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  syntax-and-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: node --check app.js
+      - name: Check whitespace errors
+        run: git diff --check
+      - name: Check regional migration safety markers
+        shell: bash
+        run: |
+          grep -q "DISTRICT_COORDINATOR" supabase/migrations/202610220001_regional_dashboard_roles.sql
+          grep -q "REGENCY_CITY_ADMIN" supabase/migrations/202610220001_regional_dashboard_roles.sql
+          grep -q "auth.uid()" supabase/migrations/202610220002_regional_dashboard_summary_rpc.sql
+          grep -q "ra.scope_territory_id = p_scope_territory_id" supabase/migrations/202610220002_regional_dashboard_summary_rpc.sql
+          grep -q "revoke all on function public.regional_dashboard_summary(uuid) from anon" supabase/migrations/202610220002_regional_dashboard_summary_rpc.sql
+          if grep -Eiq '^[[:space:]]*(drop[[:space:]]|truncate[[:space:]]|delete[[:space:]]+from)' supabase/migrations/20261022000*.sql; then
+            echo "Destructive SQL detected in regional migrations" >&2
+            exit 1
+          fi
