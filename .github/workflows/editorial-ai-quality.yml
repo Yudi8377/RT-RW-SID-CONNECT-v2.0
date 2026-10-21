@@ -9,6 +9,9 @@ on:
       - 'website/index.html'
       - 'website/berita.html'
       - 'supabase/migrations/202610220003_editorial_cms_knowledge.sql'
+      - 'supabase/migrations/202610220004_knowledge_review_note.sql'
+      - 'supabase/functions/editorial-ai/**'
+      - 'supabase/functions/knowledge-ingest/**'
       - 'website/editorial-ai-architecture.md'
       - '.github/workflows/editorial-ai-quality.yml'
   push:
@@ -33,6 +36,8 @@ jobs:
         run: |
           node --check website/ai-companion.js
           node --check website/editorial-studio.js
+          test -s supabase/functions/editorial-ai/index.ts
+          test -s supabase/functions/knowledge-ingest/index.ts
       - name: Check required public entry points
         run: |
           test -s website/portal-data.html
@@ -42,6 +47,9 @@ jobs:
           grep -q 'editorial_content' supabase/migrations/202610220003_editorial_cms_knowledge.sql
           grep -q 'public_knowledge_documents' supabase/migrations/202610220003_editorial_cms_knowledge.sql
           grep -q 'enforce_editorial_content_workflow' supabase/migrations/202610220003_editorial_cms_knowledge.sql
+          grep -q 'review_note' supabase/migrations/202610220004_knowledge_review_note.sql
+          grep -q 'PENDING_REVIEW' supabase/functions/knowledge-ingest/index.ts
+          grep -q 'human_decision_required' supabase/functions/editorial-ai/index.ts
       - name: Check whitespace and migration safety
         run: |
           git diff --check
