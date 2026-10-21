@@ -114,11 +114,8 @@ Deno.serve(async (req: Request) => {
       "Jangan mengklaim lisensi terbuka. Lisensi harus diverifikasi manusia.",
       "URL sumber: " + source.url,
       "Judul halaman: " + source.pageTitle,
-      "Konten sumber:
-" + source.text,
-    ].join("
-
-");
+      "Konten sumber:\n" + source.text,
+    ].join("\n\n");
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
