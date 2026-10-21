@@ -57,3 +57,24 @@ body{background:var(--av-paper);color:var(--av-ink)}
 @media(max-width:767px){.hero{padding:60px 0 50px}.hero h1{font-size:clamp(2.7rem,12vw,4.5rem)}.avalon-highlights{padding:65px 0}.avalon-mosaic{grid-template-columns:1fr 1fr;grid-template-rows:auto}.avalon-tile{min-height:220px;padding:18px}.avalon-tile-main{grid-row:auto;grid-column:span 2;min-height:280px}.avalon-tile-community{grid-column:span 2}.avalon-tile-icon{margin:14px 0 12px}}
 @media(max-width:420px){.avalon-mosaic{grid-template-columns:1fr}.avalon-tile-main,.avalon-tile-community{grid-column:auto}.avalon-tile{min-height:205px}.quick-item{padding:14px 10px;gap:8px}.quick-item strong{font-size:10px}.quick-icon{width:32px;height:32px}}
 @media(prefers-reduced-motion:reduce){.avalon-tile,.avalon-tile-cta i,.service-card{transition:none!important}}
+
+/* Compact public agenda: show a short preview; the calendar modal contains the full list. */
+#agenda .agenda-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;border-top:0;align-items:stretch}
+#agenda .agenda-item{display:grid;grid-template-columns:58px minmax(0,1fr) 28px;gap:12px;align-items:start;min-width:0;min-height:155px;padding:18px;background:#fff;border:1px solid var(--av-line);border-radius:3px;box-shadow:4px 4px 0 rgba(37,35,31,.035)}
+#agenda .agenda-item:hover{padding-left:18px;background:#fff;transform:translateY(-3px);box-shadow:7px 7px 0 rgba(240,120,66,.13)}
+#agenda .agenda-item:nth-child(n+4){display:none}
+#agenda .agenda-date{width:52px;height:56px;border-radius:2px;background:#f7dfcf;box-shadow:none}
+#agenda .agenda-date strong{font:800 23px var(--ui);color:var(--av-red)}
+#agenda .agenda-date span{font-size:8px;color:#76675b}
+#agenda .agenda-type{display:block;font-size:8px;line-height:1.4;letter-spacing:.09em;overflow-wrap:anywhere}
+#agenda .agenda-item h3{font:800 13px/1.35 var(--ui);margin:7px 0;color:var(--av-ink);overflow-wrap:anywhere}
+#agenda .agenda-item p{font-size:10px;line-height:1.55;overflow-wrap:anywhere}
+#agenda .agenda-arrow{width:27px;height:27px;border-radius:2px;align-self:end}
+#agenda .agenda-item:hover .agenda-arrow{background:var(--av-red);border-color:var(--av-red)}
+#agenda .section-head{margin-bottom:28px}
+#agenda .section-head .text-link{white-space:nowrap}
+.agenda-modal-list .agenda-item{grid-template-columns:70px minmax(0,1fr) 32px;gap:16px;padding:18px 10px;border:0;border-bottom:1px solid var(--av-line);border-radius:0;box-shadow:none;background:transparent;min-height:unset}
+.agenda-modal-list .agenda-item:nth-child(n){display:grid}
+.agenda-modal-list .agenda-item:hover{padding-left:16px;background:#fff}
+@media(max-width:991px){#agenda .agenda-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:575px){#agenda .agenda-list{grid-template-columns:1fr;gap:10px}#agenda .agenda-item{min-height:unset;grid-template-columns:52px minmax(0,1fr) 27px;padding:14px;gap:11px}#agenda .agenda-item:hover{padding-left:14px}#agenda .agenda-item h3{font-size:12px}#agenda .agenda-item:nth-child(n+4){display:none}}
