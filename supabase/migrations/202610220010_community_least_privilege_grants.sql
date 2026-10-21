@@ -1,0 +1,21 @@
+-- Least-privilege grants for the community features. RLS remains the row-level boundary.
+revoke all privileges on table public.community_chat_rooms from anon,authenticated;
+revoke all privileges on table public.community_chat_members from anon,authenticated;
+revoke all privileges on table public.community_chat_messages from anon,authenticated;
+revoke all privileges on table public.community_video_posts from anon,authenticated;
+revoke all privileges on table public.regional_featured_content from anon,authenticated;
+revoke select(id,territory_id,editorial_content_id,editorial_note,active,selected_at) on public.regional_featured_content from anon,authenticated;
+revoke select(id,title,description,video_url,thumbnail_url,category,status,published_at) on public.community_video_posts from anon;
+grant select(id,name,description,room_type,is_public,created_at,territory_id) on public.community_chat_rooms to authenticated;
+grant select(room_id,user_id,joined_at,last_read_at) on public.community_chat_members to authenticated;
+grant insert(room_id,user_id) on public.community_chat_members to authenticated;
+grant update(last_read_at) on public.community_chat_members to authenticated;
+grant select(id,room_id,sender_id,body,created_at,edited_at,deleted_at) on public.community_chat_messages to authenticated;
+grant insert(room_id,sender_id,body) on public.community_chat_messages to authenticated;
+grant select(id,title,description,video_url,thumbnail_url,category,status,published_at) on public.community_video_posts to anon;
+grant select(id,territory_id,author_id,title,description,video_url,thumbnail_url,category,status,reviewed_by,reviewed_at,review_note,created_at,published_at) on public.community_video_posts to authenticated;
+grant insert(territory_id,author_id,title,description,video_url,thumbnail_url,category,status) on public.community_video_posts to authenticated;
+grant update(territory_id,title,description,video_url,thumbnail_url,category,status,reviewed_by,reviewed_at,review_note,published_at) on public.community_video_posts to authenticated;
+grant select(id,territory_id,editorial_content_id,editorial_note,active,selected_at) on public.regional_featured_content to anon,authenticated;
+grant insert(territory_id,editorial_content_id,selected_by,editorial_note,active) on public.regional_featured_content to authenticated;
+grant delete on public.regional_featured_content to authenticated;
