@@ -5,6 +5,7 @@ on:
       - 'website/index.html'
       - 'website/coverflow.css'
       - 'website/coverflow.js'
+      - 'website/avalon.css'
       - '.github/workflows/coverflow-quality.yml'
   push:
     branches: [main]
@@ -37,3 +38,7 @@ jobs:
           grep -q 'data-coverflow' website/index.html
           test -s website/coverflow.css
           test -s website/coverflow.js
+          grep -q 'avalon.css' website/index.html
+          grep -q 'id="avalon-highlights"' website/index.html
+          grep -q 'avalon-mosaic' website/avalon.css
+          test -s website/avalon.css
