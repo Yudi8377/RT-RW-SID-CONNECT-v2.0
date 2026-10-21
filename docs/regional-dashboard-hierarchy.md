@@ -54,9 +54,10 @@ These menus are the initial workspace shell. They must not display fabricated pr
 
 - Phase A (this branch): role definitions, regional workspace menus, additive role/permission migration, and documentation.
 - Phase B: apply the migration through the controlled Supabase migration process; provision roles and territory-scoped assignments for authorized test accounts.
-- Phase C: implement server/database-enforced descendant-scope resolution and scope-aware aggregate queries.
-- Phase D: add real dashboards for service queues, regional indicators, infrastructure, and program status with explicit empty/loading/error states.
-- Phase E: connect approved aggregate datasets to GPFFE, test denial cases and tenant/territory isolation, then deploy.
+- Phase C: apply and test the additive role migration and the `regional_dashboard_summary(uuid)` security-definer RPC. The RPC validates the authenticated user’s active role assignment and exact territory scope before returning aggregate counts; it must be reviewed and tested in the target database before use.
+- Phase D: wire the regional dashboard UI to the RPC and implement explicit loading/error/empty states. The current regional workspace intentionally suppresses demo rows and displays a not-yet-activated notice.
+- Phase E: add real dashboards for service queues, regional indicators, infrastructure, and program status with explicit source/time windows.
+- Phase F: connect approved aggregate datasets to GPFFE, test denial cases and tenant/territory isolation, then deploy.
 
 ## Acceptance criteria before production
 
