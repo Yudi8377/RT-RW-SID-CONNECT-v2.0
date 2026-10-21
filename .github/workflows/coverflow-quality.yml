@@ -1,0 +1,39 @@
+name: Smart Village Coverflow Quality
+on:
+  pull_request:
+    paths:
+      - 'website/index.html'
+      - 'website/coverflow.css'
+      - 'website/coverflow.js'
+      - '.github/workflows/coverflow-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'website/index.html'
+      - 'website/coverflow.css'
+      - 'website/coverflow.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coverflow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate JavaScript syntax
+        run: node --check website/coverflow.js
+      - name: Validate integration references
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'coverflow.css' website/index.html
+          grep -q 'coverflow.js' website/index.html
+          grep -q 'id="smart-showcase"' website/index.html
+          grep -q 'data-coverflow' website/index.html
+          test -s website/coverflow.css
+          test -s website/coverflow.js
