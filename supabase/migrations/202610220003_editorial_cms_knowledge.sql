@@ -103,3 +103,44 @@ create policy public_knowledge_review on public.public_knowledge_documents for u
 ));
 grant select, insert, update on public.public_knowledge_documents to authenticated;
 grant select on public.public_knowledge_documents to anon;
+
+-- Enforce editorial state transitions in the database, not only in the browser.
+create or replace function public.enforce_editorial_content_workflow()
+returns trigger language plpgsql set search_path = public as $$
+declare v_allowed boolean := false;
+begin
+  if tg_op = 'INSERT' then
+    if new.editorial_status not in ('DRAF','DIAJUKAN') or new.is_public then
+      raise exception 'New editorial content must start as a non-public draft/submission';
+    end if;
+    return new;
+  end if;
+  if new.editorial_status = old.editorial_status then
+    return new;
+  end if;
+  v_allowed := case old.editorial_status
+    when 'DRAF' then new.editorial_status = 'DIAJUKAN'
+    when 'DIAJUKAN' then new.editorial_status in ('DALAM_VERIFIKASI','DRAF')
+    when 'DALAM_VERIFIKASI' then new.editorial_status in ('DISETUJUI','DRAF')
+    when 'DISETUJUI' then new.editorial_status in ('UNGGULAN','TERBIT','DRAF')
+    when 'UNGGULAN' then new.editorial_status in ('TERBIT','DRAF')
+    when 'TERBIT' then new.editorial_status in ('DIARSIPKAN','DITARIK')
+    when 'DIARSIPKAN' then false
+    when 'DITARIK' then false
+    else false end;
+  if not v_allowed then
+    raise exception 'Invalid editorial workflow transition: % -> %', old.editorial_status, new.editorial_status;
+  end if;
+  if new.editorial_status in ('DISETUJUI','UNGGULAN','TERBIT','DIARSIPKAN','DITARIK') then
+    if new.reviewed_by is null or new.reviewed_at is null or nullif(btrim(new.human_review_note),'') is null then
+      raise exception 'Human reviewer, review time, and audit note are required for this decision';
+    end if;
+  end if;
+  new.is_public := new.editorial_status in ('UNGGULAN','TERBIT');
+  if new.is_public then new.published_at := coalesce(new.published_at, now()); end if;
+  new.updated_at := now();
+  return new;
+end; $$;
+drop trigger if exists editorial_content_workflow_guard on public.editorial_content;
+create trigger editorial_content_workflow_guard before insert or update on public.editorial_content
+for each row execute function public.enforce_editorial_content_workflow();
