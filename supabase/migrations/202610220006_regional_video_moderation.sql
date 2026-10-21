@@ -56,7 +56,7 @@ begin
    end if;
    return new;
  end if;
- if new.status=new.status then
+ if new.status=old.status then
    if new.status='TERBIT' and (new.reviewed_by is null or new.reviewed_at is null or nullif(btrim(new.review_note),'') is null) then
      raise exception 'Penerbitan video membutuhkan peninjau, waktu, dan catatan keputusan';
    end if;
