@@ -1,0 +1,42 @@
+name: Community chat and regional portal quality
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'website/index.html'
+      - 'website/community-media-chat.*'
+      - 'website/kota-kabupaten/**'
+      - 'supabase/migrations/202610220005_community_chat_and_video.sql'
+      - 'supabase/migrations/202610220006_regional_video_moderation.sql'
+      - '.github/workflows/community-city-quality.yml'
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check website/community-media-chat.js
+          node --check website/kota-kabupaten/portal.js
+          node --check website/kota-kabupaten/admin.js
+      - name: Check public and admin routes
+        run: |
+          test -s website/kota-kabupaten/index.html
+          test -s website/kota-kabupaten/admin.html
+          grep -q 'communityVideoGrid' website/index.html
+          grep -q 'communityChatForm' website/index.html
+          grep -q 'regional_featured_content' website/kota-kabupaten/admin.js
+          grep -q 'human review' website/kota-kabupaten/admin.js || grep -q 'Catatan verifikasi manusia' website/kota-kabupaten/admin.js
+      - name: Check RLS and moderation safeguards
+        run: |
+          grep -q 'force row level security' supabase/migrations/202610220005_community_chat_and_video.sql
+          grep -q 'community_chat_messages member read' supabase/migrations/202610220005_community_chat_and_video.sql
+          grep -q 'public geographic directory' supabase/migrations/202610220005_community_chat_and_video.sql
+          grep -q 'enforce_community_video_workflow' supabase/migrations/202610220006_regional_video_moderation.sql
+          grep -q 'video reviewer update scoped queue' supabase/migrations/202610220006_regional_video_moderation.sql
+          git diff --check
