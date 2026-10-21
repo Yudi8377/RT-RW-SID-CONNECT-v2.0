@@ -11,6 +11,7 @@ on:
       - 'supabase/migrations/202610220007_video_submission_scope.sql'
       - 'supabase/migrations/202610220008_regional_curator_scope.sql'
       - 'supabase/migrations/202610220009_public_column_grants.sql'
+      - 'supabase/migrations/202610220010_community_least_privilege_grants.sql'
       - '.github/workflows/community-city-quality.yml'
 permissions:
   contents: read
