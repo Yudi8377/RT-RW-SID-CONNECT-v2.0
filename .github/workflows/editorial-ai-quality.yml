@@ -1,0 +1,51 @@
+name: Editorial AI and CMS quality
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'website/ai-companion.*'
+      - 'website/editorial-studio.*'
+      - 'website/portal-data.html'
+      - 'website/index.html'
+      - 'website/berita.html'
+      - 'supabase/migrations/202610220003_editorial_cms_knowledge.sql'
+      - 'website/editorial-ai-architecture.md'
+      - '.github/workflows/editorial-ai-quality.yml'
+  push:
+    branches: [feat/editorial-ai-cms-companion]
+    paths:
+      - 'website/ai-companion.*'
+      - 'website/editorial-studio.*'
+      - 'website/portal-data.html'
+      - 'website/index.html'
+      - 'website/berita.html'
+      - 'supabase/migrations/202610220003_editorial_cms_knowledge.sql'
+      - 'website/editorial-ai-architecture.md'
+      - '.github/workflows/editorial-ai-quality.yml'
+permissions:
+  contents: read
+jobs:
+  static-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: |
+          node --check website/ai-companion.js
+          node --check website/editorial-studio.js
+      - name: Check required public entry points
+        run: |
+          test -s website/portal-data.html
+          test -s website/editorial-studio.html
+          grep -q 'ai-companion.js' website/index.html
+          grep -q 'ai-companion.js' website/berita.html
+          grep -q 'editorial_content' supabase/migrations/202610220003_editorial_cms_knowledge.sql
+          grep -q 'public_knowledge_documents' supabase/migrations/202610220003_editorial_cms_knowledge.sql
+          grep -q 'enforce_editorial_content_workflow' supabase/migrations/202610220003_editorial_cms_knowledge.sql
+      - name: Check whitespace and migration safety
+        run: |
+          git diff --check
+          if grep -Eiq '^[[:space:]]*(drop[[:space:]]+table|truncate|delete[[:space:]]+from)' supabase/migrations/202610220003_editorial_cms_knowledge.sql; then
+            echo 'Unexpected destructive SQL detected' >&2
+            exit 1
+          fi
