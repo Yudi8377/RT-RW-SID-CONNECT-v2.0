@@ -36,6 +36,8 @@ jobs:
         run: |
           node --check website/ai-companion.js
           node --check website/editorial-studio.js
+          node --check website/news-runtime-golive-20260930.js
+          node --check website/berita-runtime-golive-20260930.js
           test -s supabase/functions/editorial-ai/index.ts
           test -s supabase/functions/knowledge-ingest/index.ts
       - name: Check required public entry points
