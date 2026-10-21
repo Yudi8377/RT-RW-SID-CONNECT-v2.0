@@ -90,3 +90,41 @@ begin
   alter publication supabase_realtime add table public.community_chat_messages;
  end if;
 end $$;
+
+-- Regional roles and a curated showcase selected by authorized district/regency admins.
+insert into public.roles(role_code,role_name,critical)
+values ('DISTRICT_COORDINATOR','Koordinator Kecamatan',true),('REGENCY_CITY_ADMIN','Administrator Kota/Kabupaten',true)
+on conflict(role_code) do update set role_name=excluded.role_name,critical=excluded.critical;
+create table if not exists public.regional_featured_content (
+ id uuid primary key default gen_random_uuid(),
+ territory_id uuid not null references public.territories(id) on delete restrict,
+ editorial_content_id uuid not null references public.editorial_content(id) on delete cascade,
+ selected_by uuid not null references auth.users(id) on delete restrict,
+ editorial_note text not null default '',
+ active boolean not null default true,
+ selected_at timestamptz not null default now(),
+ unique(territory_id,editorial_content_id)
+);
+alter table public.regional_featured_content enable row level security;
+alter table public.regional_featured_content force row level security;
+drop policy if exists "regional featured public read" on public.regional_featured_content;
+create policy "regional featured public read" on public.regional_featured_content for select to anon,authenticated using(active=true);
+drop policy if exists "regional admins select approved stories" on public.regional_featured_content;
+create policy "regional admins select approved stories" on public.regional_featured_content for insert to authenticated with check(
+ selected_by=(select auth.uid()) and exists(
+  select 1 from public.role_assignments ra join public.roles r on r.id=ra.role_id
+  join public.territories t on t.id=ra.scope_territory_id
+  where ra.user_id=(select auth.uid()) and ra.active=true
+   and r.role_code in ('PLATFORM_ADMIN','DISTRICT_COORDINATOR','REGENCY_CITY_ADMIN')
+   and (r.role_code='PLATFORM_ADMIN' or ra.scope_territory_id=regional_featured_content.territory_id)
+   and (r.role_code='PLATFORM_ADMIN' or t.territory_type in ('DISTRICT','REGENCY_CITY'))
+ ) and exists(select 1 from public.editorial_content ec where ec.id=editorial_content_id and ec.is_public=true and ec.editorial_status in ('TERBIT','UNGGULAN'))
+);
+drop policy if exists "regional admins remove featured stories" on public.regional_featured_content;
+create policy "regional admins remove featured stories" on public.regional_featured_content for delete to authenticated using(
+ exists(select 1 from public.role_assignments ra join public.roles r on r.id=ra.role_id
+ where ra.user_id=(select auth.uid()) and ra.active=true
+ and (r.role_code='PLATFORM_ADMIN' or (r.role_code in ('DISTRICT_COORDINATOR','REGENCY_CITY_ADMIN') and ra.scope_territory_id=regional_featured_content.territory_id)))
+);
+grant select on public.regional_featured_content to anon,authenticated;
+grant insert,delete on public.regional_featured_content to authenticated;
