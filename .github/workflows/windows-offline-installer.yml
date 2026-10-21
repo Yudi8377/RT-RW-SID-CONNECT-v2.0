@@ -14,7 +14,7 @@ on:
         default: "v2.0.1"
         type: string
   push:
-    branches: ["offline-windows-installer-v1", "hardening-v2.0.1"]
+    branches: ["offline-windows-installer-v1", "hardening-v2.0.1", "qa/windows-acceptance-harness-v1"]
 
 permissions:
   contents: write
@@ -38,14 +38,11 @@ jobs:
         run: npm install
 
       - name: Dependency security audit
-        id: dependency-audit
         working-directory: desktop
         shell: powershell
         run: |
           npm audit --json | Tee-Object audit-report.json
-          if ($LASTEXITCODE -ne 0) {
-            throw "npm audit found vulnerabilities at high severity or above."
-          }
+          if ($LASTEXITCODE -ne 0) { throw "npm audit found vulnerabilities at high severity or above." }
 
       - name: Upload dependency audit
         if: always()
@@ -81,6 +78,19 @@ jobs:
           $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
           "$hash  $($exe.Name)" | Set-Content -Encoding ascii "dist\$($exe.Name).sha256"
 
+      - name: Install and launch acceptance
+        working-directory: desktop
+        shell: powershell
+        run: node test-windows-installer-acceptance.cjs
+
+      - name: Upload Windows acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RT-RW-SID-CONNECT-v2.0-Windows-Acceptance-Evidence
+          path: windows-acceptance-report.json
+          if-no-files-found: warn
+
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
@@ -89,6 +99,48 @@ jobs:
             desktop/dist/*.exe
             desktop/dist/*.sha256
           if-no-files-found: error
+
+      - name: Enforce release acceptance gate
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_release == true }}
+        shell: powershell
+        run: |
+          if (-not (Test-Path windows-acceptance-report.json)) {
+            throw "Release blocked: Windows acceptance evidence is missing."
+          }
+          $report = Get-Content windows-acceptance-report.json -Raw | ConvertFrom-Json
+          if (-not $report.ok) { throw "Release blocked: acceptance report is not OK." }
+
+          $requiredGates = @(
+            "A1_install",
+            "A2_launch",
+            "A3_offline_dependency",
+            "A4_offline_shell_payload",
+            "A5_local_db_created",
+            "A6_local_record_operation",
+            "A7_offline_queue_pending",
+            "A8_restart",
+            "A9_queue_persistence",
+            "A10_reconnect",
+            "A11_sync_replay",
+            "A12_migration_recovery",
+            "A13_uninstall",
+            "A14_user_data_retention",
+            "A15_reinstall",
+            "A16_clean_first_run"
+          )
+
+          $invalid = @(
+            $requiredGates | Where-Object {
+              -not $report.acceptance.PSObject.Properties.Name.Contains($_) -or
+              $report.acceptance.$_ -ne "PASS"
+            }
+          )
+          if ($invalid.Count -gt 0) {
+            throw "Release blocked: every A1-A16 gate must be PASS. Current non-PASS gates: $($invalid -join ', ')"
+          }
+
+          $checksum = Get-ChildItem dist\*.sha256 | Select-Object -First 1
+          if (-not $checksum) { throw "Release blocked: SHA-256 checksum file is missing." }
 
       - name: Publish GitHub Release
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_release == true }}
@@ -103,12 +155,8 @@ jobs:
           if (-not $exe) { throw "Release EXE not found." }
           if (-not $checksum) { throw "Release checksum not found." }
           if (-not $env:RELEASE_VERSION) { throw "Release version is required." }
-
           gh release view "$env:RELEASE_VERSION" *> $null
-          if ($LASTEXITCODE -eq 0) {
-            throw "Release $env:RELEASE_VERSION already exists. Choose a new release_version."
-          }
-
+          if ($LASTEXITCODE -eq 0) { throw "Release $env:RELEASE_VERSION already exists. Choose a new release_version." }
           gh release create "$env:RELEASE_VERSION" $exe.FullName $checksum.FullName `
             --target "${{ github.sha }}" `
             --title "RT/RW-SID CONNECT $env:RELEASE_VERSION" `
