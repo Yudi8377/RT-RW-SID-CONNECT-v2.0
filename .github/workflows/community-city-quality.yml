@@ -8,6 +8,7 @@ on:
       - 'website/kota-kabupaten/**'
       - 'supabase/migrations/202610220005_community_chat_and_video.sql'
       - 'supabase/migrations/202610220006_regional_video_moderation.sql'
+      - 'supabase/migrations/202610220007_video_submission_scope.sql'
       - '.github/workflows/community-city-quality.yml'
 permissions:
   contents: read
@@ -39,4 +40,5 @@ jobs:
           grep -q 'public geographic directory' supabase/migrations/202610220005_community_chat_and_video.sql
           grep -q 'enforce_community_video_workflow' supabase/migrations/202610220006_regional_video_moderation.sql
           grep -q 'video reviewer update scoped queue' supabase/migrations/202610220006_regional_video_moderation.sql
+          grep -q 'assigned territory' supabase/migrations/202610220007_video_submission_scope.sql || grep -q 'video author submit draft' supabase/migrations/202610220007_video_submission_scope.sql
           git diff --check
