@@ -128,3 +128,10 @@ create policy "regional admins remove featured stories" on public.regional_featu
 );
 grant select on public.regional_featured_content to anon,authenticated;
 grant insert,delete on public.regional_featured_content to authenticated;
+
+-- Public geographic directory exposes names and hierarchy only, never household or person data.
+drop policy if exists "public geographic directory" on public.territories;
+create policy "public geographic directory" on public.territories for select to anon using(
+ active=true and territory_type in ('PROVINCE','REGENCY_CITY','DISTRICT','VILLAGE','RW','RT')
+);
+grant select on public.territories to anon;
