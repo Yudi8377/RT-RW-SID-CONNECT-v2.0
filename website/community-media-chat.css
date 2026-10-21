@@ -39,3 +39,10 @@
 .city-portal-link small{display:block;opacity:.75;margin-top:4px}
 @media(max-width:900px){.community-hub{grid-template-columns:1fr}}
 @media(max-width:520px){.community-panel-head,.video-panel-head{padding:18px}.community-chat-log{height:250px}.community-chat-compose{padding:10px}.community-message{max-width:94%}.city-portal-link{align-items:flex-start}}
+
+.community-room-list{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}
+.community-room-choice{border:1px solid #d5e0d7;border-radius:999px;background:#fff;color:#28553f;padding:7px 10px;font-size:.78rem;font-weight:800;cursor:pointer}
+.community-room-choice:hover,.community-room-choice:focus{background:#e2f1e6;outline:2px solid #8ebda0;outline-offset:1px}
+.community-chat-compose[hidden]{display:none}
+.community-chat-compose-button{border:0;border-radius:999px;background:#28694e;color:white;padding:10px 17px;font-weight:800;cursor:pointer}
+.community-chat-compose-button:disabled{opacity:.6;cursor:wait}
