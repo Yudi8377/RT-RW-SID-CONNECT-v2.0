@@ -37,7 +37,7 @@ jobs:
       - name: Check RLS and moderation safeguards
         run: |
           grep -q 'force row level security' supabase/migrations/202610220005_community_chat_and_video.sql
-          grep -q 'community_chat_messages member read' supabase/migrations/202610220005_community_chat_and_video.sql
+          grep -q 'chat messages member read' supabase/migrations/202610220005_community_chat_and_video.sql
           grep -q 'public geographic directory' supabase/migrations/202610220005_community_chat_and_video.sql
           grep -q 'enforce_community_video_workflow' supabase/migrations/202610220006_regional_video_moderation.sql
           grep -q 'video reviewer update scoped queue' supabase/migrations/202610220006_regional_video_moderation.sql
