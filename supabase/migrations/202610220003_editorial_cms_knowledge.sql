@@ -36,11 +36,11 @@ create policy editorial_content_author_read on public.editorial_content for sele
     and (r.role_code = 'PLATFORM_ADMIN' or ra.scope_territory_id = editorial_content.territory_id)
 ));
 drop policy if exists editorial_content_author_insert on public.editorial_content;
-create policy editorial_content_author_insert on public.editorial_content for insert to authenticated with check (author_id = auth.uid() and editorial_status in ('DRAF','DIAJUKAN') and is_public = false);
+create policy editorial_content_author_insert on public.editorial_content for insert to authenticated with check (author_id = auth.uid() and editorial_status in ('DRAF','DIAJUKAN') and is_public = false and exists (select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id where ra.user_id = auth.uid() and ra.active = true and (r.role_code = 'PLATFORM_ADMIN' or ra.scope_territory_id = editorial_content.territory_id)));
 drop policy if exists editorial_content_author_update on public.editorial_content;
 create policy editorial_content_author_update on public.editorial_content for update to authenticated using (
   author_id = auth.uid() and editorial_status in ('DRAF','DIAJUKAN')
-) with check (author_id = auth.uid() and editorial_status in ('DRAF','DIAJUKAN') and is_public = false);
+) with check (author_id = auth.uid() and editorial_status in ('DRAF','DIAJUKAN') and is_public = false and exists (select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id where ra.user_id = auth.uid() and ra.active = true and (r.role_code = 'PLATFORM_ADMIN' or ra.scope_territory_id = editorial_content.territory_id)));
 drop policy if exists editorial_content_reviewer_update on public.editorial_content;
 create policy editorial_content_reviewer_update on public.editorial_content for update to authenticated using (exists (
   select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id
@@ -88,7 +88,7 @@ create policy public_knowledge_editor_read on public.public_knowledge_documents 
     and (r.role_code = 'PLATFORM_ADMIN' or ra.scope_territory_id = public_knowledge_documents.territory_id)
 ));
 drop policy if exists public_knowledge_propose on public.public_knowledge_documents;
-create policy public_knowledge_propose on public.public_knowledge_documents for insert to authenticated with check (proposed_by = auth.uid() and publication_status = 'PENDING_REVIEW');
+create policy public_knowledge_propose on public.public_knowledge_documents for insert to authenticated with check (proposed_by = auth.uid() and publication_status = 'PENDING_REVIEW' and exists (select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id where ra.user_id = auth.uid() and ra.active = true and (r.role_code = 'PLATFORM_ADMIN' or ra.scope_territory_id = public_knowledge_documents.territory_id)));
 drop policy if exists public_knowledge_review on public.public_knowledge_documents;
 create policy public_knowledge_review on public.public_knowledge_documents for update to authenticated using (exists (
   select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id
