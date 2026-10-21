@@ -26,22 +26,17 @@ create index if not exists editorial_content_public_feed_idx on public.editorial
 create index if not exists editorial_content_status_idx on public.editorial_content (territory_id, editorial_status, updated_at desc);
 alter table public.editorial_content enable row level security;
 alter table public.editorial_content force row level security;
-drop policy if exists editorial_content_public_read on public.editorial_content;
 create policy editorial_content_public_read on public.editorial_content for select to anon, authenticated using (is_public = true and editorial_status in ('TERBIT','UNGGULAN'));
-drop policy if exists editorial_content_author_read on public.editorial_content;
 create policy editorial_content_author_read on public.editorial_content for select to authenticated using (author_id = auth.uid() or exists (
   select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id
   where ra.user_id = auth.uid() and ra.active = true
     and r.role_code in ('PLATFORM_ADMIN','VILLAGE_VALIDATOR','DISTRICT_COORDINATOR','REGENCY_CITY_ADMIN')
     and (r.role_code = 'PLATFORM_ADMIN' or ra.scope_territory_id = editorial_content.territory_id)
 ));
-drop policy if exists editorial_content_author_insert on public.editorial_content;
 create policy editorial_content_author_insert on public.editorial_content for insert to authenticated with check (author_id = auth.uid() and editorial_status in ('DRAF','DIAJUKAN') and is_public = false and exists (select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id where ra.user_id = auth.uid() and ra.active = true and (r.role_code = 'PLATFORM_ADMIN' or ra.scope_territory_id = editorial_content.territory_id)));
-drop policy if exists editorial_content_author_update on public.editorial_content;
 create policy editorial_content_author_update on public.editorial_content for update to authenticated using (
   author_id = auth.uid() and editorial_status in ('DRAF','DIAJUKAN')
 ) with check (author_id = auth.uid() and editorial_status in ('DRAF','DIAJUKAN') and is_public = false and exists (select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id where ra.user_id = auth.uid() and ra.active = true and (r.role_code = 'PLATFORM_ADMIN' or ra.scope_territory_id = editorial_content.territory_id)));
-drop policy if exists editorial_content_reviewer_update on public.editorial_content;
 create policy editorial_content_reviewer_update on public.editorial_content for update to authenticated using (exists (
   select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id
   where ra.user_id = auth.uid() and ra.active = true
@@ -78,18 +73,14 @@ create table if not exists public.public_knowledge_documents (
 create index if not exists public_knowledge_published_idx on public.public_knowledge_documents (territory_id, source_checked_at desc) where publication_status = 'PUBLISHED';
 alter table public.public_knowledge_documents enable row level security;
 alter table public.public_knowledge_documents force row level security;
-drop policy if exists public_knowledge_read_published on public.public_knowledge_documents;
 create policy public_knowledge_read_published on public.public_knowledge_documents for select to anon, authenticated using (publication_status = 'PUBLISHED');
-drop policy if exists public_knowledge_editor_read on public.public_knowledge_documents;
 create policy public_knowledge_editor_read on public.public_knowledge_documents for select to authenticated using (proposed_by = auth.uid() or exists (
   select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id
   where ra.user_id = auth.uid() and ra.active = true
     and r.role_code in ('PLATFORM_ADMIN','VILLAGE_VALIDATOR','DISTRICT_COORDINATOR','REGENCY_CITY_ADMIN')
     and (r.role_code = 'PLATFORM_ADMIN' or ra.scope_territory_id = public_knowledge_documents.territory_id)
 ));
-drop policy if exists public_knowledge_propose on public.public_knowledge_documents;
 create policy public_knowledge_propose on public.public_knowledge_documents for insert to authenticated with check (proposed_by = auth.uid() and publication_status = 'PENDING_REVIEW' and exists (select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id where ra.user_id = auth.uid() and ra.active = true and (r.role_code = 'PLATFORM_ADMIN' or ra.scope_territory_id = public_knowledge_documents.territory_id)));
-drop policy if exists public_knowledge_review on public.public_knowledge_documents;
 create policy public_knowledge_review on public.public_knowledge_documents for update to authenticated using (exists (
   select 1 from public.role_assignments ra join public.roles r on r.id = ra.role_id
   where ra.user_id = auth.uid() and ra.active = true
@@ -141,6 +132,5 @@ begin
   new.updated_at := now();
   return new;
 end; $$;
-drop trigger if exists editorial_content_workflow_guard on public.editorial_content;
 create trigger editorial_content_workflow_guard before insert or update on public.editorial_content
 for each row execute function public.enforce_editorial_content_workflow();
