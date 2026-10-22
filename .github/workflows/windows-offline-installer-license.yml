@@ -1,6 +1,10 @@
-name: Windows Offline Installer - License Selection
+name: Windows Launcher Installer Build
 
 on:
+  pull_request:
+    paths:
+      - 'installer/**'
+      - '.github/workflows/windows-offline-installer-license.yml'
   push:
     branches:
       - installer/windows-offline-license-v1
@@ -24,11 +28,25 @@ jobs:
         shell: pwsh
         run: choco install innosetup -y --no-progress
 
+      - name: Validate launcher target
+        shell: pwsh
+        run: |
+          $cmd = Get-Content 'installer/RT-RW-SID-CONNECT.cmd' -Raw
+          if ($cmd -notmatch 'https://yudi8377\.github\.io/RT-RW-SID-CONNECT-v2\.0/') {
+            throw "Launcher must target the official GitHub Pages application."
+          }
+          if ($cmd -match 'hatchable\.site') {
+            throw "Stale Hatchable URL is not allowed in the Windows launcher."
+          }
+
       - name: Build installer
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force installer/output | Out-Null
           & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' 'installer\RT-RW-SID-CONNECT-v2.0.1.iss'
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
+          $file = Get-ChildItem 'installer/output/*.exe' | Select-Object -First 1
+          if (-not $file) { throw "Installer EXE was not produced." }
 
       - name: Generate SHA-256
         shell: pwsh
@@ -37,10 +55,10 @@ jobs:
           $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
           "$hash  $($file.Name)" | Out-File 'installer/output/SHA256SUMS.txt' -Encoding utf8
 
-      - name: Upload Windows installer artifact
+      - name: Upload Windows launcher artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rt-rw-sid-connect-windows-offline-installer-license-v2.0.1
+          name: rt-rw-sid-connect-windows-launcher-v2.0.1
           path: installer/output/
           if-no-files-found: error
           retention-days: 30
