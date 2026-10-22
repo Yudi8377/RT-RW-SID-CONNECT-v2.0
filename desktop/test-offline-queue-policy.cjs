@@ -10,7 +10,7 @@ const { OfflineQueueEngine, QUEUE_STATUSES } = require("./offline-queue.cjs");
   const db = await openLocalDatabase({ userDataPath, seedPath });
   const queue = new OfflineQueueEngine(db);
 
-  assert(SCHEMA_VERSION === 2, "schema version should be 2");
+  assert(SCHEMA_VERSION === 3, "schema version should be 3");
 
   const first = queue.enqueue({
     entityType: "resident",
