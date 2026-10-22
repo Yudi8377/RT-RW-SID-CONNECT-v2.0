@@ -5,7 +5,7 @@
 #define AppExeName "RT-RW-SID-CONNECT.cmd"
 
 [Setup]
-AppId={{C1E7C8B2-1A2A-4D6A-9B2A-7A2D0C4B2020}
+AppId={{C1E7C8B2-1A2A-4D6A-9B2A-7A2D0C4B2020}}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
