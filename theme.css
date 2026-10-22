@@ -205,3 +205,13 @@
   .sidebar{width:min(72vw,330px)!important}
   .topbar{height:54px}
 }
+
+/* Role-specific RT / RW / Desa / regional dashboards */
+.role-dash-link{display:block;width:100%;min-width:0;text-align:left;color:#24352b;font:inherit;cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+.role-dash-link:hover{transform:translateY(-2px);border-color:#9ccdb0;box-shadow:0 12px 28px #173c2b12}
+.role-dash-link p{margin:12px 0;color:#718078;font-size:12px;line-height:1.65}
+.role-dash-link .text-btn{display:inline-block;margin-top:2px;font-size:11px}
+.role-dash-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+.role-dash-grid .role-dash-link{height:100%;min-height:150px}
+@media(max-width:760px){.role-dash-grid{grid-template-columns:1fr}.role-dash-grid .role-dash-link{min-height:unset}}
+@media(max-width:560px){.role-cards{grid-template-columns:1fr;min-width:0}.access-picker{min-width:0}.role-card{padding:12px}.role-card b{font-size:12px}.role-card span{font-size:10px}}
