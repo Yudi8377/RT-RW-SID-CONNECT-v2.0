@@ -157,6 +157,13 @@ Security advisor findings returned on 2026-10-22:
 
 Performance advisor reported 166 unindexed foreign-key findings. This should be triaged by hot-path query evidence and table size, rather than blindly adding all indexes.
 
+
+### Additional read-only grant inspection
+
+A follow-up catalog query confirmed that all three `public.st_estimatedextent` overloads are C-language `SECURITY DEFINER` functions and their ACLs include `EXECUTE` for both `anon` and `authenticated`. The table grant inventory for `public.spatial_ref_sys` also shows `anon` and `authenticated` have not only `SELECT`, but also `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, and `TRIGGER` privileges. These are concrete overbroad-grant signals that require prompt review.
+
+**Do not apply a blanket revoke directly to production yet.** First verify GIS callers and extension ownership in a staging environment, then prepare a minimal reviewed migration that preserves required read access and revokes unnecessary write/trigger privileges from application roles. Similarly, verify whether any client calls the `st_estimatedextent` RPC; if not, remove public execution from the specific overloads, retaining only the minimum required role grants. Re-run the advisor and exercise map, extent, and GIS workflows after staging changes. No grants were changed during this inspection.
+
 ## Required reconciliation sequence
 
 1. Capture a fresh, timestamped read-only inventory of applied migrations, table/column definitions, constraints, indexes, functions, grants, RLS state and policies.
