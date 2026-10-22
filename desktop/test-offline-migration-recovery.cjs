@@ -48,7 +48,7 @@ async function testV1Migration(seedPath) {
   legacyDb.close();
 
   const migrated = await openLocalDatabase({ userDataPath, seedPath });
-  assert(migrated.getStatus().schemaVersion === 2, "v1 database did not migrate to schema 2");
+  assert(migrated.getStatus().schemaVersion === 3, "v1 database did not migrate to schema 3");
   const rows = migrated.listQueue({ limit: 10 });
   const row = rows.find((item) => item.id === legacyItem.id);
   assert(row, "legacy queue row was lost during migration");
