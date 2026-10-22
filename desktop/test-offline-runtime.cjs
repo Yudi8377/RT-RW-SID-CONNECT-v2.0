@@ -10,7 +10,8 @@ const expected = {
   permissions: 6,
   role_permissions: 2,
   organizations: 1,
-  exchange_datasets: 5
+  exchange_datasets: 5,
+  residents: 0
 };
 
 (async () => {
@@ -23,12 +24,25 @@ const expected = {
   assert(firstStatus.seeded === true, "database was not seeded");
   assert(firstStatus.queuePending === 0, "unexpected pending queue rows");
   assertDeepEqual(firstStatus.tableCounts, expected, "initial table counts");
+  const saved = first.saveResident({ resident_code: "W-TEST-001", display_name: "Warga Uji Satu", rt_code: "001", rw_code: "001", status: "ACTIVE" });
+  assert(saved.id && first.listResidents().length === 1, "local resident create/read failed");
+  assert(first.getStatus().queuePending === 1, "resident write was not added to the offline queue");
   first.close();
 
   const second = await openLocalDatabase({ userDataPath, seedPath });
   const secondStatus = second.getStatus();
-  assertDeepEqual(secondStatus.tableCounts, expected, "persisted table counts");
-  assert(secondStatus.queuePending === 0, "queue changed after reopen");
+  const expectedPersisted = { ...expected, residents: 1 };
+  assertDeepEqual(secondStatus.tableCounts, expectedPersisted, "persisted table counts");
+  assert(secondStatus.queuePending === 1, "resident and queue did not persist after reopen");
+  const persistedResident = second.listResidents().find((item) => item.id === saved.id);
+  assert(persistedResident && persistedResident.display_name === "Warga Uji Satu", "resident row was not persisted");
+  const updated = second.saveResident({ ...persistedResident, display_name: "Warga Uji Diperbarui" });
+  assert(updated.display_name === "Warga Uji Diperbarui", "local resident update failed");
+  assert(second.listResidents().length === 1, "resident update created a duplicate row");
+  const deleted = second.deleteResident(saved.id);
+  assert(deleted.deleted && second.listResidents().length === 0, "local resident delete failed");
+  assert(second.getStatus().queuePending === 3, "create/update/delete operations were not queued");
+  second.close();
   second.close();
 
   const seedText = fs.readFileSync(seedPath, "utf8").toLowerCase();
