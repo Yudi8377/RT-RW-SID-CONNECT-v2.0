@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const initSqlJs = require("sql.js");
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const DEFAULT_MAX_RETRIES = 3;
 
 async function openLocalDatabase({ userDataPath, seedPath }) {
@@ -24,6 +24,11 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
     persist(db, dbPath);
   } else if (version === 1) {
     migrateQueueSchema(db);
+    createLocalResidentsTable(db);
+    db.run("UPDATE local_meta SET value=? WHERE key='schema_version'", [String(SCHEMA_VERSION)]);
+    persist(db, dbPath);
+  } else if (version === 2) {
+    createLocalResidentsTable(db);
     db.run("UPDATE local_meta SET value=? WHERE key='schema_version'", [String(SCHEMA_VERSION)]);
     persist(db, dbPath);
   } else if (version !== SCHEMA_VERSION) {
@@ -49,9 +54,44 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
           permissions: Number(scalar(db, "SELECT COUNT(*) FROM permissions") || 0),
           role_permissions: Number(scalar(db, "SELECT COUNT(*) FROM role_permissions") || 0),
           organizations: Number(scalar(db, "SELECT COUNT(*) FROM organizations") || 0),
-          exchange_datasets: Number(scalar(db, "SELECT COUNT(*) FROM exchange_datasets") || 0)
+          exchange_datasets: Number(scalar(db, "SELECT COUNT(*) FROM exchange_datasets") || 0),
+          residents: Number(scalar(db, "SELECT COUNT(*) FROM local_residents") || 0)
         }
       };
+    },
+    listResidents({ limit = 200 } = {}) {
+      const safeLimit = Math.max(1, Math.min(500, Number(limit) || 200));
+      return residentRows(db.exec("SELECT id, resident_code, display_name, rt_code, rw_code, status, created_at, updated_at FROM local_residents ORDER BY rt_code, rw_code, resident_code LIMIT ?", [safeLimit]));
+    },
+    saveResident({ id, resident_code, display_name, rt_code, rw_code, status = "ACTIVE" }) {
+      const residentId = id ? String(id) : cryptoRandomId();
+      const residentCode = String(resident_code || "").trim().toUpperCase();
+      const displayName = String(display_name || "").trim();
+      const rtCode = String(rt_code || "").trim();
+      const rwCode = String(rw_code || "").trim();
+      const residentStatus = status === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+      if (!/^[A-Z0-9-]{2,24}$/.test(residentCode)) throw new Error("Kode warga harus 2–24 karakter A-Z, angka, atau tanda hubung.");
+      if (!displayName || displayName.length > 100) throw new Error("Nama tampilan wajib diisi dan maksimal 100 karakter.");
+      if (!/^\d{1,3}$/.test(rtCode) || !/^\d{1,3}$/.test(rwCode)) throw new Error("Kode RT dan RW harus 1–3 digit.");
+      const now = new Date().toISOString();
+      const existing = db.exec("SELECT created_at FROM local_residents WHERE id=? LIMIT 1", [residentId]);
+      const createdAt = existing[0]?.values?.[0]?.[0] || now;
+      db.run("INSERT OR REPLACE INTO local_residents(id, resident_code, display_name, rt_code, rw_code, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [residentId, residentCode, displayName, rtCode.padStart(3, "0"), rwCode.padStart(3, "0"), residentStatus, createdAt, now]);
+      const payload = { id: residentId, resident_code: residentCode, display_name: displayName, rt_code: rtCode.padStart(3, "0"), rw_code: rwCode.padStart(3, "0"), status: residentStatus, created_at: createdAt, updated_at: now };
+      this.enqueue({ entityType: "resident", operation: "UPSERT", payload, createdAt: now, idempotencyKey: "resident:" + residentId + ":upsert:" + cryptoRandomId(), conflictKey: "resident:" + residentId });
+      persist(db, dbPath);
+      return payload;
+    },
+    deleteResident(id) {
+      const residentId = String(id || "");
+      const existing = db.exec("SELECT id, resident_code FROM local_residents WHERE id=? LIMIT 1", [residentId]);
+      if (!existing[0]?.values?.[0]) return { deleted: false, id: residentId };
+      const [rowId, residentCode] = existing[0].values[0];
+      db.run("DELETE FROM local_residents WHERE id=?", [rowId]);
+      const now = new Date().toISOString();
+      this.enqueue({ entityType: "resident", operation: "DELETE", payload: { id: rowId, resident_code: residentCode }, createdAt: now, idempotencyKey: "resident:" + rowId + ":delete:" + cryptoRandomId(), conflictKey: "resident:" + rowId });
+      persist(db, dbPath);
+      return { deleted: true, id: rowId };
     },
     enqueue({ id, entityType, operation, payload, createdAt, idempotencyKey, maxRetries = DEFAULT_MAX_RETRIES, conflictKey }) {
       if (maxRetries < 0 || !Number.isInteger(maxRetries)) throw new Error("maxRetries must be a non-negative integer");
@@ -136,6 +176,7 @@ function seedDatabase(db, seedPath) {
   db.run("CREATE TABLE IF NOT EXISTS role_permissions (role_id TEXT NOT NULL, permission_id TEXT NOT NULL, created_at TEXT, PRIMARY KEY(role_id, permission_id));");
   db.run("CREATE TABLE IF NOT EXISTS organizations (id TEXT PRIMARY KEY, organization_type TEXT, name TEXT, territory_id TEXT, active INTEGER, created_at TEXT);");
   db.run("CREATE TABLE IF NOT EXISTS exchange_datasets (id TEXT PRIMARY KEY, dataset_code TEXT, dataset_name TEXT, source_system TEXT, consumer_system TEXT, classification TEXT, purpose TEXT, active INTEGER, created_at TEXT);");
+  createLocalResidentsTable(db);
   insertRows(db, "platform_core", seed.platform_core, ["id","platform_name","platform_version","environment","created_at"]);
   insertRows(db, "territories", seed.territories, ["id","parent_id","territory_type","code","name","active","created_at"]);
   insertRows(db, "roles", seed.roles, ["id","role_code","role_name","critical","created_at"]);
@@ -145,6 +186,15 @@ function seedDatabase(db, seedPath) {
   insertRows(db, "exchange_datasets", seed.exchange_datasets, ["id","dataset_code","dataset_name","source_system","consumer_system","classification","purpose","active","created_at"]);
 }
 
+function createLocalResidentsTable(db) {
+  db.run("CREATE TABLE IF NOT EXISTS local_residents (id TEXT PRIMARY KEY, resident_code TEXT NOT NULL UNIQUE, display_name TEXT NOT NULL, rt_code TEXT NOT NULL, rw_code TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE','INACTIVE')), created_at TEXT NOT NULL, updated_at TEXT NOT NULL);");
+  db.run("CREATE INDEX IF NOT EXISTS idx_local_residents_scope ON local_residents(rw_code, rt_code, resident_code);");
+}
+function residentRows(result) {
+  const table = result[0];
+  if (!table) return [];
+  return table.values.map((values) => Object.fromEntries(table.columns.map((column, index) => [column, values[index]])));
+}
 function insertRows(db, table, rows, columns) {
   const placeholders = columns.map(() => "?").join(",");
   const sql = "INSERT OR IGNORE INTO " + table + "(" + columns.join(",") + ") VALUES (" + placeholders + ")";

@@ -14,7 +14,7 @@ on:
         default: "v2.0.1"
         type: string
   push:
-    branches: ["offline-windows-installer-v1", "hardening-v2.0.1", "qa/windows-acceptance-harness-v1"]
+    branches: ["offline-windows-installer-v1", "hardening-v2.0.1", "qa/windows-acceptance-harness-v1", "feat/offline-resident-registry-v1"]
 
 permissions:
   contents: write
@@ -41,8 +41,27 @@ jobs:
         working-directory: desktop
         shell: powershell
         run: |
-          npm audit --json | Tee-Object audit-report.json
-          if ($LASTEXITCODE -ne 0) { throw "npm audit found vulnerabilities at high severity or above." }
+          npm audit --json | Tee-Object -FilePath audit-report.json | Out-Null
+          $auditExit = $LASTEXITCODE
+          if (-not (Test-Path audit-report.json)) { throw "npm audit report was not created." }
+          $report = Get-Content audit-report.json -Raw | ConvertFrom-Json
+          if (-not $report.metadata -or -not $report.metadata.vulnerabilities) {
+            throw "npm audit returned no valid vulnerability metadata."
+          }
+          $high = [int]$report.metadata.vulnerabilities.high
+          $critical = [int]$report.metadata.vulnerabilities.critical
+          $moderate = [int]$report.metadata.vulnerabilities.moderate
+          Write-Host "Dependency audit: $critical critical, $high high, $moderate moderate."
+          if ($high -gt 0 -or $critical -gt 0) {
+            throw "Dependency audit blocked: high/critical vulnerabilities must be remediated before packaging."
+          }
+          if ($auditExit -ne 0) {
+            Write-Warning "Low/moderate findings remain recorded in audit-report.json; they do not bypass the high/critical release gate."
+          }
+          # npm audit returns exit code 1 for moderate-only findings too. After explicitly
+          # checking severity above, reset the native exit code so PowerShell does not
+          # fail this step solely because the audit reported allowed moderate findings.
+          $global:LASTEXITCODE = 0
 
       - name: Upload dependency audit
         if: always()
