@@ -14,7 +14,7 @@ on:
         default: "v2.0.1"
         type: string
   push:
-    branches: ["offline-windows-installer-v1", "hardening-v2.0.1", "qa/windows-acceptance-harness-v1"]
+    branches: ["offline-windows-installer-v1", "hardening-v2.0.1", "qa/windows-acceptance-harness-v1", "feat/offline-resident-registry-v1"]
 
 permissions:
   contents: write
