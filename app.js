@@ -40,7 +40,45 @@ function requestedRole(user){const code=user?.user_metadata?.requested_role;retu
 function trialInfo(user){return ADMIN_PREVIEW?previewTrialInfo():null}
 function verified(user){return !!(user?.email_confirmed_at||user?.confirmed_at)}
 async function getCurrentUser(){if(!sb)return null;const r=await sb.auth.getUser();return r.data?.user||null}
-async function resolveAccess(user){if(!user)return{code:"PILOT_VIEWER",source:"signed_out"};try{const q=await sb.from("role_assignments").select("role_id,scope_territory_id,active,ends_at,roles(role_code)").eq("user_id",user.id).eq("active",true);if(!q.error&&q.data?.length){const assigned=q.data.map(x=>x.roles?.role_code).filter(Boolean),selected=selectedRole(),code=assigned.includes(selected)?selected:assigned[0];return{code,source:"assignment",assigned}}}catch(e){console.warn("role resolution",e)}const requested=requestedRole(user);return{code:"PILOT_VIEWER",source:"pending_approval",requestedRole:requested,trial:null}}
+function assignmentCurrent(row,now=Date.now()){
+  if(row?.active!==true)return false;
+  for(const key of ["starts_at","ends_at"]){
+    const raw=row[key];
+    if(raw==null||raw==="")continue;
+    const time=Date.parse(raw);
+    if(!Number.isFinite(time))return false;
+    if(key==="starts_at"&&time>now)return false;
+    if(key==="ends_at"&&time<=now)return false;
+  }
+  return true;
+}
+async function resolveAccess(user){
+  if(!user)return{code:"PILOT_VIEWER",source:"signed_out"};
+  try{
+    const q=await sb.from("role_assignments")
+      .select("role_id,scope_territory_id,organization_id,active,starts_at,ends_at,roles(role_code)")
+      .eq("user_id",user.id)
+      .eq("active",true);
+    if(!q.error&&q.data?.length){
+      const current=q.data.filter(row=>assignmentCurrent(row));
+      const assigned=current.map(row=>{
+        const role=Array.isArray(row.roles)?row.roles[0]:row.roles;
+        return role?.role_code;
+      }).filter(Boolean);
+      if(assigned.length){
+        const selected=selectedRole();
+        const code=assigned.includes(selected)?selected:assigned[0];
+        const scopes=current.filter(row=>{
+          const role=Array.isArray(row.roles)?row.roles[0]:row.roles;
+          return role?.role_code===code;
+        }).map(row=>({territoryId:row.scope_territory_id||null,organizationId:row.organization_id||null}));
+        return{code,source:"assignment",assigned,scopes};
+      }
+    }
+  }catch(e){console.warn("role resolution",e)}
+  const requested=requestedRole(user);
+  return{code:"PILOT_VIEWER",source:"pending_approval",requestedRole:requested,trial:null};
+}
 function closeModal(e){if(!e||e.target===e.currentTarget||!e.target.closest?.(".modal-card"))document.getElementById("modal")?.remove()}
 function modal(title,body,wide=false){let x=document.getElementById("modal");if(!x){x=document.createElement("div");x.id="modal";document.body.appendChild(x)}x.innerHTML='<div class="modal-backdrop" onclick="closeModal(event)"><div class="modal-card '+(wide?"modal-wide":"")+'" onclick="event.stopPropagation()"><button class="modal-x" onclick="closeModal()">×</button><div class="modal-kicker">RT/RW–SID CONNECT · '+esc(modules[state.view]?.[0]||"WORKSPACE")+'</div><h3>'+esc(title)+'</h3>'+body+"</div></div>"}
 async function submitSignUp(){const name=document.getElementById("signup-name")?.value.trim(),email=document.getElementById("signup-email")?.value.trim(),password=document.getElementById("signup-password")?.value||"",confirm=document.getElementById("signup-confirm")?.value||"",role=document.getElementById("signup-role")?.value||"RT_OPERATOR",m=document.getElementById("signup-msg");if(!sb){m.textContent="Supabase belum tersambung.";m.className="modal-msg error";return}if(!name||!email||password.length<8||password!==confirm){m.textContent="Lengkapi data. Password minimal 8 karakter dan harus sama.";m.className="modal-msg error";return}const r=await sb.auth.signUp({email,password,options:{emailRedirectTo:PUBLIC_URL(),data:{display_name:name,requested_role:role}}});if(r.error){m.textContent=r.error.message;m.className="modal-msg error";return}setSelectedRole(role);m.textContent="Pendaftaran berhasil. Cek email untuk verifikasi akun. Dashboard belum dapat dibuka sebelum email diverifikasi.";m.className="modal-msg success";const btn=document.querySelector("[data-signup-submit]");if(btn)btn.disabled=true}
