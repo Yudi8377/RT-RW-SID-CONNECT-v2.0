@@ -72,7 +72,7 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
       const residentStatus = status === "INACTIVE" ? "INACTIVE" : "ACTIVE";
       if (!/^[A-Z0-9-]{2,24}$/.test(residentCode)) throw new Error("Kode warga harus 2–24 karakter A-Z, angka, atau tanda hubung.");
       if (!displayName || displayName.length > 100) throw new Error("Nama tampilan wajib diisi dan maksimal 100 karakter.");
-      if (!/^\\d{1,3}$/.test(rtCode) || !/^\\d{1,3}$/.test(rwCode)) throw new Error("Kode RT dan RW harus 1–3 digit.");
+      if (!/^\d{1,3}$/.test(rtCode) || !/^\d{1,3}$/.test(rwCode)) throw new Error("Kode RT dan RW harus 1–3 digit.");
       const now = new Date().toISOString();
       const existing = db.exec("SELECT created_at FROM local_residents WHERE id=? LIMIT 1", [residentId]);
       const createdAt = existing[0]?.values?.[0]?.[0] || now;
