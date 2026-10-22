@@ -5,44 +5,209 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>RT/RW–SID CONNECT v2.0 — Offline</title>
 <style>
-body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#08111f;color:#e8eef7}
-main{max-width:1000px;margin:0 auto;padding:48px 32px}
-.card{background:#101c2d;border:1px solid #26364d;border-radius:18px;padding:24px;margin:18px 0}
-h1{margin:0 0 8px;font-size:30px}.muted{color:#9fb0c7}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.metric{padding:18px;background:#0b1626;border-radius:14px}.value{font-size:24px;font-weight:700;margin-top:6px}
-.ok{color:#70e1a1}.warn{color:#ffd37a}
-button{background:#e8eef7;color:#08111f;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
-@media(max-width:700px){.grid{grid-template-columns:1fr}}
+:root{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#08111f;color:#e8eef7}
+*{box-sizing:border-box}body{margin:0;background:#08111f;color:#e8eef7}
+main{max-width:1100px;margin:0 auto;padding:28px 20px 48px}
+.card{background:#101c2d;border:1px solid #26364d;border-radius:16px;padding:20px;margin:16px 0}
+h1{margin:0 0 8px;font-size:28px}h2{margin:0 0 12px;font-size:20px}.muted{color:#9fb0c7}
+.statusline{font-size:14px;line-height:1.6}.ok{color:#70e1a1}.warn{color:#ffd37a}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.metric{padding:14px;background:#0b1626;border-radius:12px}.value{font-size:22px;font-weight:700;margin-top:5px}
+form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:end}
+label{display:grid;gap:6px;color:#bdcce0;font-size:13px}
+input,select{width:100%;min-width:0;background:#091321;color:#e8eef7;border:1px solid #354a66;border-radius:9px;padding:10px;font:inherit}
+button{background:#e8eef7;color:#08111f;border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer}
+button.secondary{background:#23354c;color:#e8eef7}button.danger{background:#5d2932;color:#fff}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.message{min-height:24px;margin-top:10px;font-size:14px}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:720px}th,td{text-align:left;padding:10px;border-bottom:1px solid #26364d}th{color:#9fb0c7;font-size:12px;text-transform:uppercase;letter-spacing:.04em}td{font-size:14px}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#1d4938;color:#8ff0b5;font-size:12px}.badge.inactive{background:#493a1e;color:#ffd37a}
+@media(max-width:760px){main{padding:16px 12px 30px}.card{padding:15px}form{grid-template-columns:repeat(2,minmax(0,1fr))}h1{font-size:23px}}
+@media(max-width:430px){form{grid-template-columns:1fr}.actions button{flex:1}}
 </style>
 </head>
 <body>
 <main>
-  <div class="card">
+  <section class="card">
     <h1>RT/RW–SID CONNECT v2.0</h1>
-    <div class="muted">Windows Offline Runtime</div>
-    <p class="ok">● Mode offline aktif — tidak membutuhkan koneksi Supabase untuk membuka aplikasi ini.</p>
-  </div>
-  <div class="card">
-    <h2>Local Database</h2>
-    <div id="status" class="muted">Memuat status...</div>
+    <div class="muted">Windows Offline Runtime · Registri Warga Lokal</div>
+    <p class="statusline ok">● Mode lokal aktif. Data pada layar ini disimpan di perangkat dan tidak memerlukan koneksi internet.</p>
+    <p class="statusline muted">Paket awal berisi data referensi. Jangan masukkan NIK, data kesehatan, atau data sensitif ke dalam uji coba ini.</p>
+  </section>
+  <section class="card">
+    <h2>Status Database Lokal</h2>
+    <div id="status" class="muted" aria-live="polite">Memuat status...</div>
     <div class="grid" id="metrics"></div>
-  </div>
-  <div class="card">
-    <h2>Data Bootstrap</h2>
-    <p class="muted">Master/reference data berasal dari paket snapshot Supabase yang dikontrol. Data pribadi dan transaksi produksi tidak dibundel ke installer.</p>
-    <button onclick="location.reload()">Refresh Status</button>
-  </div>
+  </section>
+  <section class="card">
+    <h2 id="form-title">Tambah Data Warga (Data Uji)</h2>
+    <form id="resident-form">
+      <input id="resident-id" type="hidden">
+      <label>Kode warga
+        <input id="resident-code" required maxlength="24" pattern="[A-Za-z0-9-]{2,24}" placeholder="W-0001" autocomplete="off">
+      </label>
+      <label>Nama tampilan
+        <input id="display-name" required maxlength="100" placeholder="Contoh: Warga Uji 01" autocomplete="off">
+      </label>
+      <label>RT
+        <input id="rt-code" required maxlength="3" pattern="[0-9]{1,3}" value="001" inputmode="numeric">
+      </label>
+      <label>RW
+        <input id="rw-code" required maxlength="3" pattern="[0-9]{1,3}" value="001" inputmode="numeric">
+      </label>
+      <label>Status
+        <select id="resident-status"><option value="ACTIVE">Aktif</option><option value="INACTIVE">Tidak aktif</option></select>
+      </label>
+      <div class="actions">
+        <button type="submit" id="save-button">Simpan lokal</button>
+        <button type="button" class="secondary" id="reset-button">Batal</button>
+      </div>
+    </form>
+    <div id="resident-message" class="message" aria-live="polite"></div>
+  </section>
+  <section class="card">
+    <h2>Daftar Warga Uji</h2>
+    <p class="muted">Perubahan disimpan lokal dan masuk ke antrean. Konektor sinkronisasi ke server belum diaktifkan pada build offline ini.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Kode</th><th>Nama tampilan</th><th>RT</th><th>RW</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody id="resident-rows"><tr><td colspan="6" class="muted">Memuat data...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
 </main>
 <script>
-(async()=>{
-  const status=document.getElementById("status"), metrics=document.getElementById("metrics");
-  try{
-    const s=await window.rtRwSidOffline.getStatus();
-    status.innerHTML='<span class="ok">Database siap.</span> Schema v'+s.schemaVersion+' · Seed '+(s.seeded?'OK':'BELUM')+' · Queue pending '+s.queuePending;
-    const counts=s.tableCounts||{};
-    metrics.innerHTML=Object.entries(counts).map(([k,v])=>'<div class="metric"><div class="muted">'+k+'</div><div class="value">'+v+'</div></div>').join('');
-  }catch(e){status.innerHTML='<span class="warn">Database belum siap:</span> '+String(e)}
+(() => {
+  const bridge = window.rtRwSidOffline;
+  const form = document.getElementById("resident-form");
+  const formTitle = document.getElementById("form-title");
+  const message = document.getElementById("resident-message");
+  const saveButton = document.getElementById("save-button");
+  const rowsNode = document.getElementById("resident-rows");
+  let residents = [];
+
+  function say(text, isError = false) {
+    message.textContent = text;
+    message.className = "message " + (isError ? "warn" : "ok");
+  }
+  function cell(row, value) {
+    const td = document.createElement("td");
+    td.textContent = value == null ? "" : String(value);
+    row.appendChild(td);
+    return td;
+  }
+  function resetForm() {
+    form.reset();
+    document.getElementById("resident-id").value = "";
+    document.getElementById("rt-code").value = "001";
+    document.getElementById("rw-code").value = "001";
+    formTitle.textContent = "Tambah Data Warga (Data Uji)";
+    saveButton.textContent = "Simpan lokal";
+  }
+  function renderResidents() {
+    rowsNode.replaceChildren();
+    if (!residents.length) {
+      const tr = document.createElement("tr");
+      const td = cell(tr, "Belum ada data warga uji. Tambahkan data melalui formulir di atas.");
+      td.colSpan = 6;
+      td.className = "muted";
+      rowsNode.appendChild(tr);
+      return;
+    }
+    residents.forEach((resident) => {
+      const tr = document.createElement("tr");
+      cell(tr, resident.resident_code);
+      cell(tr, resident.display_name);
+      cell(tr, resident.rt_code);
+      cell(tr, resident.rw_code);
+      const statusCell = document.createElement("td");
+      const badge = document.createElement("span");
+      badge.className = "badge" + (resident.status === "INACTIVE" ? " inactive" : "");
+      badge.textContent = resident.status === "INACTIVE" ? "Tidak aktif" : "Aktif";
+      statusCell.appendChild(badge);
+      tr.appendChild(statusCell);
+      const actionCell = document.createElement("td");
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "secondary";
+      edit.textContent = "Ubah";
+      edit.addEventListener("click", () => {
+        document.getElementById("resident-id").value = resident.id;
+        document.getElementById("resident-code").value = resident.resident_code;
+        document.getElementById("display-name").value = resident.display_name;
+        document.getElementById("rt-code").value = resident.rt_code;
+        document.getElementById("rw-code").value = resident.rw_code;
+        document.getElementById("resident-status").value = resident.status;
+        formTitle.textContent = "Ubah Data Warga Uji";
+        saveButton.textContent = "Simpan perubahan";
+        document.getElementById("resident-code").focus();
+      });
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "danger";
+      remove.textContent = "Hapus";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm("Hapus data uji ini dari perangkat?")) return;
+        try {
+          await bridge.deleteResident(resident.id);
+          say("Data dihapus dari perangkat dan peristiwa penghapusan masuk antrean lokal.");
+          await refresh();
+        } catch (error) { say(String(error.message || error), true); }
+      });
+      actions.append(edit, remove);
+      actionCell.appendChild(actions);
+      tr.appendChild(actionCell);
+      rowsNode.appendChild(tr);
+    });
+  }
+  async function refresh() {
+    const status = await bridge.getStatus();
+    document.getElementById("status").textContent =
+      "Database siap · Skema v" + status.schemaVersion +
+      " · Seed " + (status.seeded ? "OK" : "belum tersedia") +
+      " · Antrean menunggu " + status.queuePending +
+      " · Gagal " + status.queueFailed +
+      " · Dead letter " + status.queueDeadLetter;
+    const metrics = document.getElementById("metrics");
+    metrics.replaceChildren();
+    Object.entries(status.tableCounts || {}).forEach(([key, value]) => {
+      const card = document.createElement("div");
+      card.className = "metric";
+      const label = document.createElement("div");
+      label.className = "muted";
+      label.textContent = key.replaceAll("_", " ");
+      const number = document.createElement("div");
+      number.className = "value";
+      number.textContent = String(value);
+      card.append(label, number);
+      metrics.appendChild(card);
+    });
+    residents = await bridge.listResidents();
+    renderResidents();
+  }
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    saveButton.disabled = true;
+    try {
+      await bridge.saveResident({
+        id: document.getElementById("resident-id").value || undefined,
+        resident_code: document.getElementById("resident-code").value,
+        display_name: document.getElementById("display-name").value,
+        rt_code: document.getElementById("rt-code").value,
+        rw_code: document.getElementById("rw-code").value,
+        status: document.getElementById("resident-status").value
+      });
+      say("Data tersimpan di perangkat. Perubahan ditambahkan ke antrean lokal.");
+      resetForm();
+      await refresh();
+    } catch (error) { say(String(error.message || error), true); }
+    finally { saveButton.disabled = false; }
+  });
+  document.getElementById("reset-button").addEventListener("click", resetForm);
+  refresh().catch((error) => {
+    document.getElementById("status").textContent = "Database belum siap: " + String(error.message || error);
+  });
 })();
 </script>
 </body>
