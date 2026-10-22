@@ -38,7 +38,7 @@ app.whenReady().then(async () => {
     const status = input.status === "INACTIVE" ? "INACTIVE" : "ACTIVE";
     if (!/^[A-Z0-9-]{2,24}$/.test(residentCode)) throw new Error("Kode warga harus 2–24 karakter A-Z, angka, atau tanda hubung.");
     if (!displayName || displayName.length > 100) throw new Error("Nama tampilan wajib diisi dan maksimal 100 karakter.");
-    if (!/^\\d{1,3}$/.test(rtCode) || !/^\\d{1,3}$/.test(rwCode)) throw new Error("Kode RT dan RW harus 1–3 digit.");
+    if (!/^\d{1,3}$/.test(rtCode) || !/^\d{1,3}$/.test(rwCode)) throw new Error("Kode RT dan RW harus 1–3 digit.");
     if (input.id && !/^[0-9a-f-]{36}$/i.test(String(input.id))) throw new Error("ID warga tidak valid.");
     return localDatabase.saveResident({ id: input.id || undefined, resident_code: residentCode, display_name: displayName, rt_code: rtCode, rw_code: rwCode, status });
   });
