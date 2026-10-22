@@ -78,7 +78,7 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
       const createdAt = existing[0]?.values?.[0]?.[0] || now;
       db.run("INSERT OR REPLACE INTO local_residents(id, resident_code, display_name, rt_code, rw_code, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [residentId, residentCode, displayName, rtCode.padStart(3, "0"), rwCode.padStart(3, "0"), residentStatus, createdAt, now]);
       const payload = { id: residentId, resident_code: residentCode, display_name: displayName, rt_code: rtCode.padStart(3, "0"), rw_code: rwCode.padStart(3, "0"), status: residentStatus, created_at: createdAt, updated_at: now };
-      this.enqueue({ entityType: "resident", operation: "UPSERT", payload, createdAt: now, idempotencyKey: "resident:" + residentId + ":upsert:" + now, conflictKey: "resident:" + residentId });
+      this.enqueue({ entityType: "resident", operation: "UPSERT", payload, createdAt: now, idempotencyKey: "resident:" + residentId + ":upsert:" + cryptoRandomId(), conflictKey: "resident:" + residentId });
       persist(db, dbPath);
       return payload;
     },
@@ -89,7 +89,7 @@ async function openLocalDatabase({ userDataPath, seedPath }) {
       const [rowId, residentCode] = existing[0].values[0];
       db.run("DELETE FROM local_residents WHERE id=?", [rowId]);
       const now = new Date().toISOString();
-      this.enqueue({ entityType: "resident", operation: "DELETE", payload: { id: rowId, resident_code: residentCode }, createdAt: now, idempotencyKey: "resident:" + rowId + ":delete:" + now, conflictKey: "resident:" + rowId });
+      this.enqueue({ entityType: "resident", operation: "DELETE", payload: { id: rowId, resident_code: residentCode }, createdAt: now, idempotencyKey: "resident:" + rowId + ":delete:" + cryptoRandomId(), conflictKey: "resident:" + rowId });
       persist(db, dbPath);
       return { deleted: true, id: rowId };
     },
