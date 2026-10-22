@@ -8,6 +8,7 @@ const { OfflineQueueEngine, QUEUE_STATUSES } = require("./offline-queue.cjs");
 (async () => {
   const seedPath = path.resolve(__dirname, "..", "offline-data", "supabase-snapshot-v1.0", "master-data.json");
   await testV1Migration(seedPath);
+  await testV2Migration(seedPath);
   await testStaleProcessingRecovery(seedPath);
   console.log(JSON.stringify({
     ok: true,
@@ -39,6 +40,7 @@ async function testV1Migration(seedPath) {
   });
   const legacyDb = new SQL.Database(fs.readFileSync(dbPath));
 
+  legacyDb.run("DROP TABLE IF EXISTS local_residents");
   legacyDb.run("ALTER TABLE offline_queue RENAME TO offline_queue_v2");
   legacyDb.run("CREATE TABLE offline_queue (id TEXT PRIMARY KEY, entity_type TEXT NOT NULL, operation TEXT NOT NULL, payload_json TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', created_at TEXT NOT NULL, synced_at TEXT, error_message TEXT)");
   legacyDb.run("INSERT INTO offline_queue(id, entity_type, operation, payload_json, status, created_at, synced_at, error_message) SELECT id, entity_type, operation, payload_json, status, created_at, synced_at, error_message FROM offline_queue_v2");
@@ -56,6 +58,27 @@ async function testV1Migration(seedPath) {
   assert(row.idempotencyKey === legacyItem.id, "legacy idempotency key was not backfilled");
   assert(row.retryCount === 0 && row.maxRetries === 3, "legacy retry defaults were not backfilled");
   assert(migrated.getStatus().tableCounts.organizations === 1, "seeded data was damaged during migration");
+  assert(migrated.getStatus().tableCounts.residents === 0, "resident table was not created by legacy migration");
+  migrated.close();
+}
+
+async function testV2Migration(seedPath) {
+  const userDataPath = fs.mkdtempSync(path.join(os.tmpdir(), "rtrw-sid-v2-migration-"));
+  const initial = await openLocalDatabase({ userDataPath, seedPath });
+  initial.close();
+  const dbPath = path.join(userDataPath, "data", "rt-rw-sid-connect.sqlite");
+  const SQL = await initSqlJs({
+    locateFile: (file) => path.join(__dirname, "node_modules", "sql.js", "dist", file)
+  });
+  const legacyDb = new SQL.Database(fs.readFileSync(dbPath));
+  legacyDb.run("DROP TABLE IF EXISTS local_residents");
+  legacyDb.run("UPDATE local_meta SET value='2' WHERE key='schema_version'");
+  fs.writeFileSync(dbPath, Buffer.from(legacyDb.export()));
+  legacyDb.close();
+
+  const migrated = await openLocalDatabase({ userDataPath, seedPath });
+  assert(migrated.getStatus().schemaVersion === 3, "v2 database did not migrate to schema 3");
+  assert(migrated.getStatus().tableCounts.residents === 0, "v2 migration did not create the local resident table");
   migrated.close();
 }
 
