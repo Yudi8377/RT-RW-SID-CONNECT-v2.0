@@ -56,8 +56,12 @@ jobs:
             throw "Dependency audit blocked: high/critical vulnerabilities must be remediated before packaging."
           }
           if ($auditExit -ne 0) {
-            Write-Warning "Low/moderate findings remain recorded in audit-report.json; they do not bypass the high/critical release gate." 
+            Write-Warning "Low/moderate findings remain recorded in audit-report.json; they do not bypass the high/critical release gate."
           }
+          # npm audit returns exit code 1 for moderate-only findings too. After explicitly
+          # checking severity above, reset the native exit code so PowerShell does not
+          # fail this step solely because the audit reported allowed moderate findings.
+          $global:LASTEXITCODE = 0
 
       - name: Upload dependency audit
         if: always()
