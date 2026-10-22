@@ -7,6 +7,8 @@ on:
       - 'app.js'
       - 'supabase/migrations/**'
       - 'docs/regional-dashboard-hierarchy.md'
+      - 'scripts/check-entitlements-migration.sh'
+      - 'scripts/check-entitlements-migration.sh'
       - '.github/workflows/regional-dashboard-quality.yml'
   push:
     branches: [feat/regional-dashboard-hierarchy-v1]
@@ -29,6 +31,8 @@ jobs:
         run: node --check app.js
       - name: Check whitespace errors
         run: git diff --check
+      - name: Check entitlement migration static safety
+        run: bash scripts/check-entitlements-migration.sh
       - name: Check regional migration safety markers
         shell: bash
         run: |
