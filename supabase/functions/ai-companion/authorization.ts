@@ -69,8 +69,9 @@ export function authorizeCompanionRole(
     return { allowed: false, status: 403, reason: "ROLE_NOT_ASSIGNED" };
   }
 
+  const nowMs = now.getTime();
   const matches = assignments.filter((assignment) =>
-    assignmentIsCurrent(assignment, now) &&
+    assignmentIsCurrent(assignment, nowMs) &&
     assignment.role_code === requiredRoleCode &&
     typeof assignment.scope_territory_id === "string" &&
     assignment.scope_territory_id.length > 0 &&
