@@ -43,7 +43,6 @@ const expected = {
   assert(deleted.deleted && second.listResidents().length === 0, "local resident delete failed");
   assert(second.getStatus().queuePending === 3, "create/update/delete operations were not queued");
   second.close();
-  second.close();
 
   const seedText = fs.readFileSync(seedPath, "utf8").toLowerCase();
   const shellText = fs.readFileSync(path.join(__dirname, "offline-shell.html"), "utf8").toLowerCase();
