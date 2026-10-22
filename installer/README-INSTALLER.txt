@@ -1,20 +1,24 @@
-RT/RW-SID-CONNECT v2.0.1 - Windows Offline Installer
+RT/RW-SID-CONNECT Windows Launcher v2.0.1
 
-Paket:
-- Trial 7 Hari: fitur inti terbatas selama 7 hari.
-- Pro: pilihan instalasi untuk pengguna yang akan melakukan aktivasi Pro.
-- Enterprise: pilihan instalasi untuk pengguna yang akan melakukan aktivasi Enterprise.
+STATUS
+This package installs a desktop shortcut/launcher. It is NOT a native Windows application and it does NOT contain an offline copy of the SIM RT/RW application.
 
-Catatan penting:
-Installer ini memasang launcher desktop secara offline. Aplikasi RT/RW-SID-CONNECT yang dibuka launcher berjalan pada layanan web resmi:
-https://rtrw-sid-connect-v20.hatchable.site
+OFFICIAL APPLICATION
+https://yudi8377.github.io/RT-RW-SID-CONNECT-v2.0/
 
-Karena itu, installer dapat dipasang tanpa mengunduh komponen tambahan, tetapi penggunaan aplikasi memerlukan koneksi internet.
+REQUIREMENTS
+- Windows desktop
+- An internet connection
+- A supported web browser
 
-Trial:
-- Trial dibatasi 7 hari oleh aplikasi.
-- Login tidak lagi menjadi jalan untuk melewati batas paket.
-- Setelah Trial berakhir, pengguna diarahkan untuk memilih Pro atau Enterprise.
-- Pro/Enterprise yang dipilih saat instalasi tetap berstatus pending_activation sampai lisensi benar-benar diaktifkan.
+BEHAVIOR
+- The launcher opens the official GitHub Pages application in the default browser.
+- It does not install a local database, run a local server, or synchronize offline data.
+- It does not activate a subscription or grant Pro/Enterprise permissions.
+- Subscription entitlements and role/scope permissions must be enforced by the server; changing local files must never grant access.
 
-Jangan mengedit license.ini untuk mencoba membuka paket berbayar. Status paket harus diaktifkan melalui License Manager/administrator.
+KNOWN LIMITATION
+Issue #43 tracks the separate product blocker: the current Windows package is a web launcher, not an operational offline/native SIM RT/RW OS. This change makes the launcher destination accurate and removes the unrelated Hatchable URL; it does not resolve the offline/native application requirement.
+
+SECURITY
+The installer is designed to run without administrator privileges. Do not put Supabase service-role keys, passwords, or other secrets in this package.
