@@ -38,6 +38,12 @@ values
   ('TRIAL_7_DAY', 'Trial 7 Hari', 'TRIAL', 7, 0, 'IDR', true, 'Uji coba gratis selama tujuh hari untuk satu organisasi')
 on conflict (plan_code) do nothing;
 
+insert into public.subscription_plan_features (plan_id, feature_code, enabled, numeric_limit, config)
+select p.id, 'device_limit', true, 1, '{"description":"Maksimal satu perangkat untuk Trial 7 Hari"}'::jsonb
+from public.subscription_plans p
+where p.plan_code = 'TRIAL_7_DAY'
+on conflict (plan_id, feature_code) do nothing;
+
 create table if not exists public.organization_subscriptions (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete restrict,
