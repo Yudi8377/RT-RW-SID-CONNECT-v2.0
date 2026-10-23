@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
-const ROLE_ALLOW=["RT_OPERATOR","RW_REVIEWER","VILLAGE_VALIDATOR","PLATFORM_ADMIN","PILOT_VIEWER"];
 const CANONICAL=new Set(["BUSINESS","TRADE","EMPLOYMENT","EDUCATION","HEALTH","ENVIRONMENT","INFRASTRUCTURE","VOLUNTEER","PLANNING","DISASTER","ORGANIZATION"]);
 const text=(v)=>v==null||v===""?null:String(v).trim()||null;
 const num=(v)=>v==null||v===""?0:Number(v);
@@ -14,10 +13,22 @@ Deno.serve(async(req)=>{
   const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const body=await req.json(); const service_type=String(body.service_type||"").trim().toUpperCase(); const territory_id=String(body.territory_id||"").trim(); const p=body.payload&&typeof body.payload==="object"?body.payload:{};
   if(!service_type||!territory_id)throw new Error("service_type and territory_id are required");
-  const {data:assign,error:ae}=await admin.from("role_assignments").select("id,organization_id,roles(role_code)").eq("user_id",user.id).eq("scope_territory_id",territory_id).eq("active",true);
-  if(ae)throw ae; const roles=(assign||[]).map((x)=>x.roles?.role_code).filter(Boolean);
-  if(!roles.some((r)=>ROLE_ALLOW.includes(r)))throw new Error("User is not authorized for this RT territory");
-  if(["HEALTH","EDUCATION"].includes(service_type)&&!roles.some((r)=>["RT_OPERATOR","VILLAGE_VALIDATOR","PLATFORM_ADMIN"].includes(r)))throw new Error("Sensitive domain requires RT_OPERATOR or village validation authority");
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(territory_id))throw new Error("INVALID_TERRITORY_ID");
+  const {data:territory,error:te}=await admin.from("territories").select("id,territory_type,active").eq("id",territory_id).maybeSingle();
+  if(te)throw te;
+  if(!territory||territory.active!==true||territory.territory_type!=="RT")throw Object.assign(new Error("RT_SCOPE_REQUIRED"),{status:403});
+  const {data:assign,error:ae}=await admin.from("role_assignments").select("id,organization_id,starts_at,ends_at,roles(role_code)").eq("user_id",user.id).eq("scope_territory_id",territory_id).eq("active",true);
+  if(ae)throw ae;
+  const now=Date.now();
+  const current=(assign||[]).filter(x=>x.active===true&&(!x.starts_at||Date.parse(x.starts_at)<=now)&&(!x.ends_at||Date.parse(x.ends_at)>now));
+  const orgIds=[...new Set(current.map(x=>x.organization_id).filter(Boolean))];
+  const orgResult=orgIds.length?await admin.from("organizations").select("id,active").in("id",orgIds):{data:[],error:null};
+  if(orgResult.error)throw orgResult.error;
+  const activeOrganizations=new Set((orgResult.data||[]).filter(x=>x.active===true).map(x=>x.id));
+  const authorized=current.some(x=>x.roles?.role_code==="RT_OPERATOR"&&!!x.organization_id&&activeOrganizations.has(x.organization_id));
+  if(!authorized)throw Object.assign(new Error("ACTIVE_RT_ASSIGNMENT_AND_ORGANIZATION_REQUIRED"),{status:403});
+  const roles=current.map(x=>x.roles?.role_code).filter(Boolean);
+  if(["HEALTH","EDUCATION"].includes(service_type)&&!roles.includes("RT_OPERATOR"))throw Object.assign(new Error("SENSITIVE_DOMAIN_REQUIRES_RT_OPERATOR"),{status:403});
   if(service_type==="HOUSEHOLD"){
     const applicant_name=text(p.applicant_name||p.head_name); const address=text(p.address); const rt=text(p.rt||p.RT); const rw=text(p.rw||p.RW);
     const request_kk=Boolean(p.request_kk||p.request_type);
@@ -54,5 +65,5 @@ Deno.serve(async(req)=>{
   const {data:record,error:re}=await admin.from("rt_service_requests").insert({territory_id,service_type,payload:p,status:"SUBMITTED",created_by:user.id,authority:"RT_DIGITAL"}).select().single();if(re)throw re;
   await admin.from("audit_logs").insert({actor_user_id:user.id,action:"RT_SERVICE_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"RT_DIGITAL",authority:roles.join(",")});
   return new Response(JSON.stringify({ok:true,type:"SERVICE_REQUEST",record}),{headers:{...cors,"Content-Type":"application/json"}});
- }catch(e){return new Response(JSON.stringify({ok:false,error:String(e?.message||e)}),{status:400,headers:{...cors,"Content-Type":"application/json"}})}
+ }catch(e){const status=Number((e as {status?:number})?.status)||400;return new Response(JSON.stringify({ok:false,error:String((e as {message?:string})?.message||e)}),{status,headers:{...cors,"Content-Type":"application/json"}})}
 });
