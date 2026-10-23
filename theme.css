@@ -300,3 +300,10 @@
 .production-gate-message b{display:block;margin-bottom:8px}
 .production-gate-message p{margin:8px 0 0;color:var(--muted,#64748b)}
 .production-gate-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+
+.scope-type{display:block;color:var(--muted,#64748b);font-size:.72rem;margin-top:4px}
+.scope-audit-warning{border:1px solid #f1c27d;background:#fff9ed}
+.scope-audit-warning h3{margin:8px 0;font-size:1.15rem}
+.scope-audit-warning p{line-height:1.65;color:var(--muted,#64748b);margin:0}
+.status.warning{color:#8a4b08;background:#fff0d6;border:1px solid #f2d2a0}
