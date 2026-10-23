@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { resolveTransactionAuthorization } from "../_shared/transaction-authorization.ts";
+import { resolveTransactionAuthorization, sanitizeSensitivePayload } from "../_shared/transaction-authorization.ts";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const CANONICAL=new Set(["BUSINESS","TRADE","EMPLOYMENT","EDUCATION","HEALTH","ENVIRONMENT","INFRASTRUCTURE","VOLUNTEER","PLANNING","DISASTER","ORGANIZATION"]);
 const text=(v)=>v==null||v===""?null:String(v).trim()||null;
@@ -8,6 +8,7 @@ class HttpError extends Error { constructor(status:number,message:string){super(
 const json=(body:unknown,status=200,requestId?:string)=>new Response(JSON.stringify({...body,...(requestId?{request_id:requestId}:{})}),{status,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
 async function hashNIK(v){if(!v)return null;const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(String(v).trim()));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("")}
 async function writeAudit(admin:any,row:any,requestId:string){const {error}=await admin.from("audit_logs").insert(row);if(error){console.error("[rt-transaction:audit]",requestId,error.message||"audit insert failed");return false;}return true;}
+async function findPersonIdsByNIK(admin:any,nikValues:string[]){const unique=[...new Set(nikValues.filter(Boolean))];if(!unique.length)return new Map<string,string>();const hashes=await Promise.all(unique.map(hashNIK));const {data,error}=await admin.from("persons").select("id,national_id_hash").in("national_id_hash",hashes);if(error)throw error;return new Map((data||[]).filter(x=>x.national_id_hash).map(x=>[x.national_id_hash,x.id]));}
 Deno.serve(async(req)=>{
  const requestId=crypto.randomUUID();
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
@@ -55,14 +56,32 @@ Deno.serve(async(req)=>{
     const applicant_name=text(p.applicant_name||p.head_name); const address=text(p.address); const rt=text(p.rt||p.RT); const rw=text(p.rw||p.RW);
     const request_kk=Boolean(p.request_kk||p.request_type);
     if(!applicant_name||!address||!rt||!rw||!request_kk)throw new HttpError(400,"F-1.02 requires applicant, address, RT, RW and KK request");
-    if(p.applicant_nik && !/^\d{16}$/.test(String(p.applicant_nik)))throw new HttpError(400,"NIK Pemohon must contain 16 digits");
-    const members=Array.isArray(p.members)?p.members:[]; if(members.some(m=>!m?.full_name))throw new HttpError(400,"Every household member requires full_name");
+    const applicantNik=text(p.applicant_nik||p["NIK Pemohon"]);
+    if(applicantNik && !/^\\d{16}$/.test(applicantNik))throw new HttpError(400,"NIK Pemohon must contain 16 digits");
+    const members=Array.isArray(p.members)?p.members:[];
+    if(members.length>50)throw new HttpError(400,"A household request can contain at most 50 members");
+    if(members.some(m=>!m?.full_name))throw new HttpError(400,"Every household member requires full_name");
+    const memberNiks=members.map(m=>text(m.nik||m.NIK||m["NIK Warga"]||m.national_id));
+    if(memberNiks.some(value=>value&&!/^\\d{16}$/.test(value)))throw new HttpError(400,"Each member NIK, when provided, must contain 16 digits");
+    const allNiks=[applicantNik,...memberNiks].filter((value):value is string=>Boolean(value));
+    const personIdsByHash=await findPersonIdsByNIK(admin,allNiks);
+    const hashByNik=new Map<string,string>();
+    for(const nikValue of allNiks)hashByNik.set(nikValue,await hashNIK(nikValue));
+    const applicantHash=applicantNik?hashByNik.get(applicantNik):undefined;
+    const applicantPersonId=applicantHash?personIdsByHash.get(applicantHash)||null:null;
+    const safeMembers=members.map((member,index)=>{
+      const safeMember=sanitizeSensitivePayload(member) as Record<string,unknown>;
+      const memberNik=memberNiks[index];
+      const memberHash=memberNik?hashByNik.get(memberNik):undefined;
+      const matchedPersonId=memberHash?personIdsByHash.get(memberHash)||null:null;
+      return {...safeMember,...(matchedPersonId?{person_id:matchedPersonId}:{}),identity_resolution:memberNik?(matchedPersonId?"MATCHED_EXISTING_PERSON":"REQUIRES_VERIFICATION"):"REQUIRES_VERIFICATION"};
+    });
     const canonical={canonical_form:"F-1.02",canonical_version:"2026",result_form:"F-1.09",mapping_version:"2026-09-29"};
     const workflow={type:"HOUSEHOLD",initial_status:"SUBMITTED",required_stages:["RT_VERIFICATION","RW_REVIEW","DESA_VALIDATION","AUTHORIZED_PROCESSING"],source_form:"F-1.02",result_form:"F-1.09"};
-    const payload={...p,form_code:"F-1.02",form_version:"2026",result_form_code:"F-1.09",request_type:p.request_kk||p.request_type||"Membentuk keluarga baru",applicant_name,compliance:canonical,workflow};
+    const payload={...(sanitizeSensitivePayload(p) as Record<string,unknown>),members:safeMembers,applicant_person_id:applicantPersonId,applicant_identity_resolution:applicantNik?(applicantPersonId?"MATCHED_EXISTING_PERSON":"REQUIRES_VERIFICATION"):"REQUIRES_VERIFICATION",form_code:"F-1.02",form_version:"2026",result_form_code:"F-1.09",request_type:p.request_kk||p.request_type||"Membentuk keluarga baru",applicant_name,compliance:canonical,workflow};
     const {data:record,error:re}=await admin.from("rt_service_requests").insert({territory_id,service_type,payload,status:"SUBMITTED",created_by:user.id,authority:"RT_DIGITAL"}).select().single();
     if(re)throw re;
-    if(!(await writeAudit(admin,{actor_user_id:user.id,action:"F1_02_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"GOVERNMENT_FORM_COMPLIANCE",authority:scopedRoles.join(",")},requestId)))return json({ok:false,error:"Submission was saved but audit confirmation failed. Do not resubmit; contact support using the request ID."},500,requestId);
+    if(!(await writeAudit(admin,{actor_user_id:user.id,action:"F1_02_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:{request_number:record.request_number,service_type:record.service_type,status:record.status,form_code:"F-1.02",result_form_code:"F-1.09"},source:"GOVERNMENT_FORM_COMPLIANCE",authority:scopedRoles.join(",")},requestId)))return json({ok:false,error:"Submission was saved but audit confirmation failed. Do not resubmit; contact support using the request ID."},500,requestId);
     return json({ok:true,type:service_type,form_code:"F-1.02",result_form_code:"F-1.09",record},200,requestId);
   }
   let person_id=null; const nik=text(p.NIK||p["NIK Warga"]||p["NIK Pemohon"]||p["NIK Almarhum/Almarhumah"]);
@@ -81,11 +100,12 @@ Deno.serve(async(req)=>{
     if(service_type==="DISASTER"){table="rt_disaster_observations";row={...row,event_type:text(p["Jenis Risiko/Kejadian"])||"LAINNYA",location_text:text(p["Lokasi"]),occurred_at:text(p["Tanggal/Waktu"]),evacuation_point:text(p["Titik Evakuasi"]),emergency_contact:text(p["Kontak Darurat"]),impact:text(p["Dampak"]),status:"SUBMITTED"}}
     if(service_type==="ORGANIZATION"){table="rt_organization_profiles";row={...row,name:text(p["Nama Organisasi/Komunitas"]),organization_type:text(p["Jenis"]),leaders:text(p["Pengurus"]),member_count:num(p["Jumlah Anggota"]),main_activities:text(p["Kegiatan Utama"]),status:text(p["Status"])||"ACTIVE"};if(!row.name)throw new HttpError(400,"Nama organisasi/komunitas wajib diisi")}
     const {data:record,error:re}=await admin.from(table).insert(row).select().single();if(re)throw re;
-    if(!(await writeAudit(admin,{actor_user_id:user.id,action:"RT_CANONICAL_SUBMITTED",entity_type:table,entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"RT_DIGITAL",authority:scopedRoles.join(",")},requestId)))return json({ok:false,error:"Submission was saved but audit confirmation failed. Do not resubmit; contact support using the request ID."},500,requestId);
+    if(!(await writeAudit(admin,{actor_user_id:user.id,action:"RT_CANONICAL_SUBMITTED",entity_type:table,entity_id:record.id,scope_territory_id:territory_id,after_data:{id:record.id,territory_id:record.territory_id,status:record.verification_status||record.status||"SUBMITTED",classification:record.classification||null},source:"RT_DIGITAL",authority:scopedRoles.join(",")},requestId)))return json({ok:false,error:"Submission was saved but audit confirmation failed. Do not resubmit; contact support using the request ID."},500,requestId);
     return json({ok:true,type:service_type,canonical:true,table,record},200,requestId);
   }
-  const {data:record,error:re}=await admin.from("rt_service_requests").insert({territory_id,service_type,payload:p,status:"SUBMITTED",created_by:user.id,authority:"RT_DIGITAL"}).select().single();if(re)throw re;
-  if(!(await writeAudit(admin,{actor_user_id:user.id,action:"RT_SERVICE_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"RT_DIGITAL",authority:scopedRoles.join(",")},requestId)))return json({ok:false,error:"Submission was saved but audit confirmation failed. Do not resubmit; contact support using the request ID."},500,requestId);
+  const safePayload=sanitizeSensitivePayload(p);
+  const {data:record,error:re}=await admin.from("rt_service_requests").insert({territory_id,service_type,payload:safePayload,status:"SUBMITTED",created_by:user.id,authority:"RT_DIGITAL"}).select().single();if(re)throw re;
+  if(!(await writeAudit(admin,{actor_user_id:user.id,action:"RT_SERVICE_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:{id:record.id,territory_id:record.territory_id,service_type:record.service_type,status:record.status},source:"RT_DIGITAL",authority:scopedRoles.join(",")},requestId)))return json({ok:false,error:"Submission was saved but audit confirmation failed. Do not resubmit; contact support using the request ID."},500,requestId);
   return json({ok:true,type:"SERVICE_REQUEST",record},200,requestId);
  }catch(e){
   if(e instanceof HttpError)return json({ok:false,error:e.message},e.status,requestId);
