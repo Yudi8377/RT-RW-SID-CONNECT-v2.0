@@ -1,6 +1,8 @@
 -- Test-only schema bootstrap for a disposable local Supabase stack.
 -- Auth schema, auth.uid(), anon/authenticated/service_role are provided by Supabase local.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- Simulate the critical production role membership discovered during the security audit.
+GRANT postgres TO anon, authenticated WITH ADMIN OPTION;
 -- Minimal disposable fixture simulating the production spatial_ref_sys relation and excessive API grants.
 -- This avoids requiring the PostGIS binary in CI; production extension ownership was verified separately.
 CREATE TABLE IF NOT EXISTS public.spatial_ref_sys (
