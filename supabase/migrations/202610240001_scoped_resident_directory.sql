@@ -141,8 +141,7 @@ RETURNS TABLE (
   household_status text,
   address_line text,
   postal_code text,
-  territory_id uuid,
-  household_created_at timestamptz
+  territory_id uuid
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -191,12 +190,12 @@ BEGIN
     JOIN descendants parent ON child.parent_id = parent.id
     WHERE child.active = true
   )
-  SELECT h.id, h.status, a.address_line, a.postal_code, a.territory_id, h.created_at
+  SELECT h.id, h.status, a.address_line, a.postal_code, a.territory_id
   FROM public.households h
   JOIN public.addresses a ON a.id = h.address_id
   JOIN descendants d ON d.id = a.territory_id
   WHERE h.status = 'ACTIVE'
-  ORDER BY h.created_at DESC, h.id
+  ORDER BY h.id
   LIMIT LEAST(GREATEST(COALESCE(p_limit, 50), 1), 100)
   OFFSET GREATEST(COALESCE(p_offset, 0), 0);
 END;
