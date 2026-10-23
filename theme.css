@@ -300,3 +300,12 @@
 .production-gate-message b{display:block;margin-bottom:8px}
 .production-gate-message p{margin:8px 0 0;color:var(--muted,#64748b)}
 .production-gate-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+
+/* Trial plan label: shared top-right indicator across all role dashboards, including Platform Admin. */
+.trial-plan-badge{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 11px;border:1px solid #c5e6d6;border-radius:999px;background:#eaf8f0;color:#12643f;font-size:10px;font-weight:800;letter-spacing:.045em;white-space:nowrap;flex-shrink:0}
+.trial-plan-dot{width:7px;height:7px;border-radius:50%;background:#16965f;box-shadow:0 0 0 3px #d2f0df;flex-shrink:0}
+.trial-plan-badge b{padding-left:8px;border-left:1px solid #c5e6d6;font-size:11px;letter-spacing:0}
+.top-actions .trial-plan-badge{margin-right:4px}
+@media(max-width:760px){.trial-plan-badge{gap:6px;min-height:30px;padding:0 8px;font-size:9px}.trial-plan-badge b{padding-left:6px;font-size:10px}.top-actions{gap:6px}}
+@media(max-width:430px){.trial-plan-badge{gap:5px;letter-spacing:0}.trial-plan-dot{width:6px;height:6px}.top-actions .icon-btn{display:none}}
