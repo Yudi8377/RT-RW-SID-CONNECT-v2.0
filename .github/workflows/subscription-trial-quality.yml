@@ -39,11 +39,15 @@ jobs:
           file="supabase/functions/start-trial/index.ts"
           grep -q 'auth.getUser()' "$file"
           grep -q 'SUPABASE_SERVICE_ROLE_KEY' "$file"
-          grep -q 'TRIAL_PLAN_CODE = "TRIAL_7_DAY"' "$file"
-          grep -q 'activation_source: "SYSTEM_TRIAL"' "$file"
-          grep -q 'status: "TRIALING"' "$file"
-          grep -q 'TRIAL_OR_SUBSCRIPTION_ALREADY_EXISTS' "$file"
-          grep -q 'subscription_audit_events' "$file"
+          migration="supabase/migrations/202610220005_server_authoritative_entitlements.sql"
+          grep -q 'admin.rpc("start_organization_trial"' "$file"
+          grep -q "where p.plan_code = 'TRIAL_7_DAY'" "$migration"
+          grep -q "interval '7 days'" "$migration"
+          grep -q "'TRIALING'" "$migration"
+          grep -q "'SYSTEM_TRIAL'" "$migration"
+          grep -q 'subscription_audit_events' "$migration"
+          grep -q 'revoke all on function public.start_organization_trial(uuid, uuid, text) from public, anon, authenticated' "$migration"
+          grep -q 'grant execute on function public.start_organization_trial(uuid, uuid, text) to service_role' "$migration"
           if grep -Eq 'body\.(plan_id|price_amount|status|trial_ends_at|activation_source)' "$file"; then
             echo "Client-controlled entitlement fields detected" >&2
             exit 1
