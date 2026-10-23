@@ -101,6 +101,12 @@ begin
 end;
 $function$;
 
+-- Keep aggregate source tables private to trusted server-side paths. The
+-- SECURITY DEFINER RPC above is the intended read surface for regional dashboards.
+revoke select on table public.rt_service_requests from public, anon, authenticated;
+revoke select on table public.rt_infrastructure_assets from public, anon, authenticated;
+revoke select on table public.assistance_applications from public, anon, authenticated;
+
 revoke all on function public.regional_dashboard_summary(uuid) from public;
 revoke all on function public.regional_dashboard_summary(uuid) from anon;
 grant execute on function public.regional_dashboard_summary(uuid) to authenticated;
