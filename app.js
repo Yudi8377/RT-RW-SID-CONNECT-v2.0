@@ -18,7 +18,7 @@ sid:["SID Bridge","INTEGRATION",[["mapping","Data Mapping"],["sync","Sync Center
 gpffe:["GPFFE Data Exchange","INTEGRATION",[["catalog","Dataset Catalog"],["requests","Access Requests"],["exports","Approved Exports"],["audit","Exchange Audit"],["contract","Data Contract"]]],
 kecamatan:["Kecamatan Digital","REGIONAL",[[ "overview","Ringkasan Kecamatan"],["desa","Rekap Desa/Kelurahan"],["services","Monitoring Pelayanan"],["escalations","Eskalasi & Tindak Lanjut"],["indicators","Indikator Kecamatan"],["reports","Laporan Kecamatan"]]],
 kabkota:["Kabupaten/Kota Digital","REGIONAL",[[ "overview","Ringkasan Kabupaten/Kota"],["districts","Rekap Kecamatan"],["regional-indicators","Indikator Regional"],["programs","Program & Pembangunan"],["infrastructure","Infrastruktur & Aset Wilayah"],["complaints","Pengaduan Lintas Wilayah"],["reports","Laporan Eksekutif"],["gpffe","Analisis Program GPFFE"]]],
-admin:["Admin & Governance","GOVERNANCE",[["tenant","Tenant & Desa"],["territory","Master Wilayah"],["users","Users"],["access","Access Management"],["roles","Roles & Permissions"],["policies","Policies"],["templates","Template & Branding"],["forms","Government Forms"],["security","Security Center"],["audit","Audit Log"],["backup","Backup & Recovery"],["health","System Health"]]]
+admin:["Admin & Governance","GOVERNANCE",[["tenant","Tenant & Desa"],["territory","Master Wilayah"],["users","Users"],["access","Access Management"],["roles","Roles & Permissions"],["policies","Policies"],["templates","Template & Branding"],["forms","Government Forms"],["security","Security Center"],["audit","Audit Log"],["backup","Backup & Recovery"],["resident-links","Verifikasi Relasi Warga–KK"],["health","System Health"]]]
 };
 const icons={dashboard:"⌂",warga:"♙",identitas:"ID",rt:"R",rw:"W",kegiatan:"◷",layanan:"▣",desa:"D",kecamatan:"K",kabkota:"KK",dokumen:"▤",dataquality:"✓",smart:"✦",jolie:"◫",gis:"⌖",whatsapp:"◌",sid:"↔",gpffe:"⇄",admin:"⚙"};
 const groups=["HOME","COMMUNITY","VILLAGE","REGIONAL","INTELLIGENCE","INTEGRATION","GOVERNANCE"];
@@ -464,6 +464,95 @@ function printWorkspace(){window.print()}
 function toggleAll(c){seedRows();state.rows[key()].forEach(r=>c?state.selected.add(r.id):state.selected.delete(r.id));render()}
 function toggleRow(id,c){c?state.selected.add(id):state.selected.delete(id)}
 function reportIdentityHeader(){const type=identityTypeForAccess();const p=identityCache||identityDefaults(type);const title=p.letterhead_title||p.official_name||("IDENTITAS "+type);const subtitle=p.letterhead_subtitle||p.village_name||"Wilayah RT/RW";const area=[p.district_name,p.regency_name,p.province_name].filter(Boolean).join(" · ");return '<div class="identity-report-header"><div class="identity-report-mark">'+(p.logo_url?'<img src="'+esc(p.logo_url)+'" alt="Logo">':'<span>RT/RW</span>')+'</div><div class="identity-report-text"><strong>'+esc(title)+'</strong><span>'+esc(subtitle)+'</span><small>'+esc(area||"Wilayah belum ditetapkan")+'</small><small>'+esc(p.address_line||"")+'</small></div><div class="identity-report-badge">'+esc(type)+'</div></div>'}
+function adminResidentLinkWorkspace(){
+ setTimeout(loadAdminResidentLinkWorkspace,50);
+ return '<div class="module-head"><div><div class="eyebrow dark">PLATFORM ADMIN / DATA GOVERNANCE</div><h2>Verifikasi Relasi Warga–KK</h2><p>Hubungkan warga ke kartu keluarga hanya setelah dokumen diverifikasi. Setiap perubahan dicatat pada audit log.</p></div><span class="status">ADMIN ONLY</span></div>'
+ +'<section class="panel wide"><div class="module-note"><b>Pengamanan data.</b><span>Nomor identitas tidak ditampilkan dan tidak boleh dimasukkan ke catatan. Data lama tidak dipasangkan otomatis. Pilih scope wilayah yang mencakup KK tujuan.</span></div>'
+ +'<div class="form-grid">'
+ +'<label>Scope wilayah<select id="resident-link-scope"><option value="">Memuat wilayah…</option></select></label>'
+ +'<label>Cari warga belum terhubung<input id="resident-link-person-search" type="search" placeholder="Nama warga" maxlength="80"></label>'
+ +'<div class="form-actions"><button type="button" class="btn" data-admin-resident-search>Cari warga</button></div>'
+ +'<label>Warga<select id="resident-link-person"><option value="">Pilih warga belum terhubung</option></select></label>'
+ +'<label>Cari KK dalam scope<input id="resident-link-household-search" type="search" placeholder="Alamat atau nama wilayah" maxlength="80"></label>'
+ +'<div class="form-actions"><button type="button" class="btn" data-admin-household-search>Cari KK</button></div>'
+ +'<label>KK tujuan<select id="resident-link-household"><option value="">Pilih scope dahulu</option></select></label>'
+ +'<label>Hubungan keluarga<select id="resident-link-relationship"><option value="">Pilih hubungan</option><option value="KEPALA_KELUARGA">Kepala keluarga</option><option value="PASANGAN">Pasangan</option><option value="ANAK">Anak</option><option value="ORANG_TUA">Orang tua</option><option value="SAUDARA">Saudara</option><option value="LAINNYA">Lainnya</option></select></label>'
+ +'<label class="check-field"><input id="resident-link-is-head" type="checkbox"> Tandai sebagai kepala keluarga</label>'
+ +'<label>Catatan verifikasi<textarea id="resident-link-verification-note" rows="3" maxlength="500" placeholder="Contoh: dokumen KK diperiksa petugas pada loket pelayanan. Jangan masukkan NIK."></textarea></label>'
+ +'<div class="form-actions"><button type="button" class="btn primary" data-admin-resident-link-submit>Simpan relasi terverifikasi</button></div>'
+ +'<p class="module-note" id="resident-link-status" role="status">Memuat opsi yang diizinkan…</p></section>';
+}
+async function refreshAdminUnlinkedPeople(){
+ const search=document.getElementById("resident-link-person-search");
+ const select=document.getElementById("resident-link-person");
+ const statusEl=document.getElementById("resident-link-status");
+ if(!select||!sb)return;
+ const r=await sb.rpc("admin_unlinked_person_directory",{p_search:search?.value.trim()||null,p_limit:100,p_offset:0});
+ if(r.error)throw r.error;
+ const people=r.data||[];
+ select.innerHTML='<option value="">Pilih warga belum terhubung</option>'+people.map(p=>'<option value="'+esc(p.person_id)+'">'+esc(p.full_name||"Tanpa nama")+(p.birth_date?' · '+esc(String(p.birth_date).slice(0,4)):"")+'</option>').join("");
+ if(statusEl)statusEl.textContent=people.length+" warga belum terhubung ditemukan. Pastikan identitas diverifikasi di luar aplikasi sebelum menyimpan relasi.";
+}
+async function refreshAdminHouseholdCandidates(){
+ const scope=document.getElementById("resident-link-scope")?.value;
+ const search=document.getElementById("resident-link-household-search");
+ const select=document.getElementById("resident-link-household");
+ const statusEl=document.getElementById("resident-link-status");
+ if(!select||!sb)return;
+ if(!scope){select.innerHTML='<option value="">Pilih scope wilayah dahulu</option>';return;}
+ const r=await sb.rpc("admin_household_link_candidates",{p_scope_territory_id:scope,p_search:search?.value.trim()||null,p_limit:100,p_offset:0});
+ if(r.error)throw r.error;
+ const households=r.data||[];
+ select.innerHTML='<option value="">Pilih KK tujuan</option>'+households.map(h=>'<option value="'+esc(h.household_id)+'">'+esc(h.territory_name||"Wilayah")+' · '+esc(h.address_line||"Alamat belum diisi")+' · KK …'+esc(String(h.household_id).slice(-8))+'</option>').join("");
+ if(statusEl)statusEl.textContent=households.length+" KK aktif tersedia pada scope yang dipilih.";
+}
+async function loadAdminResidentLinkWorkspace(){
+ const statusEl=document.getElementById("resident-link-status");
+ const scopeSelect=document.getElementById("resident-link-scope");
+ if(!scopeSelect||!sb)return;
+ try{
+  const r=await sb.rpc("admin_territory_scope_options");
+  if(r.error)throw r.error;
+  const territories=r.data||[];
+  scopeSelect.innerHTML='<option value="">Pilih scope wilayah</option>'+territories.map(t=>'<option value="'+esc(t.territory_id)+'">'+esc(t.territory_name||"Wilayah")+' · '+esc(t.territory_type||"")+'</option>').join("");
+  const preferred=liveDemoScope();
+  if(preferred&&territories.some(t=>t.territory_id===preferred))scopeSelect.value=preferred;
+  await Promise.all([refreshAdminUnlinkedPeople(),refreshAdminHouseholdCandidates()]);
+ }catch(_error){
+  if(statusEl)statusEl.textContent="Workbench belum aktif. Pastikan migrasi admin-only RPC telah direkonsiliasi dan akun memiliki role PLATFORM_ADMIN.";
+ }
+}
+document.addEventListener("change",async function(e){
+ if(e.target?.id==="resident-link-scope"){try{await refreshAdminHouseholdCandidates()}catch(_error){const s=document.getElementById("resident-link-status");if(s)s.textContent="Daftar KK tidak tersedia untuk scope ini."}}
+ if(e.target?.id==="resident-link-relationship"){const head=document.getElementById("resident-link-is-head");if(head)head.checked=e.target.value==="KEPALA_KELUARGA"}
+});
+document.addEventListener("click",async function(e){
+ const peopleBtn=e.target.closest("[data-admin-resident-search]");
+ const householdBtn=e.target.closest("[data-admin-household-search]");
+ const saveBtn=e.target.closest("[data-admin-resident-link-submit]");
+ if(!peopleBtn&&!householdBtn&&!saveBtn)return;
+ e.preventDefault();
+ const statusEl=document.getElementById("resident-link-status");
+ try{
+  if(peopleBtn){await refreshAdminUnlinkedPeople();return}
+  if(householdBtn){await refreshAdminHouseholdCandidates();return}
+  const scope=document.getElementById("resident-link-scope")?.value;
+  const person=document.getElementById("resident-link-person")?.value;
+  const household=document.getElementById("resident-link-household")?.value;
+  const relationship=document.getElementById("resident-link-relationship")?.value;
+  const isHead=!!document.getElementById("resident-link-is-head")?.checked;
+  const note=document.getElementById("resident-link-verification-note")?.value.trim()||"";
+  if(!scope||!person||!household||note.length<10){if(statusEl)statusEl.textContent="Pilih scope, warga, KK, dan isi catatan verifikasi minimal 10 karakter.";return}
+  const r=await sb.rpc("admin_link_person_to_household",{p_scope_territory_id:scope,p_person_id:person,p_household_id:household,p_relationship_label:relationship,p_is_head:isHead,p_verification_note:note});
+  if(r.error)throw r.error;
+  const successText=r.data?.status==="ALREADY_LINKED"?"Relasi warga–KK ini sudah tercatat.":"Relasi tersimpan dan audit log dibuat.";
+  toast(r.data?.status==="ALREADY_LINKED"?"Relasi sudah ada":"Relasi warga–KK tersimpan");
+  await Promise.all([refreshAdminUnlinkedPeople(),refreshAdminHouseholdCandidates()]);
+  if(statusEl)statusEl.textContent=successText;
+ }catch(_error){
+  if(statusEl)statusEl.textContent="Relasi tidak disimpan. Periksa izin PLATFORM_ADMIN, scope KK, status warga, dan catatan verifikasi; tidak ada perubahan parsial yang dikonfirmasi.";
+ }
+});
 function adminControlCenter(){
 
  const cards=[
@@ -474,6 +563,7 @@ function adminControlCenter(){
   ["GOVERNMENT FORMS","forms","Registry dan mapping formulir pemerintah"],
   ["SECURITY CENTER","security","Kontrol keamanan dan evidence"],
   ["AUDIT LOG","audit","Jejak tindakan dan governance"],
+  ["DATA WARGA","resident-links","Verifikasi relasi warga–KK dengan audit trail"],
   ["SYSTEM HEALTH","health","Status service dan integrasi"]
  ];
  return '<div class="welcome"><div><div class="eyebrow dark">PLATFORM ADMIN / CONTROL CENTER</div><h2>Administrator Control Center.</h2><p>Panel kendali untuk tenant, wilayah, user, role, government forms, security, audit dan kesehatan platform.</p></div><div class="date-chip">'+(ADMIN_PREVIEW?'● ADMIN PREVIEW':'● AUTHENTICATED ADMIN')+'<br><small>Governance workspace</small></div></div><div class="kpi-grid">'+[
@@ -979,7 +1069,7 @@ document.addEventListener("click",async function(e){
   }
   const el=document.getElementById("workspace");if(el)el.innerHTML=await emergencyLocationWorkspace();
 });
-function workspace(){if(ADMIN_PREVIEW)return '<div class="module-note"><b>Pratinjau dashboard saja.</b><span>Workspace operasional dan tindakan yang dapat mengakses data produksi dinonaktifkan dalam mode pengembangan. Gunakan tombol kembali untuk memilih dashboard wilayah lain.</span></div>';if(state.view==="rw"&&state.sub==="review")return rwReviewWorkspace();if(state.view==="kecamatan"||state.view==="kabkota")return '<div class="module-note"><b>Workspace regional disiapkan — menunggu aktivasi aman</b><span>Menu dan peran sudah tersedia di branch pengembangan. Ringkasan operasional baru akan ditampilkan setelah migrasi agregasi berbasis scope diterapkan, akun wilayah ditetapkan, dan pengujian RLS lulus. Tidak ada angka simulasi yang ditampilkan pada dashboard ini.</span></div>';if(state.view==="warga"&&state.sub==="registry"){setTimeout(loadCitizen360,50);return citizen360Workspace();}if(state.view==="admin"&&state.sub==="territory")return adminTerritoryWorkspace();if(state.view==="admin"&&state.sub==="users")return adminUsersWorkspace();if(state.view==="admin"&&state.sub==="access")return adminAccessWorkspace();if(state.view==="admin"&&state.sub==="roles")return adminRolesWorkspace();if(state.view==="gis"&&state.sub==="emergency"){setTimeout(async()=>{const el=document.getElementById("workspace");if(el)el.innerHTML=await emergencyLocationWorkspace()},0);return '<div class="module-note"><b>Memuat Emergency Location Center…</b><span>Memeriksa lokasi darurat aktif sesuai role dan scope.</span></div>';}if(state.view==="admin"&&state.sub==="forms")return governmentFormRegistryWorkspace();if(state.view==='identitas'&&state.sub==='profil'){setTimeout(()=>{document.querySelector('[data-identity-save]')?.addEventListener('click',saveIdentity);document.querySelector('[data-identity-preview]')?.addEventListener('click',identityPreview)},0);return identityWorkspace()}if(state.view==='rw'&&state.sub==='review')return rwReviewWorkspace();if(state.view==='smart'&&state.sub==='command')return intelligenceDashboard();
+function workspace(){if(ADMIN_PREVIEW)return '<div class="module-note"><b>Pratinjau dashboard saja.</b><span>Workspace operasional dan tindakan yang dapat mengakses data produksi dinonaktifkan dalam mode pengembangan. Gunakan tombol kembali untuk memilih dashboard wilayah lain.</span></div>';if(state.view==="rw"&&state.sub==="review")return rwReviewWorkspace();if(state.view==="kecamatan"||state.view==="kabkota")return '<div class="module-note"><b>Workspace regional disiapkan — menunggu aktivasi aman</b><span>Menu dan peran sudah tersedia di branch pengembangan. Ringkasan operasional baru akan ditampilkan setelah migrasi agregasi berbasis scope diterapkan, akun wilayah ditetapkan, dan pengujian RLS lulus. Tidak ada angka simulasi yang ditampilkan pada dashboard ini.</span></div>';if(state.view==="warga"&&state.sub==="registry"){setTimeout(loadCitizen360,50);return citizen360Workspace();}if(state.view==="admin"&&state.sub==="territory")return adminTerritoryWorkspace();if(state.view==="admin"&&state.sub==="resident-links"){setTimeout(loadAdminResidentLinkWorkspace,50);return adminResidentLinkWorkspace();}if(state.view==="admin"&&state.sub==="users")return adminUsersWorkspace();if(state.view==="admin"&&state.sub==="access")return adminAccessWorkspace();if(state.view==="admin"&&state.sub==="roles")return adminRolesWorkspace();if(state.view==="gis"&&state.sub==="emergency"){setTimeout(async()=>{const el=document.getElementById("workspace");if(el)el.innerHTML=await emergencyLocationWorkspace()},0);return '<div class="module-note"><b>Memuat Emergency Location Center…</b><span>Memeriksa lokasi darurat aktif sesuai role dan scope.</span></div>';}if(state.view==="admin"&&state.sub==="forms")return governmentFormRegistryWorkspace();if(state.view==='identitas'&&state.sub==='profil'){setTimeout(()=>{document.querySelector('[data-identity-save]')?.addEventListener('click',saveIdentity);document.querySelector('[data-identity-preview]')?.addEventListener('click',identityPreview)},0);return identityWorkspace()}if(state.view==='rw'&&state.sub==='review')return rwReviewWorkspace();if(state.view==='smart'&&state.sub==='command')return intelligenceDashboard();
  seedRows();const m=modules[state.view],s=state.rows[key()]||[],title=subTitle();const printHeader=(state.view==="rt"||state.view==="rw")?reportIdentityHeader():"";
  const subHtml=m[2].map(x=>'<button class="'+(state.sub===x[0]?"active":"")+'" data-workspace-module="'+esc(state.view)+'" data-workspace-sub="'+esc(x[0])+'">'+esc(x[1])+'</button>').join("");
  const rows=s.map(r=>'<tr><td><input class="row-check" type="checkbox" data-row-select="'+esc(String(r.id||""))+'" '+(state.selected.has(r.id)?"checked":"")+'></td><td><b>'+esc(r.id)+'</b></td><td>'+esc(recordDescription(r,title))+'</td><td>RT 001 / RW 001</td><td>'+status(r.status)+'</td><td>'+esc(r.updated)+'</td><td><button type="button" class="row-action" data-row-detail="'+esc(String(r.id||""))+'">Detail</button></td></tr>').join("");
