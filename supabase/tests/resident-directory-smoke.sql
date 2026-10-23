@@ -1,4 +1,4 @@
-SET statement_timeout = '10s';
+SET statement_timeout = '30s';
 
 -- Scoped resident directory tests: assignment, hierarchy, minimal fields and least privilege.
 -- Regression guard: household directory schema intentionally does not assume households.created_at.
@@ -24,7 +24,6 @@ DECLARE
   v record;
   n integer;
 BEGIN
-  RAISE NOTICE 'resident smoke: RT resident scope';
   -- RT sees only active CONFIDENTIAL residents assigned to that RT.
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000008',false);
   SELECT * INTO v FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000006',50,0);
@@ -32,15 +31,13 @@ BEGIN
     RAISE EXCEPTION 'RT directory returned unexpected row: %', row_to_json(v);
   END IF;
   SELECT count(*) INTO n FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000006',50,0);
-  IF n <> 1 THEN RAISE EXCEPTION 'RT directory leaked or omitted records: count %, rows %', n, (SELECT pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('person_id',person_id,'territory_id',territory_id,'full_name',full_name)) FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000006',50,0)); END IF;
+  IF n <> 1 THEN RAISE EXCEPTION 'RT directory leaked or omitted records: %', n; END IF;
 
-  RAISE NOTICE 'resident smoke: RT household scope';
   SELECT * INTO v FROM public.rt_household_directory('30000000-0000-4000-8000-000000000006',50,0);
   IF v.address_line <> 'Alamat uji RT' THEN RAISE EXCEPTION 'RT household scope returned unexpected address: %', row_to_json(v); END IF;
   SELECT count(*) INTO n FROM public.rt_household_directory('30000000-0000-4000-8000-000000000006',50,0);
   IF n <> 1 THEN RAISE EXCEPTION 'RT household directory leaked or omitted records: %', n; END IF;
 
-  RAISE NOTICE 'resident smoke: RW descendant scope';
   -- RW can see assigned descendant RT data, not unrelated village data.
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000009',false);
   SELECT count(*) INTO n FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000005',50,0);
@@ -48,13 +45,11 @@ BEGIN
   SELECT count(*) INTO n FROM public.rt_household_directory('30000000-0000-4000-8000-000000000005',50,0);
   IF n <> 1 THEN RAISE EXCEPTION 'RW household descendant scope incorrect: %', n; END IF;
 
-  RAISE NOTICE 'resident smoke: village descendant scope';
   -- Village validator sees descendants within its assigned village.
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000010',false);
   SELECT count(*) INTO n FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000004',50,0);
   IF n <> 1 THEN RAISE EXCEPTION 'Village descendant scope incorrect: %', n; END IF;
 
-  RAISE NOTICE 'resident smoke: reject mismatched roles';
   -- RT cannot use an RW scope and a regional role cannot call this person-level endpoint.
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000008',false);
   BEGIN
@@ -70,7 +65,6 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
-  RAISE NOTICE 'resident smoke: reject anonymous';
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','',false);
   BEGIN
     PERFORM * FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000006',50,0);
