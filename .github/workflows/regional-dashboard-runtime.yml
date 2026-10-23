@@ -1,0 +1,59 @@
+name: Regional Dashboard Runtime Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/202610220001_regional_dashboard_roles.sql'
+      - 'supabase/migrations/202610220002_regional_dashboard_summary_rpc.sql'
+      - 'supabase/tests/regional-dashboard-*.sql'
+      - '.github/workflows/regional-dashboard-runtime.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/202610220001_regional_dashboard_roles.sql'
+      - 'supabase/migrations/202610220002_regional_dashboard_summary_rpc.sql'
+      - 'supabase/tests/regional-dashboard-*.sql'
+      - '.github/workflows/regional-dashboard-runtime.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regional-dashboard-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Create disposable base schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/regional-dashboard-test-bootstrap.sql
+      - name: Apply regional role migration
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610220001_regional_dashboard_roles.sql
+      - name: Apply scope-validated aggregate RPC
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610220002_regional_dashboard_summary_rpc.sql
+      - name: Verify regional counts and access isolation
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/regional-dashboard-smoke.sql
