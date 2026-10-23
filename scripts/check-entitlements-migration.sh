@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-migration="supabase/migrations/202610220005_server_authoritative_entitlements.sql"
+migration="supabase/migrations/202610230001_server_authoritative_entitlements.sql"
 test -f "$migration"
 
 # Required tenant and billing controls must remain explicit in the migration.
