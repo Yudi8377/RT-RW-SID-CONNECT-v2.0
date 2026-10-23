@@ -22,7 +22,7 @@ Deno.test("model emergency reply parses NEED_HELP marker without speaking the ma
 
 Deno.test("ambiguous emergency fallback escalates rather than diagnosing", () => {
   const result = fallbackEmergencyAssessment("EMERGENCY_ASSESSMENT saya tidak yakin dengan kondisi saya");
-  if (!result.reply.includes("manusia") || typeof result.needHelp !== "boolean") {
+  if (!result.needHelp || !result.reply.includes("manusia")) {
     throw new Error("safe human-review fallback missing");
   }
 });
