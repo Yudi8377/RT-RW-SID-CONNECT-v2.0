@@ -12,7 +12,7 @@ export function fallbackEmergencyAssessment(message: string): { needHelp: boolea
     needHelp,
     reply: needHelp
       ? "Saya mendengar Anda mungkin membutuhkan bantuan. Saya akan menghubungkan permintaan bantuan darurat agar petugas manusia dapat memeriksa."
-      : "Saya belum yakin dengan kondisi Anda. Jika Anda merasa tidak aman atau ragu, minta bantuan manusia sekarang.",
+      : "Baik, terima kasih sudah mengonfirmasi bahwa Anda aman. Jika kondisi berubah, segera minta bantuan manusia.",
   };
 }
 
