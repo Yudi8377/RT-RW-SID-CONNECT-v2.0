@@ -1,4 +1,5 @@
 -- Scoped resident directory tests: assignment, hierarchy, minimal fields and least privilege.
+-- Regression guard: household directory schema intentionally does not assume households.created_at.
 INSERT INTO public.addresses (id, territory_id, address_line) VALUES
  ('70000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001','Alamat uji RT'),
  ('70000000-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000002','Alamat uji wilayah lain');
