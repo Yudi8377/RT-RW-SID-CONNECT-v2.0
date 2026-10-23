@@ -1,6 +1,7 @@
 -- Test-only schema bootstrap for a disposable local Supabase stack.
 -- Auth schema, auth.uid(), anon/authenticated/service_role are provided by Supabase local.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 
 CREATE TABLE public.territories (
  id uuid PRIMARY KEY,
