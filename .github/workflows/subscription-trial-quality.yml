@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - "supabase/functions/start-trial/**"
+      - "supabase/functions/register-device/**"
+      - "supabase/functions/_shared/device.*"
       - "supabase/migrations/202610230001_server_authoritative_entitlements.sql"
+      - "supabase/migrations/202610230002_device_entitlement_enforcement.sql"
       - "supabase/tests/**"
       - ".github/workflows/subscription-trial-quality.yml"
   push:
@@ -30,8 +33,10 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Type-check trial Edge Function
-        run: deno check supabase/functions/start-trial/index.ts
+      - name: Type-check trial and device Edge Functions
+        run: deno check supabase/functions/start-trial/index.ts supabase/functions/register-device/index.ts
+      - name: Test shared device identity hashing
+        run: deno test supabase/functions/_shared/device.test.ts
       - name: Test trial authorization policy and dates
         run: deno test supabase/functions/start-trial/policy.test.ts
       - name: Guard server-authoritative trial invariants
@@ -42,7 +47,12 @@ jobs:
           grep -q 'auth.getUser()' "$file"
           grep -q 'SUPABASE_SERVICE_ROLE_KEY' "$file"
           migration="supabase/migrations/202610230001_server_authoritative_entitlements.sql"
-          grep -q 'admin.rpc("start_organization_trial"' "$file"
+          device_migration="supabase/migrations/202610230002_device_entitlement_enforcement.sql"
+          grep -q 'admin.rpc("start_organization_trial_with_device"' "$file"
+          grep -q 'organization_devices' "$device_migration"
+          grep -q 'DEVICE_LIMIT_REACHED' "$device_migration"
+          grep -q 'grant execute on function public.register_organization_device(uuid,uuid,text,text) to service_role' "$device_migration"
+          grep -q 'grant execute on function public.start_organization_trial_with_device(uuid,uuid,text,text,text) to service_role' "$device_migration"
           grep -q "('TRIAL_7_DAY', 'Trial 7 Hari', 'TRIAL', 7, 0, 'IDR', true" "$migration"
           grep -q "'device_limit', true, 1" "$migration"
           grep -q "where p.plan_code = 'TRIAL_7_DAY'" "$migration"
@@ -92,7 +102,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610230001_server_authoritative_entitlements.sql
-      - name: Verify trial lifecycle, grants, and tenant isolation
+      - name: Apply device entitlement migration to disposable database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610230002_device_entitlement_enforcement.sql
+      - name: Verify trial lifecycle, device limits, grants, and tenant isolation
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/entitlements-migration-smoke.sql
