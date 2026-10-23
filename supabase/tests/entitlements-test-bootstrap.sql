@@ -32,16 +32,21 @@ grant select on public.role_assignments to authenticated;
 
 insert into auth.users (id) values
   ('00000000-0000-4000-8000-000000000001'),
-  ('00000000-0000-4000-8000-000000000002');
+  ('00000000-0000-4000-8000-000000000002'),
+  ('00000000-0000-4000-8000-000000000003');
 insert into public.organizations (id, name) values
   ('10000000-0000-4000-8000-000000000001', 'Organisasi Uji 1'),
   ('10000000-0000-4000-8000-000000000002', 'Organisasi Uji 2');
 insert into public.roles (id, role_code) values
   ('20000000-0000-4000-8000-000000000001', 'RT_OPERATOR');
 insert into public.role_assignments (user_id, organization_id, role_id, active)
-values (
-  '00000000-0000-4000-8000-000000000001',
-  '10000000-0000-4000-8000-000000000001',
-  '20000000-0000-4000-8000-000000000001',
-  true
-);
+values
+  ('00000000-0000-4000-8000-000000000001',
+   '10000000-0000-4000-8000-000000000001',
+   '20000000-0000-4000-8000-000000000001', true),
+  ('00000000-0000-4000-8000-000000000002',
+   '10000000-0000-4000-8000-000000000002',
+   '20000000-0000-4000-8000-000000000001', true);
+update public.role_assignments
+set starts_at = pg_catalog.now() + interval '1 day'
+where user_id = '00000000-0000-4000-8000-000000000002';
