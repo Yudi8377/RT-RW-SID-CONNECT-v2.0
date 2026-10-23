@@ -89,7 +89,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          key="$(sed -n 's/.*supabasePublishableKey:"\\([^"]*\\)".*/\\1/p' config.js)"
+          key="$(sed -n 's/.*supabasePublishableKey:"\([^"]*\)".*/\1/p' config.js)"
           test -n "$key"
           for endpoint in start-trial register-device; do
             code="$(curl --silent --show-error --output /tmp/"$endpoint".json --write-out '%{http_code}' \
@@ -102,7 +102,8 @@ jobs:
             fi
           done
           echo "Production Edge Functions reject unauthenticated trial/device requests."
-\n  migration-smoke:
+
+  migration-smoke:
     runs-on: ubuntu-latest
     services:
       postgres:
