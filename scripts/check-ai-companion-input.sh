@@ -18,6 +18,9 @@ grep -q 'input: \[' "$file"
 grep -q 'role: "user", content: message' "$file"
 grep -q 'typeof generated === "string" && generated.trim()' "$file"
 grep -q 'Keep a safe role-specific fallback' "$file"
+grep -q 'isEmergencyAssessment(message)' "$file"
+grep -q 'parseEmergencyAssessmentReply(raw)' "$file"
+grep -q 'emergency_need_help: emergencyNeedHelp' "$file"
 
 # Frontend must call only the hardened function and remain off until backend release.
 grep -q 'sb.functions.invoke("ai-companion"' app.js
