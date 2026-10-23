@@ -20,6 +20,18 @@ Deno.test("model emergency reply parses NEED_HELP marker without speaking the ma
   if (no.needHelp || no.reply.includes("NEED_HELP")) throw new Error("NO marker not parsed safely");
 });
 
+Deno.test("malformed model output triggers human review", () => {
+  const result = parseEmergencyAssessmentReply("Saya rasa Anda mungkin baik-baik saja.");
+  if (!result.needHelp || result.reply.includes("baik-baik saja")) {
+    throw new Error("malformed model output did not fail safe");
+  }
+});
+
+Deno.test("explicitly safe transcript can return no-help only when clear", () => {
+  const result = fallbackEmergencyAssessment("EMERGENCY_ASSESSMENT saya aman dan tidak butuh bantuan");
+  if (result.needHelp) throw new Error("clear safe answer incorrectly escalated");
+});
+
 Deno.test("ambiguous emergency fallback escalates rather than diagnosing", () => {
   const result = fallbackEmergencyAssessment("EMERGENCY_ASSESSMENT saya tidak yakin dengan kondisi saya");
   if (!result.needHelp || !result.reply.includes("manusia")) {
