@@ -40,7 +40,7 @@ The public GitHub Pages site and the production Supabase backend are separate re
 As verified on 2026-10-23:
 - Frontend config still keeps `commercialTrialEnabled: false` and `aiCompanionEnabled: false`.
 - Production migration history includes `regional_dashboard_roles`, `regional_dashboard_summary_rpc`, `server_authoritative_entitlements`, `device_entitlement_enforcement`, `scoped_resident_directory`, and `household_membership_admin_workbench` (versions `20261023075802` through `20261023075825`). These were checked directly against `supabase_migrations.schema_migrations`.
-- Production Edge Functions `start-trial` and `register-device` are ACTIVE with JWT verification enabled.
+- Production Edge Functions `start-trial` and `register-device` are ACTIVE with JWT verification enabled. Subscription Trial Quality #130 passed the post-deploy anonymous-request smoke test (HTTP 401) for both endpoints; this validates only the unauthenticated boundary, not the signed-in trial lifecycle.
 - The active subscription catalog currently contains only `TRIAL_7_DAY` (7 days, IDR 0); there are no rows in `organization_subscriptions` or `organization_devices` yet.
 - Current active assignments are Platform Admin, RT Operator, and Warga. The RT Operator assignment points to a VILLAGE territory and has no organization mapping; RW, Desa/Kelurahan, Kecamatan, and Kabupaten/Kota have no active assignments. Do not auto-assign real users or infer scope.
 - Production contains existing synthetic/demo resident and household records; do not treat it as an empty database.
