@@ -92,7 +92,7 @@ END;
 $$;
 
 -- A future-dated role assignment is not eligible to start a trial.
-DO $
+DO $$
 BEGIN
   PERFORM public.start_organization_trial(
     '00000000-0000-4000-8000-000000000002',
@@ -103,7 +103,7 @@ BEGIN
 EXCEPTION
   WHEN insufficient_privilege THEN NULL;
 END;
-$;
+$$;
 
 -- A suspended subscription must not be bypassed by starting a free trial.
 UPDATE public.role_assignments
@@ -120,7 +120,7 @@ SELECT
 FROM public.subscription_plans p
 WHERE p.plan_code = 'TRIAL_7_DAY';
 
-DO $
+DO $$
 BEGIN
   PERFORM public.start_organization_trial(
     '00000000-0000-4000-8000-000000000002',
@@ -132,7 +132,7 @@ EXCEPTION
   WHEN SQLSTATE 'P0001' THEN
     IF SQLERRM <> 'SUBSCRIPTION_ALREADY_CURRENT' THEN RAISE; END IF;
 END;
-$;
+$$;
 
 -- RLS allows the assigned user to read its own organization's subscription only.
 SET ROLE authenticated;
