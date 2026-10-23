@@ -14,9 +14,15 @@ Deno.serve(async(req)=>{
   const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const body=await req.json(); const service_type=String(body.service_type||"").trim().toUpperCase(); const territory_id=String(body.territory_id||"").trim(); const p=body.payload&&typeof body.payload==="object"?body.payload:{};
   if(!service_type||!territory_id)throw new Error("service_type and territory_id are required");
-  const {data:assign,error:ae}=await admin.from("role_assignments").select("id,organization_id,roles(role_code)").eq("user_id",user.id).eq("scope_territory_id",territory_id).eq("active",true);
-  if(ae)throw ae; const roles=(assign||[]).map((x)=>x.roles?.role_code).filter(Boolean);
-  if(!roles.some((r)=>ROLE_ALLOW.includes(r)))throw new Error("User is not authorized for this RT territory");
+  const {data:territory,error:te}=await admin.from("territories").select("id,territory_type,active").eq("id",territory_id).maybeSingle();
+  if(te)throw te;
+  if(!territory||territory.active!==true)throw new Error("Active territory not found");
+  const {data:assign,error:ae}=await admin.from("role_assignments").select("id,organization_id,roles(role_code)").eq("user_id",user.id).eq("scope_territory_id",territory_id).eq("active",true).or("starts_at.is.null,starts_at.lte."+new Date().toISOString()).or("ends_at.is.null,ends_at.gt."+new Date().toISOString());
+  if(ae)throw ae;
+  const roles=(assign||[]).map((x)=>x.roles?.role_code).filter(Boolean);
+  const roleTerritoryTypes={RT_OPERATOR:["RT"],RW_REVIEWER:["RW"],VILLAGE_VALIDATOR:["VILLAGE"],PLATFORM_ADMIN:["RT"]};
+  const scopedRoles=roles.filter((role)=>ROLE_ALLOW.includes(role)&&(roleTerritoryTypes[role]||[]).includes(territory.territory_type));
+  if(!scopedRoles.length)throw new Error("User role is not authorized for this territory type");
   if(["HEALTH","EDUCATION"].includes(service_type)&&!roles.some((r)=>["RT_OPERATOR","VILLAGE_VALIDATOR","PLATFORM_ADMIN"].includes(r)))throw new Error("Sensitive domain requires RT_OPERATOR or village validation authority");
   if(service_type==="HOUSEHOLD"){
     const applicant_name=text(p.applicant_name||p.head_name); const address=text(p.address); const rt=text(p.rt||p.RT); const rw=text(p.rw||p.RW);
@@ -29,7 +35,7 @@ Deno.serve(async(req)=>{
     const payload={...p,form_code:"F-1.02",form_version:"2026",result_form_code:"F-1.09",request_type:p.request_kk||p.request_type||"Membentuk keluarga baru",applicant_name,compliance:canonical,workflow};
     const {data:record,error:re}=await admin.from("rt_service_requests").insert({territory_id,service_type,payload,status:"SUBMITTED",created_by:user.id,authority:"RT_DIGITAL"}).select().single();
     if(re)throw re;
-    await admin.from("audit_logs").insert({actor_user_id:user.id,action:"F1_02_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"GOVERNMENT_FORM_COMPLIANCE",authority:roles.join(",")});
+    await admin.from("audit_logs").insert({actor_user_id:user.id,action:"F1_02_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"GOVERNMENT_FORM_COMPLIANCE",authority:scopedRoles.join(",")});
     return new Response(JSON.stringify({ok:true,type:service_type,form_code:"F-1.02",result_form_code:"F-1.09",record}),{headers:{...cors,"Content-Type":"application/json"}});
   }
   let person_id=null; const nik=text(p.NIK||p["NIK Warga"]||p["NIK Pemohon"]||p["NIK Almarhum/Almarhumah"]);
@@ -48,11 +54,11 @@ Deno.serve(async(req)=>{
     if(service_type==="DISASTER"){table="rt_disaster_observations";row={...row,event_type:text(p["Jenis Risiko/Kejadian"])||"LAINNYA",location_text:text(p["Lokasi"]),occurred_at:text(p["Tanggal/Waktu"]),evacuation_point:text(p["Titik Evakuasi"]),emergency_contact:text(p["Kontak Darurat"]),impact:text(p["Dampak"]),status:"SUBMITTED"}}
     if(service_type==="ORGANIZATION"){table="rt_organization_profiles";row={...row,name:text(p["Nama Organisasi/Komunitas"]),organization_type:text(p["Jenis"]),leaders:text(p["Pengurus"]),member_count:num(p["Jumlah Anggota"]),main_activities:text(p["Kegiatan Utama"]),status:text(p["Status"])||"ACTIVE"};if(!row.name)throw new Error("Nama organisasi/komunitas wajib diisi")}
     const {data:record,error:re}=await admin.from(table).insert(row).select().single();if(re)throw re;
-    await admin.from("audit_logs").insert({actor_user_id:user.id,action:"RT_CANONICAL_SUBMITTED",entity_type:table,entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"RT_DIGITAL",authority:roles.join(",")});
+    await admin.from("audit_logs").insert({actor_user_id:user.id,action:"RT_CANONICAL_SUBMITTED",entity_type:table,entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"RT_DIGITAL",authority:scopedRoles.join(",")});
     return new Response(JSON.stringify({ok:true,type:service_type,canonical:true,table,record}),{headers:{...cors,"Content-Type":"application/json"}});
   }
   const {data:record,error:re}=await admin.from("rt_service_requests").insert({territory_id,service_type,payload:p,status:"SUBMITTED",created_by:user.id,authority:"RT_DIGITAL"}).select().single();if(re)throw re;
-  await admin.from("audit_logs").insert({actor_user_id:user.id,action:"RT_SERVICE_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"RT_DIGITAL",authority:roles.join(",")});
+  await admin.from("audit_logs").insert({actor_user_id:user.id,action:"RT_SERVICE_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"RT_DIGITAL",authority:scopedRoles.join(",")});
   return new Response(JSON.stringify({ok:true,type:"SERVICE_REQUEST",record}),{headers:{...cors,"Content-Type":"application/json"}});
  }catch(e){return new Response(JSON.stringify({ok:false,error:String(e?.message||e)}),{status:400,headers:{...cors,"Content-Type":"application/json"}})}
 });
