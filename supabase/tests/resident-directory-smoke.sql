@@ -32,7 +32,7 @@ BEGIN
     RAISE EXCEPTION 'RT directory returned unexpected row: %', row_to_json(v);
   END IF;
   SELECT count(*) INTO n FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000006',50,0);
-  IF n <> 1 THEN RAISE EXCEPTION 'RT directory leaked or omitted records: %', n; END IF;
+  IF n <> 1 THEN RAISE EXCEPTION 'RT directory leaked or omitted records: count %, rows %', n, (SELECT pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('person_id',person_id,'territory_id',territory_id,'full_name',full_name)) FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000006',50,0)); END IF;
 
   RAISE NOTICE 'resident smoke: RT household scope';
   SELECT * INTO v FROM public.rt_household_directory('30000000-0000-4000-8000-000000000006',50,0);
