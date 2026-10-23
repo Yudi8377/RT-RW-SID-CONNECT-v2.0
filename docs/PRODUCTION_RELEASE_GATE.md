@@ -1,7 +1,7 @@
 # Production Release Gate — RT/RW-SID CONNECT
 
-**Last checked:** 2026-10-23  
-**Current status (2026-10-23):** Regional RPCs and trial/device backend are deployed; regional dashboard preview UI is live on GitHub Pages. Commercial trial remains intentionally disabled pending authenticated end-to-end verification.
+**Last checked:** 2026-10-24  
+**Current status (2026-10-24): NOT CLEARED FOR REAL-DATA NATIONAL PRODUCTION.** Regional dashboard preview and additive backend migrations exist, but authenticated regional E2E, data-protection and recovery/capacity evidence is incomplete. Commercial trial and AI Companion remain disabled.
 
 ## Confirmed
 
@@ -15,13 +15,13 @@
   - `scoped_resident_directory` (`20261023075820`)
   - `household_membership_admin_workbench` (`20261023075825`)
 - Production now has RLS-enabled tables `subscription_plans`, `organization_subscriptions`, `subscription_billing_events`, `subscription_audit_events`, `organization_devices`, and `household_person_memberships`.
-- Edge Functions `start-trial` and `register-device` are active at version 1 with JWT verification enabled.
+- Edge Functions `start-trial` and `register-device` are active at version 2 with JWT verification enabled.
 - `verifyDeviceEntitlements()` fails closed when commercial enforcement is enabled and no valid subscription/device entitlement is found.
 - Frontend flags remain disabled: `commercialTrialEnabled: false`, `aiCompanionEnabled: false`. This is intentional until the live trial path and role scopes are verified.
 - The production database was already populated before rollout; the changes above were additive and did not intentionally delete or auto-link existing resident records.
 - Legacy entitlement tables `sv_service_plans` and `sv_account_entitlements` still exist. The new organization subscription system is additive; no automatic conversion from legacy user-level entitlements has been performed.
 - Read-only production verification shows active assignments only for Platform Admin, RT Operator, and Warga. The RT Operator points to a VILLAGE territory and has no `organization_id`; RW, Desa/Kelurahan, Kecamatan, and Kabupaten/Kota have no active assignments. No automatic role grants were made.
-- Current Supabase Security Advisor findings include: RLS enabled without policies on `village.integration_tenant_mappings`, `public.spatial_ref_sys` without RLS (PostGIS extension table), PostGIS `st_estimatedextent` overloads executable by anon/authenticated, other SECURITY DEFINER function grants, PostGIS installed in `public`, and leaked-password protection disabled. Each needs impact-based review; do not apply blanket revocations or RLS changes without dependency analysis.
+- Current Supabase Security Advisor findings include five RLS-enabled tables without policies, `public.spatial_ref_sys` without RLS and with unresolved direct write grants for API roles, PostGIS `st_estimatedextent` SECURITY DEFINER overloads executable by anon/authenticated, other SECURITY DEFINER function grants, PostGIS installed in `public`, and leaked-password protection disabled. Client API roles' membership in `postgres`/BYPASSRLS roles was remediated by migration `20261023150838` and reverified by a read-only catalog query on 2026-10-24. These findings require impact-based review; do not apply blanket revocations or RLS changes without dependency analysis.
 
 ## Read-only audit procedure
 
@@ -89,6 +89,21 @@ This checklist is intentionally fail-closed. A checked item requires recorded te
 - [ ] Re-run browser/mobile smoke tests, verify GitHub Pages deployment and responsive navigation, and record the tested commit SHA.
 
 ### Current decision
-The repository contains the hardening from PRs #132–#134, but production `rt-transaction` was last verified as version 5 and does not yet contain that hardening. Active production assignments observed in the read-only audit include `RT_OPERATOR` and `PLATFORM_ADMIN` scoped to a VILLAGE territory. These assignments must be corrected through an authorized, identity-verified administrative workflow before a strict production rollout. No role grants, production data changes, or trial feature activation are authorized by this checklist alone.
+The current GitHub `main` source of `rt-transaction` imports the shared role/scope/validity authorization helper and validates request size/shape, active territory and organization mapping. Unit tests for the helper passed in workflow run #40039217291 and were merged in PR #150. Production `rt-transaction` was last verified as version 5 with SHA-256 `8e7f459331ec63915fe72ce8916cc9678d1dcc303818ab67406811b70b4b6e25` and still runs the older source; the hardened main-branch source has not yet been deployed. Active production assignments observed in the read-only audit include `RT_OPERATOR` and `PLATFORM_ADMIN` scoped to a VILLAGE territory. These assignments must be corrected through an authorized, identity-verified administrative workflow before a strict production rollout. No role grants, production data changes, or trial feature activation are authorized by this checklist alone.
 
-**Release status: NOT CLEARED FOR COMMERCIAL LAUNCH** until every required gate above has evidence attached.
+## National program documents added — 2026-10-24
+
+- [National reference architecture](NATIONAL_PROGRAM_REFERENCE_ARCHITECTURE.md)
+- [Security and privacy readiness register](NATIONAL_SECURITY_PRIVACY_READINESS.md)
+- [AKVISIO–IT partner–government operating model](AKVISIO_IT_PARTNER_GOVERNMENT_OPERATING_MODEL.md)
+- [National pilot acceptance and scale test plan](NATIONAL_PILOT_ACCEPTANCE_TEST_PLAN.md)
+- [National identifier protection migration plan](NATIONAL_IDENTIFIER_PROTECTION_MIGRATION_PLAN.md)
+- [RT transaction remediation plan](RT_TRANSACTION_REMEDIATION_PLAN.md)
+- [Release-gate evidence template](RELEASE_GATE_EVIDENCE_TEMPLATE.md)
+- [Initial data inventory findings](INITIAL_DATA_INVENTORY_FINDINGS.md)
+
+The client-role membership remediation is verified, but direct write grants on `public.spatial_ref_sys` remain unresolved because the current SQL execution context cannot revoke grants made by `supabase_admin`. A prior migration correctly failed its assertion and rolled back; do not claim this issue is fixed until an authorized execution context applies a reviewed change and effective privileges are rechecked.
+
+The active assignment inventory still shows `RT_OPERATOR` attached to a `VILLAGE` territory without `organization_id`, and `PLATFORM_ADMIN` attached to `VILLAGE`. Do not auto-correct these assignments. Use a verified administrator workflow and dedicated test identities; a strict function rollout is blocked until authorized role mapping and authenticated E2E evidence exist.
+
+**Release status: NOT CLEARED FOR COMMERCIAL LAUNCH OR REAL-DATA NATIONAL PRODUCTION** until every required gate above has evidence attached.
