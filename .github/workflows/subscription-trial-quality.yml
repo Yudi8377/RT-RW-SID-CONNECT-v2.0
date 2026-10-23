@@ -44,6 +44,7 @@ jobs:
           migration="supabase/migrations/202610230001_server_authoritative_entitlements.sql"
           grep -q 'admin.rpc("start_organization_trial"' "$file"
           grep -q "('TRIAL_7_DAY', 'Trial 7 Hari', 'TRIAL', 7, 0, 'IDR', true" "$migration"
+          grep -q "'device_limit', true, 1" "$migration"
           grep -q "where p.plan_code = 'TRIAL_7_DAY'" "$migration"
           grep -q "interval '7 days'" "$migration"
           grep -q "join public.roles r on r.id = ra.role_id" "$migration"
