@@ -131,7 +131,7 @@ BEGIN
   IF p_scope_territory_id IS NULL OR p_person_id IS NULL OR p_household_id IS NULL THEN
     RAISE EXCEPTION 'Scope, person and household are required' USING errcode = '22023';
   END IF;
-  IF v_note IS NULL OR pg_catalog.length(v_note)<10 OR v_note ~ '[0-9]{16}' THEN
+  IF v_note IS NULL OR pg_catalog.length(v_note)<10 OR pg_catalog.regexp_replace(v_note,'[^0-9]','','g') ~ '[0-9]{16}' THEN
     RAISE EXCEPTION 'Verification note must be at least 10 characters and must not contain a national identity number' USING errcode = '22023';
   END IF;
   IF p_relationship_label NOT IN ('KEPALA_KELUARGA','PASANGAN','ANAK','ORANG_TUA','SAUDARA','LAINNYA') THEN
