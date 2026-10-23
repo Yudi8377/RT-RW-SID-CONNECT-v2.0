@@ -939,8 +939,12 @@ async function startCommercialTrial(){
   if(button){button.disabled=true;button.textContent="Memproses…";}
   try{
     const response=await sb.functions.invoke("start-trial",{body:{organization_id:orgId}});
-    if(response.error||!response.data?.subscription){
-      const code=response.data?.error||response.error?.message||"";
+    let payload=response.data;
+    if(response.error&&!payload){
+      try{payload=await response.error.context?.clone?.().json()}catch(_ignored){}
+    }
+    if(response.error||!payload?.subscription){
+      const code=payload?.error||response.error?.message||"";
       const messages={
         TRIAL_ALREADY_USED:"Organisasi ini sudah menggunakan Trial 7 Hari.",
         SUBSCRIPTION_ALREADY_CURRENT:"Organisasi sudah memiliki langganan aktif atau ditangguhkan.",
@@ -977,4 +981,4 @@ document.addEventListener("click",function(e){
 });
 window.addEventListener("resize",()=>{if(window.innerWidth>800)closeMobileSidebar()});
 document.addEventListener("click",function(e){const d=e.target.closest("[data-row-detail]");if(d){e.preventDefault();e.stopImmediatePropagation();openRecordDetail(d.dataset.rowDetail);}});if(C.supabasePublishableKey&&window.supabase)sb=window.__RT_RW_SUPABASE_CLIENT||(window.__RT_RW_SUPABASE_CLIENT=supabase.createClient(C.supabaseUrl,C.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}));
-if(sb)sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT"||event==="SIGNED_IN"){state.companionMessages=[];state.companionOpen=false}render();setTimeout(refreshLiveWorkspace,500)});render();setTimeout(refreshLiveWorkspace,700);
+if(sb)sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT"||event==="SIGNED_IN"){state.companionMessages=[];state.companionOpen=false;state.commercialTrialResult=null}render();setTimeout(refreshLiveWorkspace,500)});render();setTimeout(refreshLiveWorkspace,700);
