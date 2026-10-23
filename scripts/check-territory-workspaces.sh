@@ -23,7 +23,15 @@ for token in \
   'const ADMIN_PREVIEW=new URLSearchParams(location.search).get("preview")==="admin";' \
   'if(ADMIN_PREVIEW)return' \
   'Pratinjau dashboard per wilayah' \
-  'Pratinjau dashboard saja' \
+  'function previewScopedWorkspace()' \
+  'PRATINJAU ALUR KERJA · TANPA DATA PRODUKSI' \
+  'Meja kerja RT' \
+  'Meja review RW' \
+  'Meja validasi desa' \
+  'Meja koordinasi kecamatan' \
+  'Meja eksekutif daerah' \
+  'Meja informasi SID' \
+  'Meja kontrol platform' \
   'function rwReviewWorkspace()' \
   'roleDashboardHero("RT DIGITAL / OPERASIONAL"' \
   'roleDashboardHero("DESA / KELURAHAN"' \
@@ -46,7 +54,7 @@ if grep -Eq '\["(1,284|326|17|READY)","(Warga|KK|Workflow|Platform)"' "$app"; th
   exit 1
 fi
 
-for token in '.territory-hero' '.territory-work-grid' '.rt-work-grid' '.village-workflow' '.district-overview' '.regency-banner' '.access-pending' '.regional-live-panel' '.regional-live-kpis' '.role-preview-grid' '.role-preview-toolbar'
+for token in '.territory-hero' '.territory-work-grid' '.rt-work-grid' '.village-workflow' '.district-overview' '.regency-banner' '.access-pending' '.regional-live-panel' '.regional-live-kpis' '.role-preview-grid' '.role-preview-toolbar' '.preview-workspace' '.preview-workspace-context' '.preview-flow-grid' '.preview-flow-step'
 do
   grep -Fq "$token" "$css" || {
     echo "Territory workspace styling missing: $token" >&2
