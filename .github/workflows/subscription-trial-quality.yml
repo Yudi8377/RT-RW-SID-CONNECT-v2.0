@@ -5,6 +5,7 @@ on:
     paths:
       - "supabase/functions/start-trial/**"
       - "supabase/migrations/202610220005_server_authoritative_entitlements.sql"
+      - "supabase/tests/**"
       - ".github/workflows/subscription-trial-quality.yml"
   push:
     branches:
@@ -56,3 +57,36 @@ jobs:
             exit 1
           fi
           echo "Server-authoritative trial invariants passed."
+  migration-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Create disposable Supabase-compatible base schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/entitlements-test-bootstrap.sql
+      - name: Apply entitlement migration to disposable database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610220005_server_authoritative_entitlements.sql
+      - name: Verify trial lifecycle, grants, and tenant isolation
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/entitlements-migration-smoke.sql
