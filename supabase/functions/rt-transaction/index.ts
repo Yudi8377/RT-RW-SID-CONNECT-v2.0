@@ -26,7 +26,8 @@ Deno.serve(async(req)=>{
   if(!body||typeof body!=="object"||Array.isArray(body))throw new HttpError(400,"Request body must be a JSON object");
   const service_type=String(body.service_type||"").trim().toUpperCase(); const territory_id=String(body.territory_id||"").trim();
   if(!service_type||service_type.length>64||!territory_id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(territory_id))throw new HttpError(400,"A valid service_type and territory_id are required");
-  const p=body.payload;
+  const rawPayload=body.payload;
+  const p=sanitizeSensitivePayload(rawPayload) as Record<string,any>;
   if(!p||typeof p!=="object"||Array.isArray(p))throw new HttpError(400,"payload must be a JSON object");
   const {data:territory,error:te}=await admin.from("territories").select("id,territory_type,active,parent_id").eq("id",territory_id).maybeSingle();
   if(te)throw te;
@@ -56,9 +57,9 @@ Deno.serve(async(req)=>{
     const applicant_name=text(p.applicant_name||p.head_name); const address=text(p.address); const rt=text(p.rt||p.RT); const rw=text(p.rw||p.RW);
     const request_kk=Boolean(p.request_kk||p.request_type);
     if(!applicant_name||!address||!rt||!rw||!request_kk)throw new HttpError(400,"F-1.02 requires applicant, address, RT, RW and KK request");
-    const applicantNik=text(p.applicant_nik||p["NIK Pemohon"]);
+    const applicantNik=text(rawPayload.applicant_nik||rawPayload["NIK Pemohon"]);
     if(applicantNik && !/^\\d{16}$/.test(applicantNik))throw new HttpError(400,"NIK Pemohon must contain 16 digits");
-    const members=Array.isArray(p.members)?p.members:[];
+    const members=Array.isArray(rawPayload.members)?rawPayload.members:[];
     if(members.length>50)throw new HttpError(400,"A household request can contain at most 50 members");
     if(members.some(m=>!m?.full_name))throw new HttpError(400,"Every household member requires full_name");
     const memberNiks=members.map(m=>text(m.nik||m.NIK||m["NIK Warga"]||m.national_id));
@@ -78,13 +79,13 @@ Deno.serve(async(req)=>{
     });
     const canonical={canonical_form:"F-1.02",canonical_version:"2026",result_form:"F-1.09",mapping_version:"2026-09-29"};
     const workflow={type:"HOUSEHOLD",initial_status:"SUBMITTED",required_stages:["RT_VERIFICATION","RW_REVIEW","DESA_VALIDATION","AUTHORIZED_PROCESSING"],source_form:"F-1.02",result_form:"F-1.09"};
-    const payload={...(sanitizeSensitivePayload(p) as Record<string,unknown>),members:safeMembers,applicant_person_id:applicantPersonId,applicant_identity_resolution:applicantNik?(applicantPersonId?"MATCHED_EXISTING_PERSON":"REQUIRES_VERIFICATION"):"REQUIRES_VERIFICATION",form_code:"F-1.02",form_version:"2026",result_form_code:"F-1.09",request_type:p.request_kk||p.request_type||"Membentuk keluarga baru",applicant_name,compliance:canonical,workflow};
+    const payload=sanitizeSensitivePayload({...(p as Record<string,unknown>),members:safeMembers,applicant_person_id:applicantPersonId,applicant_identity_resolution:applicantNik?(applicantPersonId?"MATCHED_EXISTING_PERSON":"REQUIRES_VERIFICATION"):"REQUIRES_VERIFICATION",form_code:"F-1.02",form_version:"2026",result_form_code:"F-1.09",request_type:p.request_kk||p.request_type||"Membentuk keluarga baru",applicant_name,compliance:canonical,workflow}) as Record<string,unknown>;
     const {data:record,error:re}=await admin.from("rt_service_requests").insert({territory_id,service_type,payload,status:"SUBMITTED",created_by:user.id,authority:"RT_DIGITAL"}).select().single();
     if(re)throw re;
     if(!(await writeAudit(admin,{actor_user_id:user.id,action:"F1_02_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:{request_number:record.request_number,service_type:record.service_type,status:record.status,form_code:"F-1.02",result_form_code:"F-1.09"},source:"GOVERNMENT_FORM_COMPLIANCE",authority:scopedRoles.join(",")},requestId)))return json({ok:false,error:"Submission was saved but audit confirmation failed. Do not resubmit; contact support using the request ID."},500,requestId);
     return json({ok:true,type:service_type,form_code:"F-1.02",result_form_code:"F-1.09",record},200,requestId);
   }
-  let person_id=null; const nik=text(p.NIK||p["NIK Warga"]||p["NIK Pemohon"]||p["NIK Almarhum/Almarhumah"]);
+  let person_id=null; const nik=text(rawPayload.NIK||rawPayload["NIK Warga"]||rawPayload["NIK Pemohon"]||rawPayload["NIK Almarhum/Almarhumah"]);
   if(nik&&!/^\\d{16}$/.test(nik))throw new HttpError(400,"NIK must contain 16 digits");
   if(nik){const h=await hashNIK(nik);const {data:person,error:pe}=await admin.from("persons").select("id").eq("national_id_hash",h).maybeSingle();if(pe)throw pe;person_id=person?.id||null;}
   if(CANONICAL.has(service_type)){
