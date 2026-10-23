@@ -9,7 +9,7 @@ test -s "$migration"
 test -s "$trial_fn"
 
 # Commercial trial must stay gated until production schema and runtime checks are complete.
-grep -q 'commercialTrialEnabled:false' "$config"
+grep -Eq 'commercialTrialEnabled[[:space:]]*:[[:space:]]*false' "$config"
 
 # Required tenant-scoped schema and server-authoritative safeguards.
 for token in \
@@ -21,7 +21,6 @@ for token in \
   'organization_subscriptions_one_current_per_org' \
   'organization_subscriptions_one_trial_per_org' \
   'public.start_organization_trial' \
-  'set search_path = '\'' '\'' \
   'TRIAL_7_DAY' \
   'TRIAL_STARTED' \
   'auth.uid()' \
@@ -43,9 +42,9 @@ done
 grep -Fq "set search_path = ''" "$migration"
 
 # Edge Function must derive identity from a validated access token and accept only organization_id.
-grep -q 'userClient.auth.getUser()' "$trial_fn"
-grep -q 'organization_id' "$trial_fn"
-grep -q 'admin.rpc("start_organization_trial"' "$trial_fn"
+grep -Fq 'userClient.auth.getUser()' "$trial_fn"
+grep -Fq 'organization_id' "$trial_fn"
+grep -Fq 'admin.rpc("start_organization_trial"' "$trial_fn"
 if grep -Eq 'body[^;]*(plan_id|price_amount|status|trial_ends_at|activation_source)' "$trial_fn"; then
   echo "Client-controlled subscription fields detected in start-trial" >&2
   exit 1
