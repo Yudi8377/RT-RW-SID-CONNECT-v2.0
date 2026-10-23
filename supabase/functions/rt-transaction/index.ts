@@ -25,7 +25,7 @@ Deno.serve(async(req)=>{
   const roleTerritoryTypes={RT_OPERATOR:["RT"],RW_REVIEWER:["RW"],VILLAGE_VALIDATOR:["VILLAGE"],PLATFORM_ADMIN:["RT"]};
   const scopedRoles=roles.filter((role)=>ROLE_ALLOW.includes(role)&&(roleTerritoryTypes[role]||[]).includes(territory.territory_type));
   if(!scopedRoles.length)throw new Error("User role is not authorized for this territory type");
-  if(["HEALTH","EDUCATION"].includes(service_type)&&!roles.some((r)=>["RT_OPERATOR","VILLAGE_VALIDATOR","PLATFORM_ADMIN"].includes(r)))throw new Error("Sensitive domain requires RT_OPERATOR or village validation authority");
+  if(["HEALTH","EDUCATION"].includes(service_type)&&!scopedRoles.some((r)=>["RT_OPERATOR","VILLAGE_VALIDATOR","PLATFORM_ADMIN"].includes(r)))throw new Error("Sensitive domain requires RT_OPERATOR or village validation authority");
   if(service_type==="HOUSEHOLD"){
     const applicant_name=text(p.applicant_name||p.head_name); const address=text(p.address); const rt=text(p.rt||p.RT); const rw=text(p.rw||p.RW);
     const request_kk=Boolean(p.request_kk||p.request_type);
