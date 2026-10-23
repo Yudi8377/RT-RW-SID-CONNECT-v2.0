@@ -87,14 +87,16 @@ SELECT public.register_organization_device(
   'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   'Browser test 1'
 );
-DO $
+RESET ROLE;
+DO $$
 BEGIN
   IF (SELECT count(*) FROM public.organization_devices WHERE organization_id = '10000000-0000-4000-8000-000000000001' AND status = 'ACTIVE') <> 1 THEN
     RAISE EXCEPTION 'same device registration was not idempotent';
   END IF;
 END;
-$;
-DO $
+$$;
+SET ROLE service_role;
+DO $$
 BEGIN
   PERFORM public.register_organization_device(
     '00000000-0000-4000-8000-000000000001',
@@ -106,7 +108,7 @@ BEGIN
 EXCEPTION WHEN SQLSTATE 'P0001' THEN
   IF SQLERRM <> 'DEVICE_LIMIT_REACHED' THEN RAISE; END IF;
 END;
-$;
+$$;
 RESET ROLE;
 
 -- An administrator can revoke the old installation; the replacement then uses the single slot.
@@ -122,13 +124,13 @@ SELECT public.register_organization_device(
   'Browser test 2'
 );
 RESET ROLE;
-DO $
+DO $$
 BEGIN
   IF (SELECT count(*) FROM public.organization_devices WHERE organization_id = '10000000-0000-4000-8000-000000000001' AND status = 'ACTIVE') <> 1 THEN
     RAISE EXCEPTION 'revocation did not free the device slot';
   END IF;
 END;
-$;
+$$;
 
 -- The same organization cannot receive a second trial.
 DO $$
