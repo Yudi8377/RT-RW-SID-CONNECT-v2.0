@@ -1,0 +1,1 @@
+-- Verified resident-to-household link workbench. Admin-only RPCs and audited link actions.
