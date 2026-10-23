@@ -990,12 +990,26 @@ function adminAccessWorkspace(){
    error="Memuat assignment dari server…";
  }
  const demo=ADMIN_PREVIEW;
- const bodyRows=rows.length?rows.map(x=>'<tr><td><b>'+esc(x.user_id)+'</b></td><td>'+esc(x.roles?.role_name||x.roles?.role_code||"-")+'</td><td>'+esc(x.territories?.name||"Global")+'</td><td>'+status(x.active?"ACTIVE":"INACTIVE")+'</td><td>'+esc(x.starts_at||"—")+'</td><td><button type="button" class="row-action" data-access-deactivate="'+esc(x.id)+'">Deactivate</button></td></tr>').join(""):'<tr><td colspan="6"><div class="empty-state"><b>'+esc(error||"Belum ada assignment aktif.")+'</b><span>'+(demo?"ADMIN PREVIEW tidak memiliki kewenangan produksi dan tidak membuat assignment.":"Pastikan akun ini memiliki PLATFORM_ADMIN assignment sebelum mengelola akses.")+'</span></div></td></tr>';
+ const expectedScope={RT_OPERATOR:"RT",RW_REVIEWER:"RW",VILLAGE_VALIDATOR:"VILLAGE",OPEN_SID_UMUM:"VILLAGE",DISTRICT_COORDINATOR:"DISTRICT",REGENCY_CITY_ADMIN:"REGENCY_CITY"};
+ const scopeIssues=rows.filter(x=>{
+   const code=x.roles?.role_code||"";
+   if(code==="PLATFORM_ADMIN")return Boolean(x.scope_territory_id);
+   if(code==="PILOT_VIEWER")return !x.scope_territory_id;
+   return !expectedScope[code]||x.territories?.territory_type!==expectedScope[code]||!x.organization_id;
+ });
+ const bodyRows=rows.length?rows.map(x=>{
+   const code=x.roles?.role_code||"",expected=expectedScope[code];
+   const valid=code==="PLATFORM_ADMIN"?!x.scope_territory_id:code==="PILOT_VIEWER"?Boolean(x.scope_territory_id):Boolean(expected&&x.territories?.territory_type===expected&&x.organization_id);
+   const scopeState=valid?status("SCOPE VALID"):'<span class="status warning">PERLU AUDIT</span>';
+   return '<tr><td><b>'+esc(x.user_id)+'</b></td><td>'+esc(x.roles?.role_name||code||"-")+'</td><td>'+esc(x.territories?.name||"Global")+'<small class="scope-type">'+esc(x.territories?.territory_type||"GLOBAL")+'</small></td><td><code>'+esc(x.organization_id||"—")+'</code></td><td>'+scopeState+'</td><td>'+status(x.active?"ACTIVE":"INACTIVE")+'</td><td><button type="button" class="row-action" data-access-deactivate="'+esc(x.id)+'" '+(demo||!x.active||x.user_id===access.userId?"disabled":"")+'>Deactivate</button></td></tr>';
+ }).join(""):'<tr><td colspan="7"><div class="empty-state"><b>'+esc(error||"Belum ada assignment.")+'</b><span>'+(demo?"ADMIN PREVIEW tidak memiliki kewenangan produksi dan tidak membuat assignment.":"Pastikan akun ini memiliki PLATFORM_ADMIN assignment sebelum mengelola akses.")+'</span></div></td></tr>';
  return '<div class="module-head"><div><div class="eyebrow dark">ADMIN / ACCESS MANAGEMENT</div><h2>Administrator Access Management</h2><p>Kelola user → role → scope melalui Edge Function server-side. Tidak ada privilege yang ditambahkan dari JavaScript browser.</p></div><span class="status active">SERVER-SIDE GATED</span></div>'+
- '<section class="panel wide"><div class="module-note"><b>Security boundary.</b><span>Hanya PLATFORM_ADMIN aktif yang dapat melihat dan mengubah assignment. Self-escalation, self-deactivation, global scope untuk role non-admin, dan browser-side privilege bypass ditolak.</span></div></section>'+
- '<section class="panel wide"><div class="panel-head"><div><small>ROLE ASSIGNMENTS</small><h3>Current Access</h3></div><span class="status">'+rows.length+' ASSIGNMENT</span></div><div class="table-wrap"><table><thead><tr><th>USER ID</th><th>ROLE</th><th>SCOPE</th><th>STATUS</th><th>START</th><th>ACTION</th></tr></thead><tbody>'+bodyRows+'</tbody></table></div></section>'+
- '<section class="panel wide"><div class="module-note"><b>Phase 18 gate.</b><span>Assignment produksi belum di-seed otomatis. Admin preview hanya untuk melihat UI. Aktivasi PLATFORM_ADMIN untuk akun nyata memerlukan tindakan administratif eksplisit.</span></div></section>';
+ '<section class="panel wide"><div class="module-note"><b>Security boundary.</b><span>Hanya PLATFORM_ADMIN aktif yang dapat melihat dan mengubah assignment. Setiap role harus cocok dengan tipe wilayahnya dan organisasi/tenant harus ditautkan secara eksplisit. Sistem tidak memperbaiki assignment secara otomatis.</span></div></section>'+
+ (scopeIssues.length?'<section class="panel wide scope-audit-warning"><div class="eyebrow dark">ACCESS GOVERNANCE / ACTION REQUIRED</div><h3>'+scopeIssues.length+' assignment memerlukan audit scope</h3><p>Role dan scope wilayah tidak cocok atau organisasi belum terhubung. Assignment ini dapat gagal mengakses layanan atau trial; perbaiki melalui alur admin terotorisasi setelah wilayah yang benar dipastikan. Tidak ada perubahan otomatis yang dilakukan.</p></section>':'')+
+ '<section class="panel wide"><div class="panel-head"><div><small>ROLE ASSIGNMENTS</small><h3>Current Access & Scope Audit</h3></div><span class="status">'+rows.length+' ASSIGNMENT</span></div><div class="table-wrap"><table><thead><tr><th>USER ID</th><th>ROLE</th><th>SCOPE</th><th>ORGANIZATION / TENANT</th><th>VALIDASI</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>'+bodyRows+'</tbody></table></div></section>'+
+ '<section class="panel wide"><div class="module-note"><b>Provisioning gate.</b><span>Assignment baru atau perubahan scope hanya boleh dilakukan setelah backend memvalidasi tipe wilayah, organisasi tenant, masa berlaku, dan audit trail. Penugasan PLATFORM_ADMIN memerlukan proses persetujuan terpisah.</span></div></section>';
 }
+
 async function adminTerritoryWorkspace(){
  let rows=[];
  if(sb&&!ADMIN_PREVIEW){const q=await sb.from("territories").select("id,parent_id,territory_type,code,name,active").order("territory_type").order("code");if(!q.error)rows=q.data||[]}
