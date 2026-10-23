@@ -66,3 +66,9 @@ Several audit tables and `after_data` JSON fields can hold full records. Define 
 ## 4. Release consequence
 
 The national real-data gate remains **blocked** until D-01 through D-05 are assessed, remediation is reviewed and effective access is demonstrated through tests. These observations justify further security work; they do not establish that a breach has occurred or that all identified fields are exposed to every user.
+
+
+### D-06 — Extension-managed spatial reference table is writable by API roles
+A read-only ACL inspection confirmed `public.spatial_ref_sys` belongs to PostGIS, is owned by `supabase_admin`, has RLS disabled, and grants `anon` and `authenticated` all table privileges, while PUBLIC has read access. This is a stronger concern than the missing-RLS warning alone because API roles have explicit write grants on extension-managed reference metadata.
+
+A narrowly scoped candidate migration is in [PR #144](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/pull/144). It revokes only write-related privileges from `anon` and `authenticated` while preserving SELECT; it has not yet been deployed. Require disposable migration-chain tests and post-migration privilege verification before production rollout.
