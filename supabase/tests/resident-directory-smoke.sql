@@ -30,10 +30,17 @@ BEGIN
   SELECT count(*) INTO n FROM public.rt_resident_directory('40000000-0000-4000-8000-000000000001',50,0);
   IF n <> 1 THEN RAISE EXCEPTION 'RT directory leaked or omitted records: %', n; END IF;
 
+  SELECT * INTO v FROM public.rt_household_directory('40000000-0000-4000-8000-000000000001',50,0);
+  IF v.address_line <> 'Alamat uji RT' THEN RAISE EXCEPTION 'RT household scope returned unexpected address: %', row_to_json(v); END IF;
+  SELECT count(*) INTO n FROM public.rt_household_directory('40000000-0000-4000-8000-000000000001',50,0);
+  IF n <> 1 THEN RAISE EXCEPTION 'RT household directory leaked or omitted records: %', n; END IF;
+
   -- RW can see assigned descendant RT data, not unrelated village data.
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000009',false);
   SELECT count(*) INTO n FROM public.rt_resident_directory('60000000-0000-4000-8000-000000000001',50,0);
   IF n <> 1 THEN RAISE EXCEPTION 'RW descendant scope incorrect: %', n; END IF;
+  SELECT count(*) INTO n FROM public.rt_household_directory('60000000-0000-4000-8000-000000000001',50,0);
+  IF n <> 1 THEN RAISE EXCEPTION 'RW household descendant scope incorrect: %', n; END IF;
 
   -- Village validator sees descendants within its assigned village.
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000010',false);
