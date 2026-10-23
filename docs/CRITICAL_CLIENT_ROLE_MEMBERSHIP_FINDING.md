@@ -37,3 +37,7 @@ The subsequent `20261023144500_restrict_spatial_ref_sys_write_grants.sql` migrat
 ## Safety
 
 The role-membership migration was applied as production migration `revoke_client_postgres_membership` (version `20261023150838`). Follow-up checks confirm `anon` and `authenticated` have no MEMBER/USAGE/SET capability on `postgres` and no membership in any superuser/BYPASSRLS role. The spatial_ref_sys grant migration then failed its own assertion and rolled back: the current SQL connection lacks grant option to revoke direct table privileges recorded as granted by `supabase_admin`. `anon` and `authenticated` still have SELECT/INSERT/UPDATE/DELETE/TRUNCATE on `public.spatial_ref_sys`. This requires a privileged execution context and remains a critical blocker. Keep real-data national production blocked until the spatial grants and all other gates are resolved.
+
+
+## Log review after containment
+A read-only review of the available unified logs for the prior 24-hour window found no matching log rows containing `SET ROLE`, `BYPASSRLS`, `st_estimatedextent`, or `spatial_ref_sys` access attempts beyond the two failed migration attempts. Several `permission denied` messages for application tables were present and require correlation with expected application workflows. This limited search is **not** proof that no exploitation occurred: role switching or direct SQL activity may not be logged at a granularity sufficient to prove absence. Preserve logs and ask the platform/security operator to review broader database audit and access telemetry.
