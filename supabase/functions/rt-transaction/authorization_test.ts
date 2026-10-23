@@ -1,8 +1,8 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { resolveTransactionAuthorization } from "../_shared/transaction-authorization.ts";
+import { resolveTransactionAuthorization, type TransactionAssignment } from "../_shared/transaction-authorization.ts";
 
 const now = Date.parse("2026-10-23T12:00:00.000Z");
-const assignment = (overrides: Record<string, unknown> = {}) => ({
+const assignment = (overrides: Partial<TransactionAssignment> = {}): TransactionAssignment => ({
   active: true,
   starts_at: "2026-10-01T00:00:00.000Z",
   ends_at: "2026-11-01T00:00:00.000Z",
