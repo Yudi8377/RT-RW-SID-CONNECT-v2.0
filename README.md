@@ -8,7 +8,7 @@ Community, Village & Smart Village Digital Operating Platform.
 - GitHub Pages: public frontend
 - Supabase Free: Postgres + Auth + Data API
 - No Hatchable dependency in production
-- Anonymous 7-day trial remains browser-local
+- Admin preview is browser-local and is not a commercial subscription; commercial Trial stays disabled until server-side entitlements are deployed and verified
 - Production authorization remains Role + Scope + Permission + Classification + Purpose + Context
 
 ## Supabase setup
@@ -29,9 +29,24 @@ Hatchable v13 is frozen as a reference only. Do not delete its project or data u
 ## Current implementation status
 
 - Canonical territory, identity and RBAC foundation migrated to Supabase.
-- Security baseline applied; latest Supabase security advisor result: 0 findings.
+- Security baseline is present, but the live Supabase Security Advisor still reports findings; see `docs/PRODUCTION_RELEASE_GATE.md`.
 - Authenticated workspace reads active role/scope assignments when provisioned.
 - GitHub Pages deployment workflow is configured on `main`.
+
+## Production release gate
+
+The public GitHub Pages site and the production Supabase backend are separate release surfaces. A successful Pages deployment does not mean that subscription or regional operations are live.
+
+As verified on 2026-10-23:
+- Frontend config keeps `commercialTrialEnabled: false` and `aiCompanionEnabled: false`.
+- The production database migration history does not yet include the current regional summary RPC and server-authoritative subscription/device-entitlement migrations.
+- The production Edge Function inventory does not yet include `start-trial` or `register-device`.
+- Production contains existing synthetic/demo resident and household records; do not treat it as an empty database.
+- Security Advisor findings remain open. Do not claim a zero-finding security posture until rechecked and remediated.
+
+Do not enable commercial flags until the migration sequence is reconciled against production history, migrations and Edge Functions are deployed in a controlled order, entitlement and regional scope smoke tests pass against the actual backend, and Security Advisor findings are triaged. Do not auto-assign new regional administrators to real accounts; role assignments require an authorized platform administrator and the correct territory scope.
+
+Detailed checklist: [Production Release Gate](docs/PRODUCTION_RELEASE_GATE.md).
 
 ## Next implementation targets
 
