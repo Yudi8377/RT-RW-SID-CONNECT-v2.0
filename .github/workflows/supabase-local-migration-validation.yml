@@ -43,6 +43,7 @@ jobs:
           cp "$GITHUB_WORKSPACE/supabase/migrations/202610230005_trial_14_days.sql" supabase/migrations/20261023000500_trial_14_days.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/202610230003_scoped_resident_directory.sql" supabase/migrations/20261023000300_scoped_resident_directory.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/202610230004_household_membership_admin_workbench.sql" supabase/migrations/20261023000400_household_membership_admin_workbench.sql
+          cp "$GITHUB_WORKSPACE/supabase/migrations/20261023143000_revoke_client_postgres_membership.sql" supabase/migrations/20261023143000_revoke_client_postgres_membership.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/20261023144500_restrict_spatial_ref_sys_write_grants.sql" supabase/migrations/20261023144500_restrict_spatial_ref_sys_write_grants.sql
 
       - name: Start disposable Supabase stack
@@ -91,6 +92,15 @@ jobs:
           PGPASSWORD: postgres
           PGDATABASE: postgres
         run: psql -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/tests/resident-membership-admin-smoke.sql"
+
+      - name: Verify client roles cannot inherit postgres
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '54322'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: psql -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/tests/client-postgres-membership.sql"
 
       - name: Verify PostGIS reference table is read-only to API roles
         env:
