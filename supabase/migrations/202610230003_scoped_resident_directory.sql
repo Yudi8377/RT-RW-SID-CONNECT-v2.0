@@ -59,7 +59,6 @@ DECLARE
   v_user_id uuid := auth.uid();
   v_role_code text;
   v_scope_type text;
-  v_descendant_ids uuid[];
 BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'Authentication required' USING errcode = '28000';
@@ -89,14 +88,6 @@ BEGIN
       USING errcode = '42501';
   END IF;
 
-  RAISE NOTICE 'resident rpc: scope %, user %, role %, type %', p_scope_territory_id, v_user_id, v_role_code, v_scope_type;
-  WITH RECURSIVE descendants(id) AS (
-    SELECT t.id FROM public.territories t WHERE t.id = p_scope_territory_id AND t.active = true
-    UNION
-    SELECT child.id FROM public.territories child JOIN descendants parent ON child.parent_id = parent.id WHERE child.active = true
-  ) SELECT pg_catalog.array_agg(id ORDER BY id) INTO v_descendant_ids FROM descendants;
-  RAISE NOTICE 'resident rpc descendants: %', v_descendant_ids;
-  RAISE NOTICE 'resident rpc territory edges: %', (SELECT pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('id',id,'parent_id',parent_id) ORDER BY id) FROM public.territories WHERE id::text LIKE '30000000-0000-4000-8000-00000000000%');
   RETURN QUERY
   WITH RECURSIVE descendants(id) AS (
     SELECT t.id
