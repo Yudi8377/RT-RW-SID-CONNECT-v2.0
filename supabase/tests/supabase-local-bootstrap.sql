@@ -1,8 +1,15 @@
 -- Test-only schema bootstrap for a disposable local Supabase stack.
 -- Auth schema, auth.uid(), anon/authenticated/service_role are provided by Supabase local.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
--- Simulate the excessive production ACL so the candidate migration must remove it.
+-- Minimal disposable fixture simulating the production spatial_ref_sys relation and excessive API grants.
+-- This avoids requiring the PostGIS binary in CI; production extension ownership was verified separately.
+CREATE TABLE IF NOT EXISTS public.spatial_ref_sys (
+  srid integer PRIMARY KEY,
+  auth_name text,
+  auth_srid integer,
+  srtext text,
+  proj4text text
+);
 GRANT ALL PRIVILEGES ON TABLE public.spatial_ref_sys TO anon, authenticated;
 
 CREATE TABLE public.territories (
