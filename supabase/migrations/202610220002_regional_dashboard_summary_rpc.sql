@@ -30,6 +30,7 @@ begin
   where ra.user_id = v_user_id
     and ra.scope_territory_id = p_scope_territory_id
     and ra.active = true
+    and t.active = true
     and (ra.starts_at is null or ra.starts_at <= now())
     and (ra.ends_at is null or ra.ends_at > now())
     and ((r.role_code = 'DISTRICT_COORDINATOR' and t.territory_type = 'DISTRICT')
@@ -45,7 +46,7 @@ begin
     select t.id, t.parent_id, t.territory_type
     from public.territories t
     where t.id = p_scope_territory_id and t.active = true
-    union all
+    union
     select child.id, child.parent_id, child.territory_type
     from public.territories child
     join descendants parent on child.parent_id = parent.id
@@ -55,7 +56,7 @@ begin
 
   with recursive descendants(id) as (
     select t.id from public.territories t where t.id = p_scope_territory_id and t.active = true
-    union all
+    union
     select child.id from public.territories child join descendants parent on child.parent_id = parent.id where child.active = true
   )
   select count(*) into v_service_total
@@ -63,7 +64,7 @@ begin
 
   with recursive descendants(id) as (
     select t.id from public.territories t where t.id = p_scope_territory_id and t.active = true
-    union all
+    union
     select child.id from public.territories child join descendants parent on child.parent_id = parent.id where child.active = true
   )
   select count(*) into v_service_open
@@ -73,7 +74,7 @@ begin
 
   with recursive descendants(id) as (
     select t.id from public.territories t where t.id = p_scope_territory_id and t.active = true
-    union all
+    union
     select child.id from public.territories child join descendants parent on child.parent_id = parent.id where child.active = true
   )
   select count(*) into v_infrastructure
@@ -81,7 +82,7 @@ begin
 
   with recursive descendants(id) as (
     select t.id from public.territories t where t.id = p_scope_territory_id and t.active = true
-    union all
+    union
     select child.id from public.territories child join descendants parent on child.parent_id = parent.id where child.active = true
   )
   select count(*) into v_assistance
