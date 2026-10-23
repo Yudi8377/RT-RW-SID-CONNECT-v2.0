@@ -111,7 +111,7 @@ SET parent_id = '30000000-0000-4000-8000-000000000006'
 WHERE id = '30000000-0000-4000-8000-000000000005';
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
-DO $
+DO $$
 DECLARE d jsonb;
 BEGIN
   d := public.regional_dashboard_summary('30000000-0000-4000-8000-000000000003');
@@ -119,7 +119,7 @@ BEGIN
     RAISE EXCEPTION 'cyclic hierarchy changed de-duplicated territory count: %', d;
   END IF;
 END;
-$;
+$$;
 RESET statement_timeout;
 RESET ROLE;
 
