@@ -93,7 +93,7 @@ BEGIN
     SELECT t.id
     FROM public.territories t
     WHERE t.id = p_scope_territory_id AND t.active = true
-    UNION ALL
+    UNION
     SELECT child.id
     FROM public.territories child
     JOIN descendants parent ON child.parent_id = parent.id
@@ -184,7 +184,7 @@ BEGIN
   WITH RECURSIVE descendants(id) AS (
     SELECT t.id FROM public.territories t
     WHERE t.id = p_scope_territory_id AND t.active = true
-    UNION ALL
+    UNION
     SELECT child.id
     FROM public.territories child
     JOIN descendants parent ON child.parent_id = parent.id
