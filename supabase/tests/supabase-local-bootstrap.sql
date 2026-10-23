@@ -21,6 +21,17 @@ CREATE TABLE IF NOT EXISTS public.spatial_ref_sys (
 );
 GRANT ALL PRIVILEGES ON TABLE public.spatial_ref_sys TO PUBLIC, anon, authenticated;
 
+-- Disposable SECURITY DEFINER fixtures simulate the three PostGIS overloads found in production.
+CREATE OR REPLACE FUNCTION public.st_estimatedextent(text,text)
+RETURNS text LANGUAGE sql SECURITY DEFINER AS $ SELECT 'fixture'::text $;
+CREATE OR REPLACE FUNCTION public.st_estimatedextent(text,text,text)
+RETURNS text LANGUAGE sql SECURITY DEFINER AS $ SELECT 'fixture'::text $;
+CREATE OR REPLACE FUNCTION public.st_estimatedextent(text,text,text,boolean)
+RETURNS text LANGUAGE sql SECURITY DEFINER AS $ SELECT 'fixture'::text $;
+GRANT EXECUTE ON FUNCTION public.st_estimatedextent(text,text) TO PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.st_estimatedextent(text,text,text) TO PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.st_estimatedextent(text,text,text,boolean) TO PUBLIC, anon, authenticated, service_role;
+
 CREATE TABLE public.territories (
  id uuid PRIMARY KEY,
  parent_id uuid REFERENCES public.territories(id),
