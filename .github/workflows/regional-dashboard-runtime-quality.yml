@@ -15,6 +15,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'supabase/migrations/202610230004_household_membership_admin_workbench.sql'
+      - 'supabase/tests/resident-membership-admin-smoke.sql'
       - 'supabase/migrations/202610230003_scoped_resident_directory.sql'
       - 'supabase/tests/resident-directory-smoke.sql'
       - 'supabase/migrations/202610220002_regional_dashboard_summary_rpc.sql'
