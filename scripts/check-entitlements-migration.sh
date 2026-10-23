@@ -4,6 +4,15 @@ set -euo pipefail
 migration="supabase/migrations/202610230001_server_authoritative_entitlements.sql"
 test -f "$migration"
 
+# Supabase migration versions must be unique across the repository.
+version="${migration##*/}"
+version="${version%%_*}"
+matches="$(find supabase/migrations -maxdepth 1 -type f -name "${version}_*.sql" | wc -l | tr -d ' ')"
+if [ "$matches" -ne 1 ]; then
+  echo "Migration version collision detected: $version ($matches files)" >&2
+  exit 1
+fi
+
 # Required tenant and billing controls must remain explicit in the migration.
 grep -q "references public.organizations(id)" "$migration"
 grep -q "references auth.users(id)" "$migration"
