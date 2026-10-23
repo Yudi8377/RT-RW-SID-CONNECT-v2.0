@@ -1,0 +1,94 @@
+name: Subscription Trial Quality
+
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/start-trial/**"
+      - "supabase/migrations/202610230001_server_authoritative_entitlements.sql"
+      - "supabase/tests/**"
+      - ".github/workflows/subscription-trial-quality.yml"
+  push:
+    branches:
+      - feat/server-entitlements-schema-v1
+      - main
+    paths:
+      - "supabase/functions/start-trial/**"
+      - "supabase/migrations/202610230001_server_authoritative_entitlements.sql"
+      - "supabase/tests/**"
+      - ".github/workflows/subscription-trial-quality.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trial-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check trial Edge Function
+        run: deno check supabase/functions/start-trial/index.ts
+      - name: Test trial authorization policy and dates
+        run: deno test supabase/functions/start-trial/policy.test.ts
+      - name: Guard server-authoritative trial invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          file="supabase/functions/start-trial/index.ts"
+          grep -q 'auth.getUser()' "$file"
+          grep -q 'SUPABASE_SERVICE_ROLE_KEY' "$file"
+          migration="supabase/migrations/202610230001_server_authoritative_entitlements.sql"
+          grep -q 'admin.rpc("start_organization_trial"' "$file"
+          grep -q "('TRIAL_7_DAY', 'Trial 7 Hari', 'TRIAL', 7, 0, 'IDR', true" "$migration"
+          grep -q "'device_limit', true, 1" "$migration"
+          grep -q "where p.plan_code = 'TRIAL_7_DAY'" "$migration"
+          grep -q "interval '7 days'" "$migration"
+          grep -q "join public.roles r on r.id = ra.role_id" "$migration"
+          grep -q "'RT_OPERATOR', 'RW_REVIEWER', 'VILLAGE_VALIDATOR'" "$migration"
+          grep -q "'TRIALING'" "$migration"
+          grep -q "'SYSTEM_TRIAL'" "$migration"
+          grep -q 'subscription_audit_events' "$migration"
+          grep -q 'revoke all on function public.start_organization_trial(uuid, uuid, text) from public, anon, authenticated' "$migration"
+          grep -q 'grant execute on function public.start_organization_trial(uuid, uuid, text) to service_role' "$migration"
+          if grep -Eq 'body\.(plan_id|price_amount|status|trial_ends_at|activation_source)' "$file"; then
+            echo "Client-controlled entitlement fields detected" >&2
+            exit 1
+          fi
+          echo "Server-authoritative trial invariants passed."
+  migration-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Create disposable Supabase-compatible base schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/entitlements-test-bootstrap.sql
+      - name: Apply entitlement migration to disposable database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610230001_server_authoritative_entitlements.sql
+      - name: Verify trial lifecycle, grants, and tenant isolation
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/entitlements-migration-smoke.sql
