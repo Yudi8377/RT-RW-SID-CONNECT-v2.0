@@ -23,6 +23,7 @@ on:
       - 'supabase/migrations/**'
       - 'docs/regional-dashboard-hierarchy.md'
       - 'scripts/check-entitlements-migration.sh'
+      - 'scripts/check-entitlements-release-gates.sh'
       - '.github/workflows/regional-dashboard-quality.yml'
 
 permissions:
@@ -38,7 +39,6 @@ jobs:
         run: node --check app.js
       - name: Check whitespace errors
         run: git diff --check
-
       - name: Check gated commercial trial UI
         run: bash scripts/check-commercial-trial-ui.sh
       - name: Check entitlement migration static safety
