@@ -1219,7 +1219,7 @@ async function verifyDeviceEntitlements(){
   if(result.error)return {blocked:true,message:"Status langganan dan perangkat tidak dapat diverifikasi. Akses operasional ditahan sampai koneksi pulih."};
   const now=Date.now();
   const current=(result.data||[]).filter(row=>["TRIALING","ACTIVE","GRACE"].includes(row.status)&&Date.parse(row.current_period_ends_at)>now);
-  if(!current.length)return null;
+  if(!current.length)return {blocked:true,message:"Tidak ada langganan aktif untuk organisasi ini. Trial mungkin sudah berakhir atau paket belum diaktifkan. Aktifkan Trial 7 Hari atau hubungi administrator."};
   let deviceId;
   try{deviceId=deviceInstallationId()}catch(error){return {blocked:true,message:error.message||"Identitas perangkat tidak tersedia."};}
   for(const sub of current){
