@@ -160,3 +160,34 @@ CREATE TABLE public.persons (
  status text NOT NULL DEFAULT 'ACTIVE',
  created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Platform-admin-only membership review fixtures.
+INSERT INTO public.roles (id, role_code, role_name, critical) VALUES
+ ('90000000-0000-4000-8000-000000000006','PLATFORM_ADMIN','Platform Administrator',true)
+ON CONFLICT (role_code) DO NOTHING;
+INSERT INTO auth.users (id) VALUES ('a1000000-0000-4000-8000-000000000011')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.role_assignments (user_id, role_id, scope_territory_id, active, starts_at, ends_at)
+SELECT 'a1000000-0000-4000-8000-000000000011',r.id,'30000000-0000-4000-8000-000000000004',true,now()-interval '1 day',NULL
+FROM public.roles r
+WHERE r.role_code='PLATFORM_ADMIN'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.role_assignments ra
+    WHERE ra.user_id='a1000000-0000-4000-8000-000000000011'
+      AND ra.role_id=r.id AND ra.active
+  );
+
+CREATE TABLE public.audit_logs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ actor_user_id uuid REFERENCES auth.users(id),
+ action text NOT NULL,
+ entity_type text,
+ entity_id uuid,
+ scope_territory_id uuid REFERENCES public.territories(id),
+ before_data jsonb,
+ after_data jsonb,
+ reason text,
+ source text,
+ authority text,
+ created_at timestamptz NOT NULL DEFAULT now()
+);
