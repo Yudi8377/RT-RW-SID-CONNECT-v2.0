@@ -1,0 +1,51 @@
+name: Subscription Trial Quality
+
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/start-trial/**"
+      - "supabase/migrations/202610220005_server_authoritative_entitlements.sql"
+      - ".github/workflows/subscription-trial-quality.yml"
+  push:
+    branches:
+      - feat/server-entitlements-schema-v1
+      - main
+    paths:
+      - "supabase/functions/start-trial/**"
+      - "supabase/migrations/202610220005_server_authoritative_entitlements.sql"
+      - ".github/workflows/subscription-trial-quality.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trial-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check trial Edge Function
+        run: deno check supabase/functions/start-trial/index.ts
+      - name: Test trial authorization policy and dates
+        run: deno test supabase/functions/start-trial/policy.test.ts
+      - name: Guard server-authoritative trial invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          file="supabase/functions/start-trial/index.ts"
+          grep -q 'auth.getUser()' "$file"
+          grep -q 'SUPABASE_SERVICE_ROLE_KEY' "$file"
+          grep -q 'TRIAL_PLAN_CODE = "TRIAL_7_DAY"' "$file"
+          grep -q 'activation_source: "SYSTEM_TRIAL"' "$file"
+          grep -q 'status: "TRIALING"' "$file"
+          grep -q 'TRIAL_OR_SUBSCRIPTION_ALREADY_EXISTS' "$file"
+          grep -q 'subscription_audit_events' "$file"
+          if grep -Eq 'body\.(plan_id|price_amount|status|trial_ends_at|activation_source)' "$file"; then
+            echo "Client-controlled entitlement fields detected" >&2
+            exit 1
+          fi
+          echo "Server-authoritative trial invariants passed."
