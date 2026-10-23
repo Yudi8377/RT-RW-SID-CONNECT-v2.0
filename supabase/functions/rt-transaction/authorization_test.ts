@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { resolveTransactionAuthorization, type TransactionAssignment } from "../_shared/transaction-authorization.ts";
+import { resolveTransactionAuthorization, sanitizeSensitivePayload, type TransactionAssignment } from "../_shared/transaction-authorization.ts";
 
 const now = Date.parse("2026-10-23T12:00:00.000Z");
 const assignment = (overrides: Partial<TransactionAssignment> = {}): TransactionAssignment => ({
@@ -114,4 +114,33 @@ Deno.test("rejects unknown and resident-only roles for write actions", () => {
     assertEquals(result.ok, false);
     assertEquals(result.status, 403);
   }
+});
+
+Deno.test("removes NIK and client-controlled authority fields from nested payloads", () => {
+  const safe = sanitizeSensitivePayload({
+    applicant_name: "Synthetic Resident",
+    applicant_nik: "1234567890123456",
+    "NIK Pemohon": "1234567890123456",
+    applicant_person_id: "client-forged-id",
+    status: "APPROVED",
+    classification: "PUBLIC",
+    members: [{
+      full_name: "Synthetic Member",
+      national_id: "1234567890123456",
+      person_id: "client-forged-person",
+      relationship_label: "ANAK",
+    }],
+    notes: "Synthetic test only",
+  }) as Record<string, unknown>;
+  assertEquals("applicant_nik" in safe, false);
+  assertEquals("NIK Pemohon" in safe, false);
+  assertEquals("applicant_person_id" in safe, false);
+  assertEquals("status" in safe, false);
+  assertEquals("classification" in safe, false);
+  const members = safe.members as Array<Record<string, unknown>>;
+  assertEquals("national_id" in members[0], false);
+  assertEquals("person_id" in members[0], false);
+  assertEquals(members[0].full_name, "Synthetic Member");
+  assertEquals(safe.applicant_name, "Synthetic Resident");
+  assertEquals(safe.notes, "Synthetic test only");
 });
