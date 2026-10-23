@@ -3,8 +3,8 @@
 DO $migration$
 BEGIN
   IF to_regclass('public.spatial_ref_sys') IS NOT NULL THEN
-    EXECUTE 'REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE public.spatial_ref_sys FROM anon, authenticated';
-    EXECUTE 'GRANT SELECT ON TABLE public.spatial_ref_sys TO anon, authenticated';
+    EXECUTE 'REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE public.spatial_ref_sys FROM PUBLIC, anon, authenticated';
+    EXECUTE 'GRANT SELECT ON TABLE public.spatial_ref_sys TO PUBLIC, anon, authenticated';
 
     IF has_table_privilege('anon', 'public.spatial_ref_sys', 'INSERT')
       OR has_table_privilege('anon', 'public.spatial_ref_sys', 'UPDATE')
