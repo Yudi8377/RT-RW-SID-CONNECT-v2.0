@@ -17,9 +17,11 @@ Deno.serve(async(req)=>{
   const {data:territory,error:te}=await admin.from("territories").select("id,territory_type,active").eq("id",territory_id).maybeSingle();
   if(te)throw te;
   if(!territory||territory.active!==true)throw new Error("Active territory not found");
-  const {data:assign,error:ae}=await admin.from("role_assignments").select("id,organization_id,roles(role_code)").eq("user_id",user.id).eq("scope_territory_id",territory_id).eq("active",true).or("starts_at.is.null,starts_at.lte."+new Date().toISOString()).or("ends_at.is.null,ends_at.gt."+new Date().toISOString());
+  const {data:assign,error:ae}=await admin.from("role_assignments").select("id,organization_id,active,starts_at,ends_at,roles(role_code)").eq("user_id",user.id).eq("scope_territory_id",territory_id).eq("active",true);
   if(ae)throw ae;
-  const roles=(assign||[]).map((x)=>x.roles?.role_code).filter(Boolean);
+  const now=Date.now();
+  const validAssignments=(assign||[]).filter((x)=>{const start=x.starts_at?Date.parse(x.starts_at):null;const end=x.ends_at?Date.parse(x.ends_at):null;return (start===null||Number.isFinite(start)&&start<=now)&&(end===null||Number.isFinite(end)&&end>now)});
+  const roles=validAssignments.map((x)=>x.roles?.role_code).filter(Boolean);
   const roleTerritoryTypes={RT_OPERATOR:["RT"],RW_REVIEWER:["RW"],VILLAGE_VALIDATOR:["VILLAGE"],PLATFORM_ADMIN:["RT"]};
   const scopedRoles=roles.filter((role)=>ROLE_ALLOW.includes(role)&&(roleTerritoryTypes[role]||[]).includes(territory.territory_type));
   if(!scopedRoles.length)throw new Error("User role is not authorized for this territory type");
