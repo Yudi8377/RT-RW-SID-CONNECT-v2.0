@@ -5,7 +5,7 @@ create or replace function public.regional_dashboard_summary(p_scope_territory_i
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $function$
 declare
   v_user_id uuid := auth.uid();
