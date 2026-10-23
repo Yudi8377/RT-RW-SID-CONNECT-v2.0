@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isUuid } from "./policy.ts";
+import { hashDeviceId, normalizeDeviceLabel } from "../_shared/device.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,25 +37,34 @@ Deno.serve(async (req) => {
   if (authError || !user) return json(401, { error: "UNAUTHORIZED" });
 
   let organizationId: unknown;
+  let deviceId: unknown;
+  let deviceLabel: string | null = null;
   try {
     const body = await req.json();
     if (!body || typeof body !== "object" || Array.isArray(body)) {
       return json(400, { error: "INVALID_REQUEST" });
     }
-    organizationId = (body as Record<string, unknown>).organization_id;
+    const fields = body as Record<string, unknown>;
+    organizationId = fields.organization_id;
+    deviceId = fields.device_id;
+    deviceLabel = normalizeDeviceLabel(fields.device_label);
   } catch {
     return json(400, { error: "INVALID_REQUEST" });
   }
   if (!isUuid(organizationId)) return json(400, { error: "INVALID_ORGANIZATION_ID" });
+  if (!isUuid(deviceId)) return json(400, { error: "INVALID_DEVICE_REQUEST" });
+  const deviceHash = await hashDeviceId(deviceId);
 
   // A single database function performs authorization, trial uniqueness, creation,
   // and audit insertion in one transaction. The service-role key never leaves this server.
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data, error } = await admin.rpc("start_organization_trial", {
+  const { data, error } = await admin.rpc("start_organization_trial_with_device", {
     p_user_id: user.id,
     p_organization_id: organizationId,
+    p_device_key_hash: deviceHash,
+    p_device_label: deviceLabel,
     p_correlation_id: req.headers.get("x-request-id")?.slice(0, 128) ?? null,
   });
 
@@ -63,12 +73,13 @@ Deno.serve(async (req) => {
       return json(403, { error: "ORGANIZATION_ACCESS_DENIED" });
     }
     if (error.code === "23505" || error.code === "P0001") {
-      const known = ["TRIAL_ALREADY_USED", "SUBSCRIPTION_ALREADY_CURRENT", "TRIAL_OR_SUBSCRIPTION_ALREADY_EXISTS"];
+      const known = ["TRIAL_ALREADY_USED", "SUBSCRIPTION_ALREADY_CURRENT", "TRIAL_OR_SUBSCRIPTION_ALREADY_EXISTS", "DEVICE_LIMIT_REACHED", "SUBSCRIPTION_INACTIVE"];
       const safeError = known.find((code) => error.message?.includes(code)) ?? "TRIAL_OR_SUBSCRIPTION_ALREADY_EXISTS";
       return json(409, { error: safeError });
     }
-    if (error.code === "P0002" || error.message?.includes("TRIAL_PLAN_NOT_CONFIGURED")) {
-      return json(503, { error: "TRIAL_PLAN_NOT_CONFIGURED" });
+    if (error.code === "P0002" || error.message?.includes("TRIAL_PLAN_NOT_CONFIGURED") || error.message?.includes("DEVICE_ENTITLEMENT_NOT_CONFIGURED")) {
+      const code = error.message?.includes("DEVICE_ENTITLEMENT_NOT_CONFIGURED") ? "DEVICE_ENTITLEMENT_NOT_CONFIGURED" : "TRIAL_PLAN_NOT_CONFIGURED";
+      return json(503, { error: code });
     }
     if (error.code === "22023") return json(400, { error: "INVALID_TRIAL_REQUEST" });
     return json(503, { error: "TRIAL_CREATION_FAILED" });
