@@ -137,8 +137,8 @@ BEGIN
   IF p_relationship_label NOT IN ('KEPALA_KELUARGA','PASANGAN','ANAK','ORANG_TUA','SAUDARA','LAINNYA') THEN
     RAISE EXCEPTION 'Unsupported relationship label' USING errcode = '22023';
   END IF;
-  IF COALESCE(p_is_head,false) AND p_relationship_label<>'KEPALA_KELUARGA' THEN
-    RAISE EXCEPTION 'Household head must use KEPALA_KELUARGA relationship' USING errcode = '22023';
+  IF COALESCE(p_is_head,false) IS DISTINCT FROM (p_relationship_label='KEPALA_KELUARGA') THEN
+    RAISE EXCEPTION 'KEPALA_KELUARGA relationship and head flag must agree' USING errcode = '22023';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.territories t WHERE t.id=p_scope_territory_id AND t.active=true) THEN
     RAISE EXCEPTION 'Active territory scope required' USING errcode = '22023';
