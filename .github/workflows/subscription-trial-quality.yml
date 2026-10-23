@@ -44,6 +44,8 @@ jobs:
           grep -q "('TRIAL_7_DAY', 'Trial 7 Hari', 'TRIAL', 7, 0, 'IDR', true" "$migration"
           grep -q "where p.plan_code = 'TRIAL_7_DAY'" "$migration"
           grep -q "interval '7 days'" "$migration"
+          grep -q "join public.roles r on r.id = ra.role_id" "$migration"
+          grep -q "'RT_OPERATOR', 'RW_REVIEWER', 'VILLAGE_VALIDATOR'" "$migration"
           grep -q "'TRIALING'" "$migration"
           grep -q "'SYSTEM_TRIAL'" "$migration"
           grep -q 'subscription_audit_events' "$migration"
