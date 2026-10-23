@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.spatial_ref_sys (
   srtext text,
   proj4text text
 );
-GRANT ALL PRIVILEGES ON TABLE public.spatial_ref_sys TO anon, authenticated;
+GRANT ALL PRIVILEGES ON TABLE public.spatial_ref_sys TO PUBLIC, anon, authenticated;
 
 CREATE TABLE public.territories (
  id uuid PRIMARY KEY,
