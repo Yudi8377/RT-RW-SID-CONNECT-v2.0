@@ -29,17 +29,17 @@ SELECT
   p.proname AS function_name,
   pg_get_function_identity_arguments(p.oid) AS arguments,
   p.prosecdef AS security_definer,
-  string_agg(DISTINCT grantee.rolname, ', ' ORDER BY grantee.rolname)
+  string_agg(DISTINCT COALESCE(grantee.rolname, 'PUBLIC'), ', ' ORDER BY COALESCE(grantee.rolname, 'PUBLIC'))
     FILTER (
       WHERE acl.privilege_type = 'EXECUTE'
-        AND grantee.rolname IN ('anon', 'authenticated')
+        AND COALESCE(grantee.rolname, 'PUBLIC') IN ('PUBLIC', 'anon', 'authenticated')
     ) AS executable_by
 FROM pg_proc AS p
 JOIN pg_namespace AS n ON n.oid = p.pronamespace
 CROSS JOIN LATERAL aclexplode(
   COALESCE(p.proacl, acldefault('f', p.proowner))
 ) AS acl
-JOIN pg_roles AS grantee ON grantee.oid = acl.grantee
+LEFT JOIN pg_roles AS grantee ON grantee.oid = acl.grantee
 WHERE n.nspname = 'public'
   AND p.proname IN (
     'admin_household_link_candidates',
