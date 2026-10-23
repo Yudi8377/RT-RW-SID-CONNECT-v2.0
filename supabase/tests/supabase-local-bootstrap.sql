@@ -13,7 +13,7 @@ CREATE TABLE public.territories (
 );
 CREATE TABLE public.organizations (
  id uuid PRIMARY KEY,
- organization_type text NOT NULL,
+ organization_type text,
  name text NOT NULL,
  territory_id uuid REFERENCES public.territories(id),
  active boolean NOT NULL DEFAULT true,
