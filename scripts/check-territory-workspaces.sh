@@ -17,6 +17,10 @@ for token in \
   'regional_dashboard_summary' \
   'function selectRegionalDashboardScope(scopeId)' \
   'function roleSpecificDashboard()' \
+  'function liveDemoScope(){const ids=' \
+  'sb.rpc("rt_resident_directory"' \
+  'sb.rpc("rt_household_directory"' \
+  'function isResidentDirectoryView(view,sub)' \
   'if(access.code==="RW_REVIEWER")return rwReviewWorkspace()' \
   'function rwReviewWorkspace()' \
   'roleDashboardHero("RT DIGITAL / OPERASIONAL"' \
@@ -31,6 +35,15 @@ do
 done
 
 grep -Fq 'PILOT_VIEWER:["dashboard"]' "$app"
+grep -Fq 'OPEN_SID_UMUM:["dashboard","desa","sid","layanan"]' "$app"
+if grep -Fq 'return "f06b8420-54f5-4ee4-b487-bacc7b374dd2"' "$app"; then
+  echo "Hardcoded demo territory scope detected" >&2
+  exit 1
+fi
+if grep -Eq 'sb\.from\("(persons|households|addresses)"\)\.select' "$app"; then
+  echo "Direct canonical PII table read detected; use scoped RPCs" >&2
+  exit 1
+fi
 grep -Fq 'AKSES BELUM DITETAPKAN' "$app"
 
 grep -Fq 'Pratinjau UI · bukan status produksi' "$app"
