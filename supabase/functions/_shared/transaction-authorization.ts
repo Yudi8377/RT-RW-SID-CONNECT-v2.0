@@ -43,7 +43,7 @@ export function resolveTransactionAuthorization(input: {
       return Boolean(role && (ROLE_TERRITORY_TYPES[role] ?? []).includes(input.territoryType));
     })
     .map((assignment) => assignment.roles?.role_code)
-    .filter((role): role is string => Boolean(role))];
+    .filter((role): role is string => Boolean(role)))];
 
   if (scopedRoles.length === 0) {
     return {
