@@ -47,7 +47,7 @@ Deno.serve(async(req)=>{
    if(!parent||parent.active!==true)break;
    allowedTerritoryIds.add(parent.id);parentId=parent.parent_id||null;
   }
-  const assignmentsWithOrg=(assign||[]).map(x=>({...x,organization_valid:Boolean(x.organization_id&&orgById.get(x.organization_id)?.active===true&&orgById.get(x.organization_id)?.territory_id&&allowedTerritoryIds.has(orgById.get(x.organization_id).territory_id))}));
+  // Fail closed unless the assignment organization is active and mapped to this territory or an active ancestor.\n  const assignmentsWithOrg=(assign||[]).map(x=>({...x,organization_valid:Boolean(x.organization_id&&orgById.get(x.organization_id)?.active===true&&orgById.get(x.organization_id)?.territory_id&&allowedTerritoryIds.has(orgById.get(x.organization_id).territory_id))}));
   const decision=resolveTransactionAuthorization({territoryType:territory.territory_type,serviceType:service_type,assignments:assignmentsWithOrg,now:Date.now()});
   if(!decision.ok)throw new HttpError(decision.status,decision.reason);
   const scopedRoles=decision.scopedRoles;
