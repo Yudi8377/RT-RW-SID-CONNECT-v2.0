@@ -17,14 +17,4 @@ export function isCurrentAssignment(assignment: AssignmentWindow, now: number): 
   if (!(Number.isFinite(end) || end === Number.POSITIVE_INFINITY)) return false;
   return start <= now && end > now;
 }
-
-export function trialPeriod(start: Date, durationDays = 7): { startsAt: string; endsAt: string } {
-  if (!Number.isFinite(start.getTime())) throw new Error("Invalid trial start time");
-  if (!Number.isInteger(durationDays) || durationDays <= 0 || durationDays > 30) {
-    throw new Error("Invalid trial duration");
-  }
-  return {
-    startsAt: start.toISOString(),
-    endsAt: new Date(start.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString(),
-  };
-}
+\n
