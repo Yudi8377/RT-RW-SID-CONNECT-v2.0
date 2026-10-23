@@ -992,7 +992,7 @@ function updateSelected(){const ids=[...state.selected];if(ids.length!==1){toast
 function firstPage(){toast("Sudah di halaman pertama")}
 function lastPage(){toast("Sudah di halaman terakhir")}
 function intelligenceDashboard(){return '<section class="panel intelligence-dashboard"><div class="panel-head"><div><span class="eyebrow">COMMUNITY INTELLIGENCE</span><h2>Analisis Ekonomi & Kesejahteraan</h2><p>Data terverifikasi - indikator - analisis AI - validasi manusia - GPFFE.</p></div><div class="status-chip">GOVERNED AI</div></div><div class="metric-grid"><article class="metric-card"><span>Kas RT/RW</span><strong>Rp 0</strong><small>Cash-in / cash-out approved</small></article><article class="metric-card"><span>Arisan</span><strong>Rp 0</strong><small>Iuran dan pencairan</small></article><article class="metric-card"><span>Kerentanan</span><strong>0 KK</strong><small>Perlu review</small></article><article class="metric-card"><span>GPFFE Signal</span><strong>0</strong><small>Dataset agregat siap analisis</small></article></div><div class="analysis-grid"><article class="analysis-card"><h3>Cashflow RT/RW</h3><div class="mini-bars"><i></i><i></i><i></i><i></i><i></i><i></i></div><p>Perputaran kas ditampilkan berdasarkan transaksi yang telah disetujui.</p></article><article class="analysis-card"><h3>Household Vulnerability</h3><div class="signal-row"><span>Data terverifikasi</span><b>0%</b></div><div class="signal-row"><span>Evidence tersedia</span><b>0%</b></div><div class="signal-row"><span>Perlu validasi</span><b>0 KK</b></div></article><article class="analysis-card"><h3>GPFFE Needs Profile</h3><p>Profil agregat dapat dikirim melalui Data Exchange setelah quality check, purpose, scope, classification, lineage dan approval.</p></article></div></section>'}
-async function render(){loadPersist();const previewTrial=ADMIN_PREVIEW?previewTrialInfo():null;if(ADMIN_PREVIEW&&!previewTrial.active){document.getElementById("app").innerHTML="";document.getElementById("landing").innerHTML="";modal("Pratinjau Pengembangan",'<p>Mode pengembangan tidak memiliki masa kedaluwarsa. Periksa status License Manager sebelum penggunaan operasional.</p><div class="modal-actions"><button class="primary" onclick="localStorage.removeItem(PREVIEW_TRIAL_KEY);sessionStorage.removeItem("rtrw_admin_trial_entry_v1");location.href=PRODUCTION_URL">Reset Demo (Admin)</button></div>');return}const u=ADMIN_PREVIEW?{id:"admin-preview",email:"administrator@preview.local",email_confirmed_at:new Date().toISOString()}:await getCurrentUser();if(u&&!verified(u)&&!ADMIN_PREVIEW){await sb.auth.signOut({scope:"local"});document.getElementById("app").innerHTML="";landing();renderLandingRole();return}access=ADMIN_PREVIEW?{code:previewRoleCode(),source:"development_preview",trial:previewTrial}:await resolveAccess(u);identityCache=null;if(sb&&!ADMIN_PREVIEW)await loadIdentity();if(!u){document.getElementById("app").innerHTML="";landing();renderLandingRole();return}const ti=trialInfo(u);if(!ADMIN_PREVIEW&&ti&&!ti.active&&!access.assigned?.length){document.getElementById("app").innerHTML="";landing();renderLandingRole();modal("Pratinjau Pengembangan",'<p>Pratinjau ini hanya untuk pemeriksaan internal dan bukan akses operasional komersial.</p><button class="primary" onclick="signOut()">Kembali ke Landing Page</button>');return}if(!roleAllowedModule(access.code,state.view)){state.view="dashboard";state.sub="overview";state.selected.clear()}document.getElementById("landing").innerHTML="";document.getElementById("app").innerHTML='<div class="app-shell"><div class="sidebar-overlay" data-sidebar-toggle="close" aria-hidden="true"></div><aside class="sidebar"><div class="sidebrand"><button class="sidebar-close" type="button" data-sidebar-toggle="close" aria-label="Tutup menu">×</button><b>RS</b><div><strong>RT/RW–SID</strong><small>CONNECT · v2.0</small></div></div><div class="tenant-card"><span>AKSES AKTIF</span><strong>'+esc(roleLabel(access.code))+'</strong><small>'+(ADMIN_PREVIEW?"MODE PENGEMBANGAN · PRATINJAU MODUL":"AUTHENTICATED ADMIN · Role + Scope + Permission + RLS")+'</small></div><nav>'+nav()+'</nav><div class="side-foot"><span class="online-dot"></span><div><b>Core online</b><small>Supabase · Free-first pilot</small></div></div></aside><main class="app-main"><header class="topbar"><button class="mobile-menu" type="button" data-sidebar-toggle="open" aria-label="Buka menu">☰</button><div class="crumb"><small>COMMUNITY DATA OS</small><b>'+esc(modules[state.view][0])+'</b></div><div class="top-actions"><button class="icon-btn" onclick="toast(&#39;Search workspace aktif&#39;)">⌕</button><button class="icon-btn" onclick="toast(&#39;Notifications aktif&#39;)">◌</button><div class="profile"><div class="avatar">'+(u?(u.email||"U")[0].toUpperCase():"T")+'</div><div><b>'+esc((u?.email||"Pengguna").split("@")[0])+'</b><small>'+esc(roleLabel(access.code))+(ADMIN_PREVIEW?" · MODE PENGEMBANGAN":" · Akses pengguna")+'</small></div>'+((u||active())?"<button class='signout' onclick='signOut()'>"+(u?"Sign out":"Keluar")+"</button>":"")+'</div></div></header><div class="workspace-bar"><div class="workspace-crumb">'+esc(subTitle())+'</div><div class="view-tools"><button onclick="back()">← Kembali</button><button onclick="next()">Lanjut →</button></div></div><div class="content">'+previewToolbar()+(access.code==="PLATFORM_ADMIN"&&state.view==="dashboard"&&state.sub==="overview"?adminControlCenter():state.view==="dashboard"&&state.sub==="overview"?dashboard():state.view==="dashboard"?commandCenterWorkspace():workspace())+"</div></main></div>"+commercialTrialWidget(u)+companionWidget(u);if(C.commercialTrialEnabled&&!ADMIN_PREVIEW)setTimeout(refreshCommercialTrialStatus,0)}
+async function render(){loadPersist();const previewTrial=ADMIN_PREVIEW?previewTrialInfo():null;if(ADMIN_PREVIEW&&!previewTrial.active){document.getElementById("app").innerHTML="";document.getElementById("landing").innerHTML="";modal("Pratinjau Pengembangan",'<p>Mode pengembangan tidak memiliki masa kedaluwarsa. Periksa status License Manager sebelum penggunaan operasional.</p><div class="modal-actions"><button class="primary" onclick="localStorage.removeItem(PREVIEW_TRIAL_KEY);sessionStorage.removeItem("rtrw_admin_trial_entry_v1");location.href=PRODUCTION_URL">Reset Demo (Admin)</button></div>');return}const u=ADMIN_PREVIEW?{id:"admin-preview",email:"administrator@preview.local",email_confirmed_at:new Date().toISOString()}:await getCurrentUser();if(u&&!verified(u)&&!ADMIN_PREVIEW){await sb.auth.signOut({scope:"local"});document.getElementById("app").innerHTML="";landing();renderLandingRole();return}access=ADMIN_PREVIEW?{code:previewRoleCode(),source:"development_preview",trial:previewTrial}:await resolveAccess(u);identityCache=null;if(!ADMIN_PREVIEW&&C.commercialTrialEnabled===true){let deviceGate;try{deviceGate=await verifyDeviceEntitlements()}catch(_error){deviceGate={blocked:true,message:"Pemeriksaan perangkat gagal. Akses operasional ditahan sampai server dapat diverifikasi."}}if(deviceGate?.blocked){showDeviceAccessBlock(deviceGate.message);return}}if(sb&&!ADMIN_PREVIEW)await loadIdentity();if(!u){document.getElementById("app").innerHTML="";landing();renderLandingRole();return}const ti=trialInfo(u);if(!ADMIN_PREVIEW&&ti&&!ti.active&&!access.assigned?.length){document.getElementById("app").innerHTML="";landing();renderLandingRole();modal("Pratinjau Pengembangan",'<p>Pratinjau ini hanya untuk pemeriksaan internal dan bukan akses operasional komersial.</p><button class="primary" onclick="signOut()">Kembali ke Landing Page</button>');return}if(!roleAllowedModule(access.code,state.view)){state.view="dashboard";state.sub="overview";state.selected.clear()}document.getElementById("landing").innerHTML="";document.getElementById("app").innerHTML='<div class="app-shell"><div class="sidebar-overlay" data-sidebar-toggle="close" aria-hidden="true"></div><aside class="sidebar"><div class="sidebrand"><button class="sidebar-close" type="button" data-sidebar-toggle="close" aria-label="Tutup menu">×</button><b>RS</b><div><strong>RT/RW–SID</strong><small>CONNECT · v2.0</small></div></div><div class="tenant-card"><span>AKSES AKTIF</span><strong>'+esc(roleLabel(access.code))+'</strong><small>'+(ADMIN_PREVIEW?"MODE PENGEMBANGAN · PRATINJAU MODUL":"AUTHENTICATED ADMIN · Role + Scope + Permission + RLS")+'</small></div><nav>'+nav()+'</nav><div class="side-foot"><span class="online-dot"></span><div><b>Core online</b><small>Supabase · Free-first pilot</small></div></div></aside><main class="app-main"><header class="topbar"><button class="mobile-menu" type="button" data-sidebar-toggle="open" aria-label="Buka menu">☰</button><div class="crumb"><small>COMMUNITY DATA OS</small><b>'+esc(modules[state.view][0])+'</b></div><div class="top-actions"><button class="icon-btn" onclick="toast(&#39;Search workspace aktif&#39;)">⌕</button><button class="icon-btn" onclick="toast(&#39;Notifications aktif&#39;)">◌</button><div class="profile"><div class="avatar">'+(u?(u.email||"U")[0].toUpperCase():"T")+'</div><div><b>'+esc((u?.email||"Pengguna").split("@")[0])+'</b><small>'+esc(roleLabel(access.code))+(ADMIN_PREVIEW?" · MODE PENGEMBANGAN":" · Akses pengguna")+'</small></div>'+((u||active())?"<button class='signout' onclick='signOut()'>"+(u?"Sign out":"Keluar")+"</button>":"")+'</div></div></header><div class="workspace-bar"><div class="workspace-crumb">'+esc(subTitle())+'</div><div class="view-tools"><button onclick="back()">← Kembali</button><button onclick="next()">Lanjut →</button></div></div><div class="content">'+previewToolbar()+(access.code==="PLATFORM_ADMIN"&&state.view==="dashboard"&&state.sub==="overview"?adminControlCenter():state.view==="dashboard"&&state.sub==="overview"?dashboard():state.view==="dashboard"?commandCenterWorkspace():workspace())+"</div></main></div>"+commercialTrialWidget(u)+companionWidget(u);if(C.commercialTrialEnabled&&!ADMIN_PREVIEW)setTimeout(refreshCommercialTrialStatus,0)}
 
 
 function companionPersona(){
@@ -1109,6 +1109,49 @@ async function refreshCommercialTrialStatus(){
     }
   }catch(_error){}
 }
+function deviceInstallationId(){
+  const key="rtrw_sid_device_installation_v1";
+  try{
+    let id=localStorage.getItem(key);
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||"")){
+      if(!globalThis.crypto?.randomUUID)throw new Error("Browser tidak mendukung identitas perangkat aman.");
+      id=crypto.randomUUID();
+      localStorage.setItem(key,id);
+    }
+    return id;
+  }catch(error){throw new Error("Penyimpanan identitas perangkat tidak tersedia. Aktifkan penyimpanan situs lalu coba lagi.");}
+}
+async function verifyDeviceEntitlements(){
+  if(!sb||!access||ADMIN_PREVIEW||C.commercialTrialEnabled!==true)return null;
+  const orgIds=[...new Set((access.scopes||[]).map(item=>item.organizationId).filter(Boolean))];
+  if(!orgIds.length)return null;
+  const result=await sb.from("organization_subscriptions")
+    .select("organization_id,status,current_period_ends_at")
+    .in("organization_id",orgIds).limit(50);
+  if(result.error)return {blocked:true,message:"Status langganan dan perangkat tidak dapat diverifikasi. Akses operasional ditahan sampai koneksi pulih."};
+  const now=Date.now();
+  const current=(result.data||[]).filter(row=>["TRIALING","ACTIVE","GRACE"].includes(row.status)&&Date.parse(row.current_period_ends_at)>now);
+  if(!current.length)return null;
+  let deviceId;
+  try{deviceId=deviceInstallationId()}catch(error){return {blocked:true,message:error.message||"Identitas perangkat tidak tersedia."};}
+  for(const sub of current){
+    const response=await sb.functions.invoke("register-device",{body:{organization_id:sub.organization_id,device_id:deviceId,device_label:"Browser web"}});
+    const code=response.data?.error||response.error?.message||"";
+    if(response.error||response.data?.error){
+      const message=code==="DEVICE_LIMIT_REACHED"
+        ?"Batas perangkat paket ini sudah tercapai. Hubungi administrator organisasi untuk mencabut perangkat lama."
+        :code==="SUBSCRIPTION_INACTIVE"
+          ?"Langganan sudah tidak aktif. Periksa status paket atau hubungi administrator."
+          :"Perangkat tidak dapat diverifikasi oleh server. Akses operasional ditahan untuk keamanan.";
+      return {blocked:true,message};
+    }
+  }
+  return null;
+}
+function showDeviceAccessBlock(message){
+  document.getElementById("landing").innerHTML="";
+  document.getElementById("app").innerHTML='<div class="access-pending"><div class="access-pending-icon">⌁</div><div class="eyebrow dark">PEMERIKSAAN PERANGKAT</div><h2>Perangkat belum diizinkan.</h2><p>'+esc(message)+'</p><button class="btn" type="button" onclick="signOut()">Keluar</button></div>';
+}
 async function startCommercialTrial(){
   if(!sb||C.commercialTrialEnabled!==true||state.commercialTrialLoading)return;
   const orgId=document.getElementById("commercial-trial-org")?.value;
@@ -1117,7 +1160,7 @@ async function startCommercialTrial(){
   const button=document.getElementById("commercial-trial-start");
   if(button){button.disabled=true;button.textContent="Memproses…";}
   try{
-    const response=await sb.functions.invoke("start-trial",{body:{organization_id:orgId}});
+    const response=await sb.functions.invoke("start-trial",{body:{organization_id:orgId,device_id:deviceInstallationId(),device_label:"Browser web"}});
     let payload=response.data;
     if(response.error&&!payload){
       try{payload=await response.error.context?.clone?.().json()}catch(_ignored){}

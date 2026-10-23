@@ -3,7 +3,7 @@ set -euo pipefail
 
 grep -q 'commercialTrialWidget(u)' app.js
 grep -q 'sb.functions.invoke("start-trial"' app.js
-grep -q 'body:{organization_id:orgId}' app.js
+grep -q 'body:{organization_id:orgId,device_id:deviceInstallationId(),device_label:"Browser web"}' app.js
 grep -q 'C.commercialTrialEnabled!==true' app.js
 grep -q 'commercialTrialEnabled:false' config.js
 
