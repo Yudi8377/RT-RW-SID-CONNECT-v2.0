@@ -11,6 +11,7 @@ on:
       - 'supabase/migrations/**'
       - 'docs/regional-dashboard-hierarchy.md'
       - 'scripts/check-entitlements-migration.sh'
+      - 'scripts/check-entitlements-release-gates.sh'
       - '.github/workflows/regional-dashboard-quality.yml'
   push:
     branches: [feat/regional-dashboard-hierarchy-v1, main]
@@ -42,6 +43,8 @@ jobs:
         run: bash scripts/check-commercial-trial-ui.sh
       - name: Check entitlement migration static safety
         run: bash scripts/check-entitlements-migration.sh
+      - name: Check entitlement release gates
+        run: bash scripts/check-entitlements-release-gates.sh
       - name: Check regional migration safety markers
         shell: bash
         run: |
