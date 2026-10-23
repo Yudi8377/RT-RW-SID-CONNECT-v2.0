@@ -15,7 +15,7 @@ const json = (body: unknown, status = 200, requestId?: string) => {
   });
 };
 async function hashNIK(v: string): Promise<string> {
-  if (!/^\\d{16}$/.test(v)) throw new HttpError(400, "NIK must contain 16 digits");
+  if (!/^\d{16}$/.test(v)) throw new HttpError(400, "NIK must contain 16 digits");
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v.trim()));
   return Array.from(new Uint8Array(digest)).map((b: number) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -107,7 +107,8 @@ Deno.serve(async(req)=>{
    if(!parent||parent.active!==true)break;
    allowedTerritoryIds.add(parent.id);parentId=parent.parent_id||null;
   }
-  // Fail closed unless the assignment organization is active and mapped to this territory or an active ancestor.\n  const assignmentsWithOrg=((assign||[]) as any[]).map((x:any)=>({...x,organization_valid:Boolean(x.organization_id&&orgById.get(x.organization_id)?.active===true&&orgById.get(x.organization_id)?.territory_id&&allowedTerritoryIds.has(orgById.get(x.organization_id).territory_id))}));
+  // Fail closed unless the assignment organization is active and mapped to this territory or an active ancestor.
+  const assignmentsWithOrg=((assign||[]) as any[]).map((x:any)=>({...x,organization_valid:Boolean(x.organization_id&&orgById.get(x.organization_id)?.active===true&&orgById.get(x.organization_id)?.territory_id&&allowedTerritoryIds.has(orgById.get(x.organization_id).territory_id))}));
   const decision=resolveTransactionAuthorization({territoryType:territory.territory_type,serviceType:service_type,assignments:assignmentsWithOrg,now:Date.now()});
   if(!decision.ok)throw new HttpError(decision.status,decision.reason);
   const scopedRoles=decision.scopedRoles;
@@ -116,12 +117,12 @@ Deno.serve(async(req)=>{
     const request_kk=Boolean(p.request_kk||p.request_type);
     if(!applicant_name||!address||!rt||!rw||!request_kk)throw new HttpError(400,"F-1.02 requires applicant, address, RT, RW and KK request");
     const applicantNik=text(rawPayload.applicant_nik||rawPayload["NIK Pemohon"]);
-    if(applicantNik && !/^\\d{16}$/.test(applicantNik))throw new HttpError(400,"NIK Pemohon must contain 16 digits");
+    if(applicantNik && !/^\d{16}$/.test(applicantNik))throw new HttpError(400,"NIK Pemohon must contain 16 digits");
     const members:Record<string,any>[]=Array.isArray(rawPayload.members)?rawPayload.members as Record<string,any>[]:[];
     if(members.length>50)throw new HttpError(400,"A household request can contain at most 50 members");
     if(members.some((m:Record<string,any>)=>!m?.full_name))throw new HttpError(400,"Every household member requires full_name");
     const memberNiks=members.map((m:Record<string,any>)=>text(m.nik||m.NIK||m["NIK Warga"]||m.national_id));
-    if(memberNiks.some((value:string|null)=>value&&!/^\\d{16}$/.test(value)))throw new HttpError(400,"Each member NIK, when provided, must contain 16 digits");
+    if(memberNiks.some((value:string|null)=>value&&!/^\d{16}$/.test(value)))throw new HttpError(400,"Each member NIK, when provided, must contain 16 digits");
     const allNiks: string[]=[applicantNik,...memberNiks].filter((value):value is string=>Boolean(value));
     const personIdsByHash=await findPersonIdsByNIK(admin,allNiks,territory_id);
     const hashByNik=new Map<string,string>();
@@ -144,7 +145,7 @@ Deno.serve(async(req)=>{
     return json({ok:true,type:service_type,form_code:"F-1.02",result_form_code:"F-1.09",record},200,requestId);
   }
   let person_id:string|null=null; const nik=text(rawPayload.NIK||rawPayload["NIK Warga"]||rawPayload["NIK Pemohon"]||rawPayload["NIK Almarhum/Almarhumah"]);
-  if(nik&&!/^\\d{16}$/.test(nik))throw new HttpError(400,"NIK must contain 16 digits");
+  if(nik&&!/^\d{16}$/.test(nik))throw new HttpError(400,"NIK must contain 16 digits");
   if(nik){const h=await hashNIK(nik);const personIdsByHash=await findPersonIdsByNIK(admin,[nik],territory_id);person_id=personIdsByHash.get(h)||null;}
   if(CANONICAL.has(service_type)){
     let table="",row:Record<string,unknown>={territory_id,created_by:user.id};
