@@ -1,4 +1,14 @@
 -- Smoke and negative tests for the server-authoritative entitlement migration.
+-- User 3 has an otherwise-valid role assignment, but the organization is inactive.
+INSERT INTO public.organizations (id, name, active)
+VALUES ('10000000-0000-4000-8000-000000000003', 'Organisasi Nonaktif', false);
+INSERT INTO public.role_assignments (user_id, organization_id, role_id, active)
+VALUES (
+  '00000000-0000-4000-8000-000000000003',
+  '10000000-0000-4000-8000-000000000003',
+  '20000000-0000-4000-8000-000000000001',
+  true
+);
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -100,6 +110,20 @@ BEGIN
     'smoke-test-future-assignment'
   );
   RAISE EXCEPTION 'future assignment unexpectedly authorized';
+EXCEPTION
+  WHEN insufficient_privilege THEN NULL;
+END;
+$$;
+
+-- An active role assignment cannot start a trial for an inactive organization.
+DO $$
+BEGIN
+  PERFORM public.start_organization_trial(
+    '00000000-0000-4000-8000-000000000003',
+    '10000000-0000-4000-8000-000000000003',
+    'smoke-test-inactive-organization'
+  );
+  RAISE EXCEPTION 'inactive organization unexpectedly received a trial';
 EXCEPTION
   WHEN insufficient_privilege THEN NULL;
 END;

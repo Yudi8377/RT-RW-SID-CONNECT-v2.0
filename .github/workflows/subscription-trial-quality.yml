@@ -84,6 +84,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/entitlements-test-bootstrap.sql
+      - name: Add active organization state to disposable base schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -c "ALTER TABLE public.organizations ADD COLUMN active boolean NOT NULL DEFAULT true;"
       - name: Apply entitlement migration to disposable database
         env:
           PGPASSWORD: postgres

@@ -21,6 +21,7 @@ for token in \
   'organization_subscriptions_one_current_per_org' \
   'organization_subscriptions_one_trial_per_org' \
   'public.start_organization_trial' \
+  'o.active = true' \
   'TRIAL_7_DAY' \
   'TRIAL_STARTED' \
   'auth.uid()' \
