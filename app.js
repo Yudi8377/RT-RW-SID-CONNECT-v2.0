@@ -935,37 +935,34 @@ async function loadCitizen360(){
  if(!sb||state.view!=="warga"||state.sub!=="registry")return;
  const body=document.getElementById("citizen360-body"),kpis=document.getElementById("citizen360-kpis"),count=document.getElementById("citizen360-count");
  if(!body)return;
+ const scope=liveDemoScope();
+ const showMessage=(title,detail)=>{body.innerHTML='<tr><td colspan="5"><div class="empty-state"><b>'+esc(title)+'</b><span>'+esc(detail)+'</span></div></td></tr>';if(count)count.textContent="Data belum tersedia";};
+ if(!scope){showMessage("Penugasan wilayah belum tersedia.","Hubungi administrator untuk menetapkan role dan scope aktif.");return;}
  try{
-  const [p,e,ed,h,v,s]=await Promise.all([
-   sb.from("persons").select("id,full_name,gender,email,status,classification").order("full_name").limit(500),
-   sb.from("rt_employment_profiles").select("person_id,job_title,employment_type,status").limit(1000),
-   sb.from("rt_education_profiles").select("person_id,education_level,institution,status").limit(1000),
-   sb.from("rt_health_observations").select("person_id,observation_type,verification_status").limit(1000),
-   sb.from("rt_volunteer_profiles").select("person_id,volunteer_domain,status").limit(1000),
-   sb.from("rt_service_requests").select("id,status,service_type,payload,created_at").eq("territory_id",liveDemoScope()).limit(1000)
-  ]);
-  if(p.error)throw p.error;
-  const map=new Map();
-  const add=(id,key,row)=>{if(!id)return;const x=map.get(id)||{};(x[key]??=[]).push(row);map.set(id,x)};
-  (e.data||[]).forEach(x=>add(x.person_id,"employment",x));
-  (ed.data||[]).forEach(x=>add(x.person_id,"education",x));
-  (h.data||[]).forEach(x=>add(x.person_id,"health",x));
-  (v.data||[]).forEach(x=>add(x.person_id,"volunteer",x));
-  const people=(p.data||[]).map(x=>{const rel=map.get(x.id)||{};const service=(s.data||[]).filter(r=>r.payload?.person_id===x.id);const item={...x,employment:rel.employment||[],education:rel.education||[],health:rel.health||[],volunteer:rel.volunteer||[],services:service};citizen360Cache.set(x.id,item);return item});
+  const response=await sb.rpc("rt_resident_directory",{p_scope_territory_id:scope,p_limit:100,p_offset:0});
+  if(response.error)throw response.error;
+  const people=(response.data||[]).map(x=>({...x,id:x.person_id,status:x.person_status,created_at:x.person_created_at}));
+  citizen360Cache.clear();
+  people.forEach(x=>citizen360Cache.set(x.person_id,x));
   window.__citizen360People=people;
-  const linked=people.filter(x=>x.employment.length||x.education.length||x.health.length||x.volunteer.length||x.services.length).length;
-  const serviceCount=people.reduce((n,x)=>n+x.services.length,0);
-  if(kpis)kpis.innerHTML='<div><small>WARGA</small><strong>'+people.length+'</strong><span>Canonical persons</span></div><div><small>PROFILE LINKS</small><strong>'+linked+'</strong><span>Memiliki relasi lintas modul</span></div><div><small>LAYANAN</small><strong>'+serviceCount+'</strong><span>Referensi service request</span></div>';
-  const renderRows=(list)=>{body.innerHTML=list.map(x=>'<tr><td><button class="row-link" type="button" data-citizen-view="'+esc(x.id)+'"><b>'+esc(x.full_name||"-")+'</b></button><small>'+esc(x.email||"")+'</small></td><td>'+esc(x.gender||"-")+'</td><td>'+status(x.status||"-")+'</td><td>'+esc(x.education[0]?.education_level||"-")+'</td><td>'+esc(x.employment[0]?.job_title||"-")+'</td><td>'+esc(x.health.length?x.health.length+" observasi":"-")+'</td><td>'+esc((x.services.length+x.volunteer.length)>0?(x.services.length+" layanan · "+x.volunteer.length+" relawan"):"-")+'</td></tr>').join("")||'<tr><td colspan="7"><div class="empty-state"><b>Tidak ada hasil.</b><span>Ubah kata pencarian.</span></div></td></tr>';count.textContent=list.length+" warga ditampilkan";};
+  const householdCount=new Set(people.map(x=>x.household_id).filter(Boolean)).size;
+  if(kpis)kpis.innerHTML='<div><small>WARGA</small><strong>'+people.length+'</strong><span>Dalam scope aktif</span></div><div><small>KK TERHUBUNG</small><strong>'+householdCount+'</strong><span>Relasi aktif</span></div><div><small>SUMBER</small><strong>RPC</strong><span>Server-authorized</span></div>';
+  const renderRows=list=>{
+   body.innerHTML=list.map(x=>'<tr><td><button class="row-link" type="button" data-citizen-view="'+esc(x.person_id)+'"><b>'+esc(x.full_name||"-")+'</b></button></td><td>'+esc(x.gender||"-")+'</td><td>'+status(x.person_status||"-")+'</td><td>'+esc(x.is_head?"Kepala keluarga":x.relationship_label||"Anggota")+'</td><td>'+esc(String(x.household_id||"").slice(-8)||"-")+'</td></tr>').join("")||'<tr><td colspan="5"><div class="empty-state"><b>Belum ada relasi warga–KK terverifikasi.</b><span>Data lama tidak dihubungkan berdasarkan tebakan. Tambahkan relasi melalui proses administrasi resmi.</span></div></td></tr>';
+   if(count)count.textContent=list.length+" warga ditampilkan";
+  };
   renderRows(people);
-  const search=document.getElementById("citizen360-search");search?.addEventListener("input",()=>{const q=search.value.trim().toLowerCase();renderRows(people.filter(x=>(x.full_name||"").toLowerCase().includes(q)||(x.email||"").toLowerCase().includes(q)));});
- }catch(err){body.innerHTML='<tr><td colspan="7"><div class="empty-state"><b>Gagal memuat Citizen 360.</b><span>'+esc(err.message||"Periksa RLS dan koneksi Supabase.")+'</span></div></td></tr>';if(count)count.textContent="Gagal memuat"}
+  const search=document.getElementById("citizen360-search");
+  search?.addEventListener("input",()=>{const q=search.value.trim().toLowerCase();renderRows(people.filter(x=>(x.full_name||"").toLowerCase().includes(q)));});
+ }catch(_error){
+  showMessage("Direktori warga belum aktif.","RPC aman belum diterapkan atau scope tidak diizinkan. Data pribadi tidak dibaca langsung sebagai fallback.");
+  if(kpis)kpis.innerHTML='<div><small>WARGA</small><strong>—</strong><span>Belum tersedia</span></div><div><small>KK TERHUBUNG</small><strong>—</strong><span>Belum tersedia</span></div><div><small>SUMBER</small><strong>RPC</strong><span>Belum aktif</span></div>';
+ }
 }
 function openCitizen360(id){
  const x=citizen360Cache.get(id);if(!x){toast("Profil warga tidak ditemukan");return}
- const card=(title,rows,fields)=>'<article class="analysis-card"><h4>'+title+'</h4>'+(rows.length?rows.slice(0,8).map(r=>'<div class="signal-row"><span>'+esc(fields(r)[0])+'</span><b>'+esc(fields(r)[1])+'</b></div>').join(""):'<p>Tidak ada relasi tersimpan.</p>')+'</article>';
- const html='<div class="detail-grid"><div><small>NAMA</small><b>'+esc(x.full_name)+'</b></div><div><small>STATUS</small><b>'+esc(x.status||"-")+'</b></div><div><small>EMAIL</small><b>'+esc(x.email||"-")+'</b></div><div><small>CLASSIFICATION</small><b>'+esc(x.classification||"-")+'</b></div></div><div class="analysis-grid">'+card("Pendidikan",x.education,r=>[r.education_level||"-",r.institution||"-"])+card("Pekerjaan",x.employment,r=>[r.job_title||"-",r.employment_type||"-"])+card("Kesehatan",x.health,r=>[r.observation_type||"-",r.verification_status||"-"])+card("Relawan",x.volunteer,r=>[r.volunteer_domain||"-",r.status||"-"])+card("Layanan",x.services,r=>[r.service_type||"Service request",r.status||"-"])+'</div><div class="module-note"><b>Canonical relationship.</b><span>Relasi profile menggunakan <code>person_id</code>. Permohonan layanan menggunakan referensi <code>payload.person_id</code>. Tidak ada penyalinan nama sebagai primary identity.</span></div>';
- modal("Citizen 360 · "+(x.full_name||"Warga"),html,true);
+ const html='<div class="detail-grid"><div><small>NAMA</small><b>'+esc(x.full_name||"-")+'</b></div><div><small>STATUS</small><b>'+esc(x.person_status||"-")+'</b></div><div><small>JENIS KELAMIN</small><b>'+esc(x.gender||"-")+'</b></div><div><small>TEMPAT / TANGGAL LAHIR</small><b>'+esc([x.birth_place,x.birth_date].filter(Boolean).join(" · ")||"-")+'</b></div><div><small>HUBUNGAN KELUARGA</small><b>'+esc(x.is_head?"Kepala keluarga":x.relationship_label||"Anggota")+'</b></div><div><small>REFERENSI KK</small><b>'+esc(String(x.household_id||"").slice(-8)||"-")+'</b></div></div><div class="module-note"><b>Data minimum.</b><span>NIK, nomor telepon, email, alamat lengkap, dan profil sensitif tidak ditampilkan pada direktori ini. Akses tambahan membutuhkan endpoint khusus dengan izin dan audit terpisah.</span></div>';
+ modal("Detail warga · "+(x.full_name||"Warga"),html,true);
 }
 document.addEventListener("click",function(e){const el=e.target.closest("[data-citizen-view]");if(!el)return;e.preventDefault();e.stopImmediatePropagation();openCitizen360(el.dataset.citizenView);});
 document.addEventListener("click",async function(e){
