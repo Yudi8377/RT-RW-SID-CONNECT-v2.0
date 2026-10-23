@@ -38,3 +38,11 @@
 - No resident records were automatically linked to households; existing relationships must be verified before being recorded.
 - Paid plans remain inactive. Payment activation must come from a trusted provider webhook or approved server-side workflow, never from a browser request.
 - The current intended self-serve offer is Trial 7 Hari for one device. Keep it hidden/disabled until the live flow is verified.
+
+## Deployment update — 2026-10-23 (PR #128)
+
+- PR #128 merged: request-body limits added to `start-trial` and `register-device` (64 KiB declared and actual UTF-8 body checks; oversized bodies return 413).
+- Supabase production deployment verified after merge: `start-trial` ACTIVE version 2, `register-device` ACTIVE version 2; both retain `verify_jwt=true`.
+- Deployed entrypoint imports were checked against the Supabase flat Edge Function file layout; deployed source was read back and confirmed to contain both the declared-length and actual-body checks.
+- This was a function-only deployment. No database schema, RLS/policies, role assignments, subscription records, or frontend feature flags were changed.
+- This verification confirms deployment and source contents, **not** the authenticated trial/device end-to-end path. The commercial trial and AI Companion frontend flags remain disabled pending dedicated authenticated test accounts and recorded E2E evidence.
