@@ -1,0 +1,96 @@
+name: Supabase Local Migration Validation
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+      - '.github/workflows/supabase-local-migration-validation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+      - '.github/workflows/supabase-local-migration-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  local-supabase:
+    name: Full migration chain on disposable Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Prepare isolated local Supabase project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/supabase-migration-validation
+          cd /tmp/supabase-migration-validation
+          supabase init
+          mkdir -p supabase/migrations
+          cp "$GITHUB_WORKSPACE/supabase/tests/supabase-local-bootstrap.sql" supabase/migrations/20261022000100_test_bootstrap.sql
+          cp "$GITHUB_WORKSPACE/supabase/migrations/202610220002_regional_dashboard_summary_rpc.sql" supabase/migrations/20261022000200_regional_dashboard_summary_rpc.sql
+          cp "$GITHUB_WORKSPACE/supabase/migrations/202610230001_server_authoritative_entitlements.sql" supabase/migrations/20261023000100_server_authoritative_entitlements.sql
+          cp "$GITHUB_WORKSPACE/supabase/migrations/202610230002_device_entitlement_enforcement.sql" supabase/migrations/20261023000200_device_entitlement_enforcement.sql
+          cp "$GITHUB_WORKSPACE/supabase/migrations/202610230003_scoped_resident_directory.sql" supabase/migrations/20261023000300_scoped_resident_directory.sql
+          cp "$GITHUB_WORKSPACE/supabase/migrations/202610230004_household_membership_admin_workbench.sql" supabase/migrations/20261023000400_household_membership_admin_workbench.sql
+
+      - name: Start disposable Supabase stack
+        working-directory: /tmp/supabase-migration-validation
+        run: supabase start
+
+      - name: Apply full migration chain
+        working-directory: /tmp/supabase-migration-validation
+        run: supabase db reset --yes
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Verify entitlements and device limits
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '54322'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: psql -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/tests/entitlements-migration-smoke.sql"
+
+      - name: Verify regional dashboard scope
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '54322'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: psql -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/tests/regional-dashboard-rpc-smoke.sql"
+
+      - name: Verify resident directory scope
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '54322'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: psql -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/tests/resident-directory-smoke.sql"
+
+      - name: Verify audited household linking
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '54322'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: psql -v ON_ERROR_STOP=1 -f "$GITHUB_WORKSPACE/supabase/tests/resident-membership-admin-smoke.sql"
+
+      - name: Stop disposable Supabase stack
+        if: always()
+        working-directory: /tmp/supabase-migration-validation
+        run: supabase stop --no-backup || true
