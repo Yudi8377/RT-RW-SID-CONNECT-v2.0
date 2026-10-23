@@ -1,3 +1,5 @@
+SET statement_timeout = '30s';
+
 -- Scoped resident directory tests: assignment, hierarchy, minimal fields and least privilege.
 -- Regression guard: household directory schema intentionally does not assume households.created_at.
 INSERT INTO public.addresses (id, territory_id, address_line) VALUES
