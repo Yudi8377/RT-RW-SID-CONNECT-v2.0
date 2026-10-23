@@ -72,3 +72,7 @@ The national real-data gate remains **blocked** until D-01 through D-05 are asse
 A read-only ACL inspection confirmed `public.spatial_ref_sys` belongs to PostGIS, is owned by `supabase_admin`, has RLS disabled, and grants `anon` and `authenticated` all table privileges, while PUBLIC has read access. This is a stronger concern than the missing-RLS warning alone because API roles have explicit write grants on extension-managed reference metadata.
 
 A narrowly scoped candidate migration is in [PR #144](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/pull/144). It revokes only write-related privileges from `anon` and `authenticated` while preserving SELECT; it has not yet been deployed. Require disposable migration-chain tests and post-migration privilege verification before production rollout.
+
+
+### D-07 — Client API roles inherit a privileged database role
+Production role metadata showed `anon` and `authenticated` are members of `postgres` with `INHERIT`, `SET`, and `ADMIN` options; `postgres` has `BYPASSRLS`. This is a critical least-privilege finding. The containment migration is merged, but production execution remains blocked by grantor privileges because the available SQL connection is non-superuser `postgres` and the membership was granted by `supabase_admin`. Do not declare remediation complete until an authorized admin execution context removes the membership and effective privileges are rechecked. Details: `docs/CRITICAL_CLIENT_ROLE_MEMBERSHIP_FINDING.md`.
