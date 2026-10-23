@@ -96,6 +96,7 @@ BEGIN
     SELECT child.id FROM public.territories child JOIN descendants parent ON child.parent_id = parent.id WHERE child.active = true
   ) SELECT pg_catalog.array_agg(id ORDER BY id) INTO v_descendant_ids FROM descendants;
   RAISE NOTICE 'resident rpc descendants: %', v_descendant_ids;
+  RAISE NOTICE 'resident rpc territory edges: %', (SELECT pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('id',id,'parent_id',parent_id) ORDER BY id) FROM public.territories WHERE id::text LIKE '30000000-0000-4000-8000-00000000000%');
   RETURN QUERY
   WITH RECURSIVE descendants(id) AS (
     SELECT t.id
