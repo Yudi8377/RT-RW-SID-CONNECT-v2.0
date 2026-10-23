@@ -8,7 +8,7 @@
 - Production rt-transaction was last recorded at version 5 and had not been verified to contain all reviewed main-branch hardening. Diff reviewed source against deployed source before deployment.
 - Production assignments included RT_OPERATOR and PLATFORM_ADMIN attached to a VILLAGE territory; RT operator lacked organization mapping. RW, village validator, district and regency/city assignments were not present. Correct only through identity-verified, audited admin workflow.
 - No complete authenticated trial/device lifecycle evidence: organization → trial → device → expiry/denial → audit.
-- Security Advisor findings require individual triage: RLS-enabled tables without policies, public.spatial_ref_sys, PostGIS function grants, extension schema placement, other SECURITY DEFINER grants, duplicate permissive policies, and leaked-password protection disabled.
+- Security Advisor findings require individual triage: RLS-enabled tables without policies, public.spatial_ref_sys (production ACL inspection confirmed anon/authenticated have all table privileges on this PostGIS extension table while PUBLIC has read access), PostGIS function grants, extension schema placement, other SECURITY DEFINER grants, duplicate permissive policies, and leaked-password protection disabled. A targeted candidate migration to remove only API write privileges while preserving SELECT is under PR #144; it is not deployed.
 - Existing synthetic/demo resident and household records exist in production. Never assume production is empty or use it as a disposable test database.
 - Legacy sv_service_plans and sv_account_entitlements coexist with newer organization entitlements; reconciliation must be explicit.
 
