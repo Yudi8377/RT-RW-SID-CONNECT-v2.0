@@ -46,12 +46,25 @@ Deno.serve(async (req) => {
 
     let body: Record<string, unknown>;
     try {
-      const parsed = await req.json();
+      // Bound the raw request before parsing JSON so oversized payloads cannot
+      // consume unbounded memory. Content-Length is only an early rejection;
+      // the encoded body length is checked independently below.
+      const maxBodyBytes = 64 * 1024;
+      const contentLength = Number(req.headers.get("Content-Length") || 0);
+      if (contentLength > maxBodyBytes) {
+        throw new HttpError(413, "Request body is too large");
+      }
+      const rawBody = await req.text();
+      if (new TextEncoder().encode(rawBody).byteLength > maxBodyBytes) {
+        throw new HttpError(413, "Request body is too large");
+      }
+      const parsed = JSON.parse(rawBody);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         throw new Error("Invalid request body");
       }
       body = parsed as Record<string, unknown>;
-    } catch {
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
       throw new HttpError(400, "Invalid request body");
     }
 
