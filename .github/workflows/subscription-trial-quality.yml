@@ -3,6 +3,7 @@ name: Subscription Trial Quality
 on:
   pull_request:
     paths:
+      - "app.js"
       - "supabase/functions/start-trial/**"
       - "supabase/functions/register-device/**"
       - "supabase/functions/_shared/device.*"
@@ -15,6 +16,7 @@ on:
       - feat/server-entitlements-schema-v1
       - main
     paths:
+      - "app.js"
       - "supabase/functions/start-trial/**"
       - "supabase/migrations/202610230001_server_authoritative_entitlements.sql"
       - "supabase/tests/**"
@@ -39,6 +41,13 @@ jobs:
         run: deno test supabase/functions/_shared/device.test.ts
       - name: Test trial authorization policy and dates
         run: deno test supabase/functions/start-trial/policy.test.ts
+      - name: Guard fail-closed subscription expiry behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'if(!current.length)return {blocked:true,message:"Tidak ada langganan aktif untuk organisasi ini.' app.js
+          grep -Fq 'if(result.error)return {blocked:true,message:"Status langganan dan perangkat tidak dapat diverifikasi.' app.js
+          echo "Subscription expiry and verification failures fail closed."
       - name: Guard server-authoritative trial invariants
         shell: bash
         run: |
