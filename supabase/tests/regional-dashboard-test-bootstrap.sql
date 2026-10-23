@@ -157,5 +157,6 @@ CREATE TABLE public.persons (
  birth_date date,
  gender text,
  classification text NOT NULL,
- status text NOT NULL DEFAULT 'ACTIVE'
+ status text NOT NULL DEFAULT 'ACTIVE',
+ created_at timestamptz NOT NULL DEFAULT now()
 );
