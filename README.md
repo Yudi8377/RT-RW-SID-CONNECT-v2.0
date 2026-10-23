@@ -38,13 +38,15 @@ Hatchable v13 is frozen as a reference only. Do not delete its project or data u
 The public GitHub Pages site and the production Supabase backend are separate release surfaces. A successful Pages deployment does not mean that subscription or regional operations are live.
 
 As verified on 2026-10-23:
-- Frontend config keeps `commercialTrialEnabled: false` and `aiCompanionEnabled: false`.
-- The production database migration history does not yet include the current regional summary RPC and server-authoritative subscription/device-entitlement migrations.
-- The production Edge Function inventory does not yet include `start-trial` or `register-device`.
+- Frontend config still keeps `commercialTrialEnabled: false` and `aiCompanionEnabled: false`.
+- Production migration history includes `regional_dashboard_roles`, `regional_dashboard_summary_rpc`, `server_authoritative_entitlements`, `device_entitlement_enforcement`, `scoped_resident_directory`, and `household_membership_admin_workbench` (versions `20261023075802` through `20261023075825`). These were checked directly against `supabase_migrations.schema_migrations`.
+- Production Edge Functions `start-trial` and `register-device` are ACTIVE with JWT verification enabled.
+- The active subscription catalog currently contains only `TRIAL_7_DAY` (7 days, IDR 0); there are no rows in `organization_subscriptions` or `organization_devices` yet.
+- Current active assignments are Platform Admin, RT Operator, and Warga. The RT Operator assignment points to a VILLAGE territory and has no organization mapping; RW, Desa/Kelurahan, Kecamatan, and Kabupaten/Kota have no active assignments. Do not auto-assign real users or infer scope.
 - Production contains existing synthetic/demo resident and household records; do not treat it as an empty database.
-- Security Advisor findings remain open. Do not claim a zero-finding security posture until rechecked and remediated.
+- Security Advisor findings remain open, including deny-by-default RLS tables, PostGIS-related grants/table exposure, and leaked-password protection disabled. See `docs/PRODUCTION_RELEASE_GATE.md`.
 
-Do not enable commercial flags until the migration sequence is reconciled against production history, migrations and Edge Functions are deployed in a controlled order, entitlement and regional scope smoke tests pass against the actual backend, and Security Advisor findings are triaged. Do not auto-assign new regional administrators to real accounts; role assignments require an authorized platform administrator and the correct territory scope.
+Do not enable commercial flags until the live authenticated trial/device lifecycle is verified, the RT role-to-territory and organization mismatch is corrected through the audited admin flow, dedicated test accounts cover all regional roles, and security findings are triaged. A successful Pages deploy proves frontend publication only—not commercial readiness.
 
 Detailed checklist: [Production Release Gate](docs/PRODUCTION_RELEASE_GATE.md).
 

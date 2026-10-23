@@ -1,11 +1,11 @@
 # Production Release Gate — RT/RW-SID CONNECT
 
 **Last checked:** 2026-10-23  
-**Current status:** Regional RPCs and trial/device backend are deployed; commercial trial remains intentionally disabled pending authenticated end-to-end verification.
+**Current status (2026-10-23):** Regional RPCs and trial/device backend are deployed; regional dashboard preview UI is live on GitHub Pages. Commercial trial remains intentionally disabled pending authenticated end-to-end verification.
 
 ## Confirmed
 
-- GitHub Pages deployment #486 and Android Test APK #206 completed successfully on commit `9736260`.
+- GitHub Pages deployment #489 completed successfully on commit `a6e0f8f4c7c693681a7d93b5c60360cd31aef2c5`; the Android Test APK #209 workflow is still running at the time of this check.
 - Disposable Supabase migration-chain validation and the relevant regional/trial CI checks passed before rollout.
 - The production database accepted the following reviewed additive migrations in order:
   - `regional_dashboard_roles` (production migration version `20261023075802`)
@@ -20,7 +20,7 @@
 - Frontend flags remain disabled: `commercialTrialEnabled: false`, `aiCompanionEnabled: false`. This is intentional until the live trial path and role scopes are verified.
 - The production database was already populated before rollout; the changes above were additive and did not intentionally delete or auto-link existing resident records.
 - Legacy entitlement tables `sv_service_plans` and `sv_account_entitlements` still exist. The new organization subscription system is additive; no automatic conversion from legacy user-level entitlements has been performed.
-- Production role assignments previously observed included Platform Admin, RT Operator, and Warga. Do not assume every region-level role has a valid live assignment.
+- Read-only production verification shows active assignments only for Platform Admin, RT Operator, and Warga. The RT Operator points to a VILLAGE territory and has no `organization_id`; RW, Desa/Kelurahan, Kecamatan, and Kabupaten/Kota have no active assignments. No automatic role grants were made.
 - Current Supabase Security Advisor findings include: RLS enabled without policies on `village.integration_tenant_mappings`, `public.spatial_ref_sys` without RLS (PostGIS extension table), PostGIS `st_estimatedextent` overloads executable by anon/authenticated, other SECURITY DEFINER function grants, PostGIS installed in `public`, and leaked-password protection disabled. Each needs impact-based review; do not apply blanket revocations or RLS changes without dependency analysis.
 
 ## Remaining release blockers
