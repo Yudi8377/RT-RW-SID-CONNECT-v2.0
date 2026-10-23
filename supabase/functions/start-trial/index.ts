@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     if (error.code === "42501" || error.message?.includes("ORGANIZATION_ACCESS_DENIED")) {
       return json(403, { error: "ORGANIZATION_ACCESS_DENIED" });
     }
-    if (error.code === "23505") {
+    if (error.code === "23505" || error.code === "P0001") {
       const known = ["TRIAL_ALREADY_USED", "SUBSCRIPTION_ALREADY_CURRENT", "TRIAL_OR_SUBSCRIPTION_ALREADY_EXISTS"];
       const safeError = known.find((code) => error.message?.includes(code)) ?? "TRIAL_OR_SUBSCRIPTION_ALREADY_EXISTS";
       return json(409, { error: safeError });
