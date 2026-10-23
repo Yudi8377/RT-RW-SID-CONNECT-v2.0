@@ -124,7 +124,7 @@ INSERT INTO auth.users (id) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.role_assignments (user_id, role_id, scope_territory_id, active, starts_at, ends_at)
-SELECT u.user_id, r.id, t.scope_id, true, now() - interval '1 day', NULL
+SELECT u.user_id, r.id, t.id, true, now() - interval '1 day', NULL
 FROM (VALUES
  ('a1000000-0000-4000-8000-000000000008'::uuid,'RT_OPERATOR','30000000-0000-4000-8000-000000000006'::uuid),
  ('a1000000-0000-4000-8000-000000000009'::uuid,'RW_REVIEWER','30000000-0000-4000-8000-000000000005'::uuid),
