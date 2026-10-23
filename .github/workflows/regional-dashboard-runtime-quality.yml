@@ -13,6 +13,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'supabase/migrations/202610230001_scoped_resident_directory.sql'
+      - 'supabase/tests/resident-directory-smoke.sql'
       - 'supabase/migrations/202610220002_regional_dashboard_summary_rpc.sql'
       - 'supabase/tests/regional-dashboard-test-bootstrap.sql'
       - 'supabase/tests/regional-dashboard-rpc-smoke.sql'
