@@ -59,6 +59,10 @@ assert.match(
   "Platform Admin development workbench must retain the regional dashboard launcher",
 );
 
+assert.match(app,/function previewScopedWorkspace\\(\\)/,"preview workspace renderer must exist");
+assert.match(app,/Meja review RW[\\s\\S]*Meja validasi desa[\\s\\S]*Meja koordinasi kecamatan[\\s\\S]*Meja eksekutif daerah/,"each regional role must have distinct workflow content");
+assert.match(app,/PRATINJAU ALUR KERJA · TANPA DATA PRODUKSI/,"preview must disclose that production data is not loaded");
+assert.doesNotMatch(app,/Workspace operasional dan tindakan yang dapat mengakses data produksi dinonaktifkan dalam mode pengembangan/,"the identical generic preview placeholder must not be reused");
 console.log("Admin workspace regression smoke tests passed.");
 console.log(`Verified roles: ${requiredRoles.join(", ")}`);
 console.log(`Verified workspaces: ${requiredWorkspaces.join(", ")}`);
