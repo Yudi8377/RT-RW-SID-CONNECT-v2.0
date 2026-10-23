@@ -17,8 +17,9 @@ This means the client API roles can inherit privileges associated with `postgres
 ## Immediate containment candidate
 
 Migration `20261023143000_revoke_client_postgres_membership.sql`:
-- revokes the `postgres` role membership from `anon` and `authenticated`;
-- fails if either membership remains.
+- finds any role membership granted to `anon` or `authenticated` where the granted role is superuser or has BYPASSRLS;
+- revokes those memberships and fails if any remain;
+- tests the same invariant using a disposable BYPASSRLS fixture role (the test runner cannot safely grant the actual `postgres` role to API roles).
 
 The subsequent `20261023144500_restrict_spatial_ref_sys_write_grants.sql` migration removes client/public write privileges from `public.spatial_ref_sys` while retaining SELECT. Its first production attempt failed closed because the inherited role privileges remained; the transaction rolled back. Do not claim this table-grant fix is live until both migrations apply successfully and production checks pass.
 
