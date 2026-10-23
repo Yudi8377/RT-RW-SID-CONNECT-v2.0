@@ -82,3 +82,23 @@ Deno.test("village validator may handle explicitly assigned health domain", () =
   });
   assertEquals(result.ok, true);
 });
+
+Deno.test("allows legacy open-ended dates only when organization scope is valid", () => {
+  const result = resolveTransactionAuthorization({
+    territoryType: "RT",
+    serviceType: "BUSINESS",
+    assignments: [assignment({ starts_at: null, ends_at: null })],
+    now,
+  });
+  assertEquals(result.ok, true);
+});
+
+Deno.test("rejects assignment expiring exactly at the current instant", () => {
+  const result = resolveTransactionAuthorization({
+    territoryType: "RT",
+    serviceType: "BUSINESS",
+    assignments: [assignment({ ends_at: new Date(now).toISOString() })],
+    now,
+  });
+  assertEquals(result.ok, false);
+});
