@@ -17,4 +17,3 @@ Deno.test("current assignment requires active and valid start/end window", () =>
   if (isCurrentAssignment({ ...assignment, starts_at: "not-a-date" }, now)) throw new Error("invalid start date accepted");
   if (isCurrentAssignment({ ...assignment, ends_at: "not-a-date" }, now)) throw new Error("invalid end date accepted");
 });
-\n
