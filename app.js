@@ -414,7 +414,7 @@ async function saveHouseholdForm(mode,id){
  if(payload.applicant_nik&&!/^\\d{16}$/.test(payload.applicant_nik)){toast("NIK pemohon harus 16 digit bila diisi");return}
  if(payload.members.some(m=>!m.full_name)){toast("Nama setiap anggota keluarga wajib diisi");return}
  const {data:{user}}=await sb.auth.getUser();if(!user){toast("Silakan Sign In untuk menyimpan");return}
- const resp=await sb.functions.invoke("rt-transaction",{body:{service_type:"HOUSEHOLD",payload:{...payload,full_name:payload.head_name,household_number:payload.household_number}}});
+ const scope=liveDemoScope();if(!scope){toast("Penugasan RT aktif belum tersedia.");return}const resp=await sb.functions.invoke("rt-transaction",{body:{service_type:"HOUSEHOLD",territory_id:scope,payload:{...payload,full_name:payload.head_name,household_number:payload.household_number}}});
  if(resp.error||!resp.data?.ok){toast("Gagal menyimpan KK: "+(resp.data?.error||resp.error?.message||"Unknown error"));return}
  closeModal();state.selected.clear();await render();toast("✓ Pengajuan KK F-1.02 tersimpan dan masuk workflow verifikasi · hasil pelayanan dipetakan ke F-1.09");
 }
@@ -439,7 +439,7 @@ async function saveForm(mode,id){
    const rtMap={deaths:"DEATH",letters:"LETTER",births:"BIRTH",moves:"MOVE",domicile:"DOMICILE",marriage:"MARRIAGE",residents:"PERSON",households:"HOUSEHOLD",verification:"VERIFICATION",complaints:"COMPLAINT",security:"SECURITY",activities:"ACTIVITY",social:"SOCIAL",health:"HEALTH",education:"EDUCATION",economy:"BUSINESS",employment:"EMPLOYMENT",trade:"TRADE",environment:"ENVIRONMENT",infrastructure:"INFRASTRUCTURE",organizations:"ORGANIZATION",volunteers:"VOLUNTEER",dues:"DUES",planning:"PLANNING",disaster:"DISASTER",dataquality:"DATAQUALITY",gis:"GIS",intelligence:"RT_INTELLIGENCE",smart:"SMART_VILLAGE",inventory:"INVENTORY",reports:"REPORT",dashboard:"RT_REPORT"};
    const wargaMap={address:"DOMICILE",services:"SERVICE_REQUEST",complaints:"COMPLAINT"};
    const service_type=(state.view==="rt"?rtMap[state.sub]:wargaMap[state.sub])||state.sub.toUpperCase();
-   const resp=await sb.functions.invoke("rt-transaction",{body:{service_type,payload:{...payload,full_name:payload["Nama Lengkap"]||payload["Nama Warga"]||payload["Nama"],national_id:payload["NIK"]||payload["NIK Almarhum/Almarhumah"]||payload["NIK Pemohon"],date_of_death:payload["Tanggal Kematian"],place_of_death:payload["Tempat Kematian"],cause_category:payload["Penyebab Kematian"],source_document_path:payload["Dokumen Keterangan Kematian"]}}});
+   const scope=liveDemoScope();if(!scope){toast("Penugasan wilayah aktif belum tersedia.");return}const resp=await sb.functions.invoke("rt-transaction",{body:{service_type,territory_id:scope,payload:{...payload,full_name:payload["Nama Lengkap"]||payload["Nama Warga"]||payload["Nama"],national_id:payload["NIK"]||payload["NIK Almarhum/Almarhumah"]||payload["NIK Pemohon"],date_of_death:payload["Tanggal Kematian"],place_of_death:payload["Tempat Kematian"],cause_category:payload["Penyebab Kematian"],source_document_path:payload["Dokumen Keterangan Kematian"]}}});
    if(resp.error||!resp.data?.ok)throw new Error(resp.data?.error||resp.error?.message||"Gagal menyimpan melalui workflow");
    seedRows();state.rows[key()].unshift({id:resp.data.record?.request_number||resp.data.record?.id||"SYNC-"+Date.now(),values,status:resp.data.record?.status||"SUBMITTED",updated:"Supabase"});
    persist();closeModal();state.selected.clear();await render();toast("✓ Data tersimpan di Supabase dan masuk workflow · "+service_type);return;
