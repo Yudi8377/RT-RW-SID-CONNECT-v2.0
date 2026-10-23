@@ -20,7 +20,7 @@ create index if not exists organization_devices_org_status_idx
   on public.organization_devices (organization_id, status, last_seen_at desc);
 
 alter table public.organization_devices enable row level security;
-revoke all on public.organization_devices from anon, authenticated;
+revoke all on public.organization_devices from public, anon, authenticated;
 
 create or replace function public.register_organization_device(
   p_user_id uuid,
@@ -103,7 +103,7 @@ begin
   from public.organization_devices d
   where d.organization_id = p_organization_id and d.status = 'ACTIVE';
 
-  if found and v_device.id is not null and v_device.status = 'ACTIVE' then
+  if v_device.id is not null and v_device.status = 'ACTIVE' then
     update public.organization_devices
     set last_seen_at = pg_catalog.now(),
         updated_at = pg_catalog.now(),
