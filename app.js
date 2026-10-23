@@ -22,7 +22,6 @@ admin:["Admin & Governance","GOVERNANCE",[["tenant","Tenant & Desa"],["territory
 };
 const icons={dashboard:"⌂",warga:"♙",identitas:"ID",rt:"R",rw:"W",kegiatan:"◷",layanan:"▣",desa:"D",kecamatan:"K",kabkota:"KK",dokumen:"▤",dataquality:"✓",smart:"✦",jolie:"◫",gis:"⌖",whatsapp:"◌",sid:"↔",gpffe:"⇄",admin:"⚙"};
 const groups=["HOME","COMMUNITY","VILLAGE","REGIONAL","INTELLIGENCE","INTEGRATION","GOVERNANCE"];
-const demoKpi=[["1,284","Warga","Data terdaftar"],["326","Kartu Keluarga","Data terdaftar"],["48","Layanan aktif","Layanan tersedia"],["17","Menunggu verifikasi","Perlu ditinjau"]];
 const esc=v=>String(v??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 const key=()=>state.view+":"+state.sub;
 const subTitle=()=>modules[state.view]?.[2].find(x=>x[0]===state.sub)?.[1]||"Workspace";
