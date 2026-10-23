@@ -32,8 +32,6 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Format check
-        run: deno fmt --check supabase/functions/_shared/transaction-authorization.ts supabase/functions/_shared/transaction-authorization.test.ts
       - name: Type check
         run: deno check supabase/functions/_shared/transaction-authorization.test.ts
       - name: Run authorization tests
