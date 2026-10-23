@@ -6,6 +6,7 @@ on:
     paths:
       - 'app.js'
       - 'scripts/check-admin-workspaces.mjs'
+      - 'supabase/functions/admin-access-management/scope*'
       - 'docs/ADMIN-WORKSPACE-MATRIX.md'
       - '.github/workflows/admin-workspaces-quality.yml'
   push:
@@ -31,3 +32,5 @@ jobs:
           node-version: 22
       - name: Verify separate regional admin workspaces and protected preview
         run: node scripts/check-admin-workspaces.mjs
+      - name: Test role-to-territory and tenant scope policy
+        run: deno test supabase/functions/admin-access-management/scope.test.ts
