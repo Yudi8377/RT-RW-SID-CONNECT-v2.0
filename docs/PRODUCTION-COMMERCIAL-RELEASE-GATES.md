@@ -4,28 +4,30 @@ Last reviewed: 2026-10-23
 
 ## What is live
 
-- GitHub Pages deploy for main commit `8b9a70bc529e79237bb24cb64488fcc4245b7b0a` succeeded.
+- GitHub Pages deploy #489 for main commit `a6e0f8f4c7c693681a7d93b5c60360cd31aef2c5` succeeded; Android Test APK #209 was still running at last check.
 - Separate RT, RW, Desa/Kelurahan, Kecamatan, Kabupaten/Kota, and Platform Admin workspaces remain in the application.
 - Resident and household reads now fail closed through authenticated, territory-scoped RPCs; there is no direct browser fallback to the canonical `persons` table.
-- Platform Admin has a verified household-link workbench in the UI. The workbench stays unavailable until its server RPC migration is installed.
+- Platform Admin has a household-link workbench in the UI and its server RPC migration is installed. Authenticated production use still requires a valid admin session, scope, and E2E verification.
 - Disposable PostgreSQL regression suites cover regional scope, resident directory, membership linking, subscription trial, and device limit behavior.
 
 ## Production gates that remain closed
 
-### 1. Supabase migration history
+### 1. Supabase migration history — deployed; verify behavior end to end
 
-The production migration history currently ends at `20261021201949`. These repository migrations are pending in order:
+The production migration ledger was queried directly and includes this additive chain:
 
-1. `202610230001_server_authoritative_entitlements.sql`
-2. `202610230002_device_entitlement_enforcement.sql`
-3. `202610230003_scoped_resident_directory.sql`
-4. `202610230004_household_membership_admin_workbench.sql`
+1. `20261023075802` — `regional_dashboard_roles`
+2. `20261023075806` — `regional_dashboard_summary_rpc`
+3. `20261023075811` — `server_authoritative_entitlements`
+4. `20261023075816` — `device_entitlement_enforcement`
+5. `20261023075820` — `scoped_resident_directory`
+6. `20261023075825` — `household_membership_admin_workbench`
 
-Do not run a partial subset. Reconcile the remote migration ledger, apply the full dependency chain in order, and ensure the local migration filenames match the recorded remote versions before enabling the affected UI. The first two migrations explicitly require validation against a disposable/staging Supabase environment before production application.
+The production Edge Functions `start-trial` and `register-device` are ACTIVE with JWT verification enabled. The disposable migration/trial regression workflows passed after these changes. The remaining blocker is authenticated end-to-end verification against the actual production organization, role assignment, and device—not migration deployment. Keep the commercial UI flag off until that flow passes.
 
 ### 2. Role assignment scope and organization
 
-Read-only production preflight found an active `RT_OPERATOR` assignment scoped to a `VILLAGE` territory and without an `organization_id`. The resident RPC correctly rejects this mismatch rather than exposing village-wide data to an RT operator. No role assignment was changed automatically.
+Read-only production verification confirms the active `RT_OPERATOR` assignment is scoped to a `VILLAGE` territory and has no `organization_id`. The resident RPC correctly rejects this mismatch rather than exposing village-wide data to an RT operator. The only other active assignments are Platform Admin and Warga; there are no active assignments for RW, Desa/Kelurahan, Kecamatan, or Kabupaten/Kota. No role assignment was changed automatically.
 
 Before live resident operations:
 - assign each operational role to a matching territory type (RT, RW, VILLAGE, DISTRICT, or REGENCY_CITY);
