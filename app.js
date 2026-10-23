@@ -476,7 +476,7 @@ function adminResidentLinkWorkspace(){
  +'<label>Cari KK dalam scope<input id="resident-link-household-search" type="search" placeholder="Alamat atau nama wilayah" maxlength="80"></label>'
  +'<div class="form-actions"><button type="button" class="btn" data-admin-household-search>Cari KK</button></div>'
  +'<label>KK tujuan<select id="resident-link-household"><option value="">Pilih scope dahulu</option></select></label>'
- +'<label>Hubungan keluarga<select id="resident-link-relationship"><option value="KEPALA_KELUARGA">Kepala keluarga</option><option value="PASANGAN">Pasangan</option><option value="ANAK">Anak</option><option value="ORANG_TUA">Orang tua</option><option value="SAUDARA">Saudara</option><option value="LAINNYA">Lainnya</option></select></label>'
+ +'<label>Hubungan keluarga<select id="resident-link-relationship"><option value="">Pilih hubungan</option><option value="KEPALA_KELUARGA">Kepala keluarga</option><option value="PASANGAN">Pasangan</option><option value="ANAK">Anak</option><option value="ORANG_TUA">Orang tua</option><option value="SAUDARA">Saudara</option><option value="LAINNYA">Lainnya</option></select></label>'
  +'<label class="check-field"><input id="resident-link-is-head" type="checkbox"> Tandai sebagai kepala keluarga</label>'
  +'<label>Catatan verifikasi<textarea id="resident-link-verification-note" rows="3" maxlength="500" placeholder="Contoh: dokumen KK diperiksa petugas pada loket pelayanan. Jangan masukkan NIK."></textarea></label>'
  +'<div class="form-actions"><button type="button" class="btn primary" data-admin-resident-link-submit>Simpan relasi terverifikasi</button></div>'
@@ -545,9 +545,10 @@ document.addEventListener("click",async function(e){
   if(!scope||!person||!household||note.length<10){if(statusEl)statusEl.textContent="Pilih scope, warga, KK, dan isi catatan verifikasi minimal 10 karakter.";return}
   const r=await sb.rpc("admin_link_person_to_household",{p_scope_territory_id:scope,p_person_id:person,p_household_id:household,p_relationship_label:relationship,p_is_head:isHead,p_verification_note:note});
   if(r.error)throw r.error;
-  if(statusEl)statusEl.textContent=r.data?.status==="ALREADY_LINKED"?"Relasi warga–KK ini sudah tercatat.":"Relasi tersimpan dan audit log dibuat.";
+  const successText=r.data?.status==="ALREADY_LINKED"?"Relasi warga–KK ini sudah tercatat.":"Relasi tersimpan dan audit log dibuat.";
   toast(r.data?.status==="ALREADY_LINKED"?"Relasi sudah ada":"Relasi warga–KK tersimpan");
   await Promise.all([refreshAdminUnlinkedPeople(),refreshAdminHouseholdCandidates()]);
+  if(statusEl)statusEl.textContent=successText;
  }catch(_error){
   if(statusEl)statusEl.textContent="Relasi tidak disimpan. Periksa izin PLATFORM_ADMIN, scope KK, status warga, dan catatan verifikasi; tidak ada perubahan parsial yang dikonfirmasi.";
  }
