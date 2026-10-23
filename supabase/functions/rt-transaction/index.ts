@@ -85,6 +85,7 @@ Deno.serve(async(req)=>{
     return json({ok:true,type:service_type,form_code:"F-1.02",result_form_code:"F-1.09",record},200,requestId);
   }
   let person_id=null; const nik=text(p.NIK||p["NIK Warga"]||p["NIK Pemohon"]||p["NIK Almarhum/Almarhumah"]);
+  if(nik&&!/^\\d{16}$/.test(nik))throw new HttpError(400,"NIK must contain 16 digits");
   if(nik){const h=await hashNIK(nik);const {data:person,error:pe}=await admin.from("persons").select("id").eq("national_id_hash",h).maybeSingle();if(pe)throw pe;person_id=person?.id||null;}
   if(CANONICAL.has(service_type)){
     let table="",row={territory_id,created_by:user.id};
