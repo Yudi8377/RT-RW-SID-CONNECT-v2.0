@@ -1,0 +1,102 @@
+-- Smoke and negative tests for the server-authoritative entitlement migration.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.subscription_plans
+    WHERE plan_code = 'TRIAL_7_DAY'
+      AND active = true
+      AND billing_interval = 'TRIAL'
+      AND duration_days = 7
+      AND price_amount = 0
+  ) THEN
+    RAISE EXCEPTION 'free seven-day trial plan not seeded';
+  END IF;
+
+  IF has_function_privilege('anon', 'public.start_organization_trial(uuid,uuid,text)', 'EXECUTE')
+     OR has_function_privilege('authenticated', 'public.start_organization_trial(uuid,uuid,text)', 'EXECUTE')
+     OR NOT has_function_privilege('service_role', 'public.start_organization_trial(uuid,uuid,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'trial transaction function grants are not least-privilege';
+  END IF;
+
+  IF has_table_privilege('anon', 'public.subscription_billing_events', 'SELECT')
+     OR has_table_privilege('authenticated', 'public.subscription_billing_events', 'SELECT')
+     OR has_table_privilege('anon', 'public.subscription_audit_events', 'SELECT')
+     OR has_table_privilege('authenticated', 'public.subscription_audit_events', 'SELECT') THEN
+    RAISE EXCEPTION 'billing/audit tables are directly readable by clients';
+  END IF;
+END;
+$$;
+
+-- Successful trial creation runs under the same database role used by the Edge Function.
+SET ROLE service_role;
+SELECT public.start_organization_trial(
+  '00000000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000001',
+  'smoke-test-001'
+);
+RESET ROLE;
+
+DO $$
+BEGIN
+  IF (SELECT count(*) FROM public.organization_subscriptions) <> 1 THEN
+    RAISE EXCEPTION 'expected exactly one subscription after trial start';
+  END IF;
+  IF (SELECT count(*) FROM public.subscription_audit_events WHERE event_code = 'TRIAL_STARTED') <> 1 THEN
+    RAISE EXCEPTION 'trial audit event missing';
+  END IF;
+  IF (SELECT trial_ends_at - trial_started_at FROM public.organization_subscriptions LIMIT 1) <> interval '7 days' THEN
+    RAISE EXCEPTION 'trial duration is not exactly seven days';
+  END IF;
+END;
+$$;
+
+-- The same organization cannot receive a second trial.
+DO $$
+BEGIN
+  PERFORM public.start_organization_trial(
+    '00000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    'smoke-test-duplicate'
+  );
+  RAISE EXCEPTION 'duplicate trial unexpectedly succeeded';
+EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN
+    IF SQLERRM <> 'TRIAL_ALREADY_USED' THEN RAISE; END IF;
+END;
+$$;
+
+-- A user without an active administrative assignment cannot start a trial.
+DO $$
+BEGIN
+  PERFORM public.start_organization_trial(
+    '00000000-0000-4000-8000-000000000002',
+    '10000000-0000-4000-8000-000000000001',
+    'smoke-test-denied'
+  );
+  RAISE EXCEPTION 'unauthorized trial unexpectedly succeeded';
+EXCEPTION
+  WHEN insufficient_privilege THEN NULL;
+END;
+$$;
+
+-- RLS allows the assigned user to read its own organization's subscription only.
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
+DO $$
+BEGIN
+  IF (SELECT count(*) FROM public.organization_subscriptions) <> 1 THEN
+    RAISE EXCEPTION 'assigned user cannot read own organization subscription';
+  END IF;
+END;
+$$;
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000002', true);
+DO $$
+BEGIN
+  IF (SELECT count(*) FROM public.organization_subscriptions) <> 0 THEN
+    RAISE EXCEPTION 'cross-tenant subscription read was not blocked';
+  END IF;
+END;
+$$;
+RESET ROLE;
+
+SELECT 'entitlement migration smoke tests passed' AS result;
