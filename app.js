@@ -928,4 +928,4 @@ document.addEventListener("click",function(e){
 });
 window.addEventListener("resize",()=>{if(window.innerWidth>800)closeMobileSidebar()});
 document.addEventListener("click",function(e){const d=e.target.closest("[data-row-detail]");if(d){e.preventDefault();e.stopImmediatePropagation();openRecordDetail(d.dataset.rowDetail);}});if(C.supabasePublishableKey&&window.supabase)sb=window.__RT_RW_SUPABASE_CLIENT||(window.__RT_RW_SUPABASE_CLIENT=supabase.createClient(C.supabaseUrl,C.supabasePublishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}));
-if(sb)sb.auth.onAuthStateChange(()=>{render();setTimeout(refreshLiveWorkspace,500)});render();setTimeout(refreshLiveWorkspace,700);
+if(sb)sb.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT"||event==="SIGNED_IN"){state.companionMessages=[];state.companionOpen=false}render();setTimeout(refreshLiveWorkspace,500)});render();setTimeout(refreshLiveWorkspace,700);
