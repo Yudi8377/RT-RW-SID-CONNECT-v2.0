@@ -2,6 +2,8 @@
 -- Auth schema, auth.uid(), anon/authenticated/service_role are provided by Supabase local.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
+-- Simulate the excessive production ACL so the candidate migration must remove it.
+GRANT ALL PRIVILEGES ON TABLE public.spatial_ref_sys TO anon, authenticated;
 
 CREATE TABLE public.territories (
  id uuid PRIMARY KEY,
