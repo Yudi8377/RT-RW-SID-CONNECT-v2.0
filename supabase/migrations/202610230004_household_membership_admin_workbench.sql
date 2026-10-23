@@ -66,7 +66,7 @@ CREATE OR REPLACE FUNCTION public.admin_household_link_candidates(
 )
 RETURNS TABLE (
   household_id uuid, territory_id uuid, territory_name text,
-  address_line text, household_status text, household_created_at timestamptz
+  address_line text, household_status text
 )
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $function$
@@ -92,7 +92,7 @@ BEGIN
     SELECT child.id FROM public.territories child
     JOIN descendants parent ON child.parent_id=parent.id WHERE child.active=true
   )
-  SELECT h.id,a.territory_id,t.name,a.address_line,h.status,h.created_at
+  SELECT h.id,a.territory_id,t.name,a.address_line,h.status
   FROM public.households h JOIN public.addresses a ON a.id=h.address_id
   JOIN public.territories t ON t.id=a.territory_id
   JOIN descendants d ON d.id=a.territory_id
