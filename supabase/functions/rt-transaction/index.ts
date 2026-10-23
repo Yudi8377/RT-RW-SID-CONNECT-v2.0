@@ -8,7 +8,7 @@ class HttpError extends Error { constructor(status:number,message:string){super(
 const json=(body:unknown,status=200,requestId?:string)=>new Response(JSON.stringify({...body,...(requestId?{request_id:requestId}:{})}),{status,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
 async function hashNIK(v){if(!v)return null;const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(String(v).trim()));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("")}
 async function writeAudit(admin:any,row:any,requestId:string){const {error}=await admin.from("audit_logs").insert(row);if(error){console.error("[rt-transaction:audit]",requestId,error.message||"audit insert failed");return false;}return true;}
-async function findPersonIdsByNIK(admin:any,nikValues:string[]){const unique=[...new Set(nikValues.filter(Boolean))];if(!unique.length)return new Map<string,string>();const hashes=await Promise.all(unique.map(hashNIK));const {data,error}=await admin.from("persons").select("id,national_id_hash").in("national_id_hash",hashes);if(error)throw error;return new Map((data||[]).filter(x=>x.national_id_hash).map(x=>[x.national_id_hash,x.id]));}
+async function findPersonIdsByNIK(admin:any,nikValues:string[],territoryId:string){const unique=[...new Set(nikValues.filter(Boolean))];if(!unique.length)return new Map<string,string>();const hashes=await Promise.all(unique.map(hashNIK));const {data:people,error:peopleError}=await admin.from("persons").select("id,national_id_hash").in("national_id_hash",hashes);if(peopleError)throw peopleError;if(!people?.length)return new Map<string,string>();const personIds=people.map(x=>x.id);const {data:residencies,error:residencyError}=await admin.from("residencies").select("person_id,residency_status,verification_status,valid_from,valid_until,addresses!inner(territory_id)").in("person_id",personIds);if(residencyError)throw residencyError;const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());const scopedPersonIds=new Set((residencies||[]).filter(r=>r.residency_status==="ACTIVE"&&["RT_VERIFIED","VILLAGE_VALIDATED"].includes(r.verification_status)&&(!r.valid_from||r.valid_from<=today)&&(!r.valid_until||r.valid_until>=today)&&r.addresses?.territory_id===territoryId).map(r=>r.person_id));return new Map((people||[]).filter(p=>p.national_id_hash&&scopedPersonIds.has(p.id)).map(p=>[p.national_id_hash,p.id]));}
 Deno.serve(async(req)=>{
  const requestId=crypto.randomUUID();
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
@@ -65,7 +65,7 @@ Deno.serve(async(req)=>{
     const memberNiks=members.map(m=>text(m.nik||m.NIK||m["NIK Warga"]||m.national_id));
     if(memberNiks.some(value=>value&&!/^\\d{16}$/.test(value)))throw new HttpError(400,"Each member NIK, when provided, must contain 16 digits");
     const allNiks=[applicantNik,...memberNiks].filter((value):value is string=>Boolean(value));
-    const personIdsByHash=await findPersonIdsByNIK(admin,allNiks);
+    const personIdsByHash=await findPersonIdsByNIK(admin,allNiks,territory_id);
     const hashByNik=new Map<string,string>();
     for(const nikValue of allNiks)hashByNik.set(nikValue,await hashNIK(nikValue));
     const applicantHash=applicantNik?hashByNik.get(applicantNik):undefined;
@@ -87,7 +87,7 @@ Deno.serve(async(req)=>{
   }
   let person_id=null; const nik=text(rawPayload.NIK||rawPayload["NIK Warga"]||rawPayload["NIK Pemohon"]||rawPayload["NIK Almarhum/Almarhumah"]);
   if(nik&&!/^\\d{16}$/.test(nik))throw new HttpError(400,"NIK must contain 16 digits");
-  if(nik){const h=await hashNIK(nik);const {data:person,error:pe}=await admin.from("persons").select("id").eq("national_id_hash",h).maybeSingle();if(pe)throw pe;person_id=person?.id||null;}
+  if(nik){const h=await hashNIK(nik);const personIdsByHash=await findPersonIdsByNIK(admin,[nik],territory_id);person_id=personIdsByHash.get(h)||null;}
   if(CANONICAL.has(service_type)){
     let table="",row={territory_id,created_by:user.id};
     if(service_type==="BUSINESS"){table="rt_business_profiles";row={...row,owner_person_id:person_id,business_name:text(p["Nama Usaha"]),business_type:text(p["Jenis Usaha"])||"LAINNYA",sector:text(p["Sektor"]),products_services:text(p["Produk/Jasa"]),scale:text(p["Skala Usaha"]),worker_count:num(p["Tenaga Kerja"]),sales_channels:text(p["Kanal Penjualan"]),licensing_status:text(p["Legalitas/Perizinan"]),needs:text(p["Kebutuhan Usaha"]),constraints:text(p["Kendala"]),potential:text(p["Potensi"]),verification_status:"SUBMITTED",classification:"INTERNAL",source:"RT_DIGITAL"};if(!row.business_name)throw new HttpError(400,"Nama Usaha wajib diisi");}
