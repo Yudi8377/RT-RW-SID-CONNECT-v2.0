@@ -17,4 +17,3 @@ export function isCurrentAssignment(assignment: AssignmentWindow, now: number): 
   if (!(Number.isFinite(end) || end === Number.POSITIVE_INFINITY)) return false;
   return start <= now && end > now;
 }
-\n
