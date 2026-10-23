@@ -78,6 +78,31 @@ jobs:
             exit 1
           fi
           echo "Server-authoritative trial invariants passed."
+
+  production-auth-boundary:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Verify trial and device endpoints reject unauthenticated requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$(sed -n 's/.*supabasePublishableKey:"\([^"]*\)".*/\1/p' config.js)"
+          test -n "$key"
+          for endpoint in start-trial register-device; do
+            code="$(curl --silent --show-error --output /tmp/"$endpoint".json --write-out '%{http_code}' \
+              -X POST "https://gzdusguveeeflmlvvmwe.supabase.co/functions/v1/$endpoint" \
+              -H "apikey: $key" -H 'Content-Type: application/json' --data '{}')"
+            if [ "$code" != "401" ]; then
+              echo "$endpoint must reject unauthenticated request with HTTP 401; got $code" >&2
+              cat /tmp/"$endpoint".json >&2
+              exit 1
+            fi
+          done
+          echo "Production Edge Functions reject unauthenticated trial/device requests."
+
   migration-smoke:
     runs-on: ubuntu-latest
     services:
