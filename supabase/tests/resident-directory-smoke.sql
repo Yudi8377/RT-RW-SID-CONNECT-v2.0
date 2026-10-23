@@ -92,6 +92,9 @@ BEGIN
   IF pg_catalog.pg_get_function_result('public.rt_resident_directory(uuid,integer,integer)'::regprocedure) ILIKE '%national_id%' THEN
     RAISE EXCEPTION 'resident directory must not expose national identifiers';
   END IF;
+  IF pg_catalog.pg_get_functiondef('public.rt_household_directory(uuid,integer,integer)'::regprocedure) ILIKE '%h.created_at%' THEN
+    RAISE EXCEPTION 'household directory must not depend on households.created_at';
+  END IF;
 END;
 $$;
 
