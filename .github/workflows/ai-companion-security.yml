@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - "supabase/functions/ai-companion/**"
+      - "scripts/check-ai-companion-input.sh"
       - ".github/workflows/ai-companion-security.yml"
   push:
     branches:
       - main
     paths:
       - "supabase/functions/ai-companion/**"
+      - "scripts/check-ai-companion-input.sh"
       - ".github/workflows/ai-companion-security.yml"
 
 permissions:
@@ -29,3 +31,5 @@ jobs:
         run: deno check supabase/functions/ai-companion/index.ts
       - name: Run authorization tests
         run: deno test supabase/functions/ai-companion/authorization.test.ts
+      - name: Check AI input-hardening invariants
+        run: bash scripts/check-ai-companion-input.sh
