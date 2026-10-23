@@ -16,6 +16,7 @@ on:
       - 'scripts/check-territory-workspaces.sh'
       - 'docs/territory-specific-workspaces.md'
       - 'supabase/functions/rt-transaction/**'
+      - 'supabase/functions/_shared/**'
       - '.github/workflows/regional-dashboard-quality.yml'
   push:
     branches: [feat/regional-dashboard-hierarchy-v1, main]
@@ -30,6 +31,8 @@ on:
       - 'scripts/check-entitlements-release-gates.sh'
       - 'scripts/check-territory-workspaces.sh'
       - 'docs/territory-specific-workspaces.md'
+      - 'supabase/functions/rt-transaction/**'
+      - 'supabase/functions/_shared/**'
       - '.github/workflows/regional-dashboard-quality.yml'
 
 permissions:
@@ -47,8 +50,19 @@ jobs:
         shell: bash
         run: |
           grep -q 'territory.territory_type' supabase/functions/rt-transaction/index.ts
-          grep -q 'roleTerritoryTypes' supabase/functions/rt-transaction/index.ts
-          grep -q 'validAssignments' supabase/functions/rt-transaction/index.ts
+          grep -q 'resolveTransactionAuthorization' supabase/functions/rt-transaction/index.ts
+          grep -q 'starts_at,ends_at' supabase/functions/rt-transaction/index.ts
+          grep -q 'organization_valid' supabase/functions/rt-transaction/index.ts
+          grep -Fq '64*1024' supabase/functions/rt-transaction/index.ts
+          grep -q 'Internal server error' supabase/functions/rt-transaction/index.ts
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check transaction authorization code
+        run: deno check supabase/functions/_shared/transaction-authorization.ts supabase/functions/rt-transaction/index.ts supabase/functions/rt-transaction/authorization_test.ts
+      - name: Test transaction authorization matrix
+        run: deno test supabase/functions/rt-transaction/authorization_test.ts
       - name: Check whitespace errors
         run: git diff --check
       - name: Check gated commercial trial UI
