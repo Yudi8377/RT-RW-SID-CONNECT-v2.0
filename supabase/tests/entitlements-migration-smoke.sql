@@ -43,7 +43,8 @@ BEGIN
   IF has_table_privilege('anon', 'public.subscription_billing_events', 'SELECT')
      OR has_table_privilege('authenticated', 'public.subscription_billing_events', 'SELECT')
      OR has_table_privilege('anon', 'public.subscription_audit_events', 'SELECT')
-     OR has_table_privilege('authenticated', 'public.subscription_audit_events', 'SELECT') THEN
+     OR has_table_privilege('authenticated', 'public.subscription_audit_events', 'SELECT')
+     OR has_table_privilege('authenticated', 'public.organization_devices', 'SELECT') THEN
     RAISE EXCEPTION 'billing/audit tables are directly readable by clients';
   END IF;
 END;
@@ -51,9 +52,11 @@ $$;
 
 -- Successful trial creation runs under the same database role used by the Edge Function.
 SET ROLE service_role;
-SELECT public.start_organization_trial(
+SELECT public.start_organization_trial_with_device(
   '00000000-0000-4000-8000-000000000001',
   '10000000-0000-4000-8000-000000000001',
+  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  'Browser test 1',
   'smoke-test-001'
 );
 RESET ROLE;
@@ -66,11 +69,66 @@ BEGIN
   IF (SELECT count(*) FROM public.subscription_audit_events WHERE event_code = 'TRIAL_STARTED') <> 1 THEN
     RAISE EXCEPTION 'trial audit event missing';
   END IF;
+  IF (SELECT count(*) FROM public.organization_devices WHERE organization_id = '10000000-0000-4000-8000-000000000001' AND status = 'ACTIVE') <> 1 THEN
+    RAISE EXCEPTION 'first trial device was not registered atomically';
+  END IF;
   IF (SELECT trial_ends_at - trial_started_at FROM public.organization_subscriptions LIMIT 1) <> interval '7 days' THEN
     RAISE EXCEPTION 'trial duration is not exactly seven days';
   END IF;
 END;
 $$;
+
+
+-- Re-registering the same device is idempotent; a second device exceeds the trial limit.
+SET ROLE service_role;
+SELECT public.register_organization_device(
+  '00000000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000001',
+  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  'Browser test 1'
+);
+DO $
+BEGIN
+  IF (SELECT count(*) FROM public.organization_devices WHERE organization_id = '10000000-0000-4000-8000-000000000001' AND status = 'ACTIVE') <> 1 THEN
+    RAISE EXCEPTION 'same device registration was not idempotent';
+  END IF;
+END;
+$;
+DO $
+BEGIN
+  PERFORM public.register_organization_device(
+    '00000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    'Browser test 2'
+  );
+  RAISE EXCEPTION 'second device unexpectedly exceeded trial limit';
+EXCEPTION WHEN SQLSTATE 'P0001' THEN
+  IF SQLERRM <> 'DEVICE_LIMIT_REACHED' THEN RAISE; END IF;
+END;
+$;
+RESET ROLE;
+
+-- An administrator can revoke the old installation; the replacement then uses the single slot.
+UPDATE public.organization_devices
+SET status = 'REVOKED'
+WHERE organization_id = '10000000-0000-4000-8000-000000000001'
+  AND device_key_hash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+SET ROLE service_role;
+SELECT public.register_organization_device(
+  '00000000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000001',
+  'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+  'Browser test 2'
+);
+RESET ROLE;
+DO $
+BEGIN
+  IF (SELECT count(*) FROM public.organization_devices WHERE organization_id = '10000000-0000-4000-8000-000000000001' AND status = 'ACTIVE') <> 1 THEN
+    RAISE EXCEPTION 'revocation did not free the device slot';
+  END IF;
+END;
+$;
 
 -- The same organization cannot receive a second trial.
 DO $$
