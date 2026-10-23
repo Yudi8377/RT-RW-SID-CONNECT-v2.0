@@ -5,14 +5,20 @@ on:
     branches: [main]
     paths:
       - 'app.js'
+      - 'config.js'
+      - 'theme.css'
+      - 'scripts/check-commercial-trial-ui.sh'
       - 'supabase/migrations/**'
       - 'docs/regional-dashboard-hierarchy.md'
       - 'scripts/check-entitlements-migration.sh'
       - '.github/workflows/regional-dashboard-quality.yml'
   push:
-    branches: [feat/regional-dashboard-hierarchy-v1]
+    branches: [feat/regional-dashboard-hierarchy-v1, main]
     paths:
       - 'app.js'
+      - 'config.js'
+      - 'theme.css'
+      - 'scripts/check-commercial-trial-ui.sh'
       - 'supabase/migrations/**'
       - 'docs/regional-dashboard-hierarchy.md'
       - 'scripts/check-entitlements-migration.sh'
@@ -31,6 +37,9 @@ jobs:
         run: node --check app.js
       - name: Check whitespace errors
         run: git diff --check
+
+      - name: Check gated commercial trial UI
+        run: bash scripts/check-commercial-trial-ui.sh
       - name: Check entitlement migration static safety
         run: bash scripts/check-entitlements-migration.sh
       - name: Check regional migration safety markers
