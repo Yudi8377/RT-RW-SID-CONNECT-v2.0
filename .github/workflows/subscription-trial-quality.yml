@@ -14,6 +14,7 @@ on:
     paths:
       - "supabase/functions/start-trial/**"
       - "supabase/migrations/202610220005_server_authoritative_entitlements.sql"
+      - "supabase/tests/**"
       - ".github/workflows/subscription-trial-quality.yml"
 
 permissions:
