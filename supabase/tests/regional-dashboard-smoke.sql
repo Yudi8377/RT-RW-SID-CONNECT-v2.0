@@ -108,7 +108,7 @@ RESET ROLE;
 SET statement_timeout = '3s';
 UPDATE public.territories
 SET parent_id = '30000000-0000-4000-8000-000000000006'
-WHERE id = '30000000-0000-4000-8000-000000000005';
+WHERE id = '30000000-0000-4000-8000-000000000003';
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
 DO $$
