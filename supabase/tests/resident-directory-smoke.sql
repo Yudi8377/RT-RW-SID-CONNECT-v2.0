@@ -11,7 +11,8 @@ INSERT INTO public.households (id, household_number_hash, address_id, status) VA
 INSERT INTO public.persons (id,full_name,birth_place,birth_date,gender,classification,status) VALUES
  ('72000000-0000-4000-8000-000000000001','Warga Uji RT','Kota Uji','1990-01-01','Laki-laki','CONFIDENTIAL','ACTIVE'),
  ('72000000-0000-4000-8000-000000000002','Warga Uji Wilayah Lain','Kota Uji','1991-01-01','Perempuan','CONFIDENTIAL','ACTIVE'),
- ('72000000-0000-4000-8000-000000000003','Data Internal Tidak Tampil','Kota Uji','1992-01-01','Perempuan','INTERNAL','ACTIVE');
+ ('72000000-0000-4000-8000-000000000003','Data Internal Tidak Tampil','Kota Uji','1992-01-01','Perempuan','INTERNAL','ACTIVE'),
+ ('72000000-0000-4000-8000-000000000004','Warga Uji Belum Terhubung','Kota Uji','1993-01-01','Perempuan','CONFIDENTIAL','ACTIVE');
 INSERT INTO public.household_person_memberships
   (id,household_id,person_id,relationship_label,is_head,status,valid_from)
 VALUES
