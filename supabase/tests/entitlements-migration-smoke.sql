@@ -79,6 +79,49 @@ EXCEPTION
 END;
 $$;
 
+-- A future-dated role assignment is not eligible to start a trial.
+DO $
+BEGIN
+  PERFORM public.start_organization_trial(
+    '00000000-0000-4000-8000-000000000002',
+    '10000000-0000-4000-8000-000000000002',
+    'smoke-test-future-assignment'
+  );
+  RAISE EXCEPTION 'future assignment unexpectedly authorized';
+EXCEPTION
+  WHEN insufficient_privilege THEN NULL;
+END;
+$;
+
+-- A suspended subscription must not be bypassed by starting a free trial.
+UPDATE public.role_assignments
+SET starts_at = NULL
+WHERE user_id = '00000000-0000-4000-8000-000000000002';
+INSERT INTO public.organization_subscriptions (
+  organization_id, plan_id, status, current_period_starts_at, current_period_ends_at,
+  activated_by, activation_source
+)
+SELECT
+  '10000000-0000-4000-8000-000000000002', p.id, 'SUSPENDED',
+  pg_catalog.now(), pg_catalog.now() + interval '30 days',
+  '00000000-0000-4000-8000-000000000002', 'ADMIN_MIGRATION'
+FROM public.subscription_plans p
+WHERE p.plan_code = 'TRIAL_7_DAY';
+
+DO $
+BEGIN
+  PERFORM public.start_organization_trial(
+    '00000000-0000-4000-8000-000000000002',
+    '10000000-0000-4000-8000-000000000002',
+    'smoke-test-suspended-subscription'
+  );
+  RAISE EXCEPTION 'suspended subscription unexpectedly received a trial';
+EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN
+    IF SQLERRM <> 'SUBSCRIPTION_ALREADY_CURRENT' THEN RAISE; END IF;
+END;
+$;
+
 -- RLS allows the assigned user to read its own organization's subscription only.
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
@@ -89,7 +132,7 @@ BEGIN
   END IF;
 END;
 $$;
-SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000002', true);
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
 DO $$
 BEGIN
   IF (SELECT count(*) FROM public.organization_subscriptions) <> 0 THEN
