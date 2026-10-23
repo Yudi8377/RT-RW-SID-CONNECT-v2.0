@@ -116,7 +116,7 @@ END;
 $$;
 
 -- An active role assignment cannot start a trial for an inactive organization.
-DO $
+DO $$
 BEGIN
   PERFORM public.start_organization_trial(
     '00000000-0000-4000-8000-000000000003',
@@ -127,7 +127,7 @@ BEGIN
 EXCEPTION
   WHEN insufficient_privilege THEN NULL;
 END;
-$;
+$$;
 
 -- A suspended subscription must not be bypassed by starting a free trial.
 UPDATE public.role_assignments
