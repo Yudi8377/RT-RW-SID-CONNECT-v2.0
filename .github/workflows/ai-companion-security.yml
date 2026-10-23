@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "supabase/functions/ai-companion/**"
+      - "app.js"
+      - "theme.css"
+      - "config.js"
       - "scripts/check-ai-companion-input.sh"
       - ".github/workflows/ai-companion-security.yml"
   push:
