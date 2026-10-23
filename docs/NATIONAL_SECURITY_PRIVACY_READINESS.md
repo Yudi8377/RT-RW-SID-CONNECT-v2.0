@@ -101,3 +101,7 @@ For every gate attach control/test ID, environment/data classification, test ide
 ## 7. Release decision
 
 Until blockers are resolved with recorded evidence, status is **NOT CLEARED FOR REAL-DATA NATIONAL PRODUCTION**. A frontend deploy, migration or anonymous HTTP 401 smoke test is necessary but insufficient.
+
+
+## Critical privileged-role membership finding (2026-10-23)
+Read-only production metadata found `anon` and `authenticated` are members of `postgres` with INHERIT, SET and ADMIN options; `postgres` has BYPASSRLS. This can undermine RLS and least privilege. No exploitation or breach is confirmed. The tested containment migration is merged in [PR #147](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/pull/147), but **production is not yet remediated** because the current SQL connection runs as non-superuser `postgres` and cannot revoke grants made by `supabase_admin`. The owner/admin execution path must be resolved, then verify `pg_has_role` and effective privileges. See `docs/CRITICAL_CLIENT_ROLE_MEMBERSHIP_FINDING.md`.
