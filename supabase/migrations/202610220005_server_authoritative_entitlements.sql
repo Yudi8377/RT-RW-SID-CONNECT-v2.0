@@ -204,7 +204,7 @@ begin
     where s.organization_id = p_organization_id
       and s.trial_started_at is not null
   ) then
-    raise exception 'TRIAL_ALREADY_USED' using errcode = '23505';
+    raise exception 'TRIAL_ALREADY_USED' using errcode = 'P0001';
   end if;
 
   if exists (
@@ -212,7 +212,7 @@ begin
     where s.organization_id = p_organization_id
       and s.status in ('TRIALING','ACTIVE','GRACE','PAST_DUE','SUSPENDED')
   ) then
-    raise exception 'SUBSCRIPTION_ALREADY_CURRENT' using errcode = '23505';
+    raise exception 'SUBSCRIPTION_ALREADY_CURRENT' using errcode = 'P0001';
   end if;
 
   insert into public.organization_subscriptions (
