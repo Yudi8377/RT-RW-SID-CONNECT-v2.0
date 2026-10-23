@@ -30,8 +30,23 @@ for (const workspace of requiredWorkspaces) {
 
 assert.match(
   app,
-  /function previewDashboard\(code\)\{if\(!ADMIN_PREVIEW\|\|!ENTRY_ROLES\.includes\(code\)\)return/,
+  /function previewDashboard\(code\)\{if\(!ADMIN_PREVIEW\|\|!\[\.\.\.ENTRY_ROLES,"PLATFORM_ADMIN"\]\.includes\(code\)\)return/,
   "role preview must remain limited to explicit development preview mode",
+);
+assert.match(
+  app,
+  /function previewRoleCode\(\)\{if\(!ADMIN_PREVIEW\)return "PLATFORM_ADMIN";const params=new URLSearchParams\(location\.search\),requested=params\.get\("role"\)/,
+  "direct role selection must only be interpreted while preview=admin is active",
+);
+assert.match(
+  app,
+  /url\.searchParams\.set\("role",code\)/,
+  "choosing a dashboard must produce a direct, shareable role-specific preview URL",
+);
+assert.match(
+  app,
+  /url\.searchParams\.delete\("role"\)/,
+  "returning to Platform Admin must clear the selected regional preview",
 );
 assert.match(
   app,
