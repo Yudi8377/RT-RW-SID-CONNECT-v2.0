@@ -13,6 +13,8 @@ on:
       - 'scripts/check-entitlements-migration.sh'
       - 'scripts/check-entitlements-release-gates.sh'
       - 'scripts/check-territory-workspaces.sh'
+      - 'docs/territory-specific-workspaces.md'
+      - 'scripts/check-territory-workspaces.sh'
       - '.github/workflows/regional-dashboard-quality.yml'
   push:
     branches: [feat/regional-dashboard-hierarchy-v1, main]
@@ -46,6 +48,8 @@ jobs:
         run: bash scripts/check-entitlements-migration.sh
       - name: Check entitlement release gates
         run: bash scripts/check-entitlements-release-gates.sh
+      - name: Check independent territory workspaces
+        run: bash scripts/check-territory-workspaces.sh
       - name: Check independent territory workspaces
         run: bash scripts/check-territory-workspaces.sh
       - name: Check regional migration safety markers
