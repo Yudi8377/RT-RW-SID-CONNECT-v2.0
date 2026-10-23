@@ -47,8 +47,17 @@ jobs:
         shell: bash
         run: |
           grep -q 'territory.territory_type' supabase/functions/rt-transaction/index.ts
-          grep -q 'roleTerritoryTypes' supabase/functions/rt-transaction/index.ts
-          grep -q 'validAssignments' supabase/functions/rt-transaction/index.ts
+          grep -q 'resolveTransactionAuthorization' supabase/functions/rt-transaction/index.ts
+          grep -q 'starts_at,ends_at' supabase/functions/rt-transaction/index.ts
+          grep -q 'organization_valid' supabase/functions/rt-transaction/index.ts
+          grep -q '64\*1024' supabase/functions/rt-transaction/index.ts
+          grep -q 'Internal server error' supabase/functions/rt-transaction/index.ts
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Test transaction authorization matrix
+        run: deno test supabase/functions/rt-transaction/authorization_test.ts
       - name: Check whitespace errors
         run: git diff --check
       - name: Check gated commercial trial UI
