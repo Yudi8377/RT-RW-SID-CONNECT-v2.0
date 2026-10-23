@@ -991,7 +991,7 @@ function adminAccessWorkspace(){
  }
  const demo=ADMIN_PREVIEW;
  const expectedScope={RT_OPERATOR:"RT",RW_REVIEWER:"RW",VILLAGE_VALIDATOR:"VILLAGE",OPEN_SID_UMUM:"VILLAGE",DISTRICT_COORDINATOR:"DISTRICT",REGENCY_CITY_ADMIN:"REGENCY_CITY"};
- const scopeIssues=rows.filter(x=>{
+ const scopeIssues=rows.filter(x=>x.active&&(()=>{
    const code=x.roles?.role_code||"";
    if(code==="PLATFORM_ADMIN")return Boolean(x.scope_territory_id);
    if(code==="PILOT_VIEWER")return !x.scope_territory_id;
@@ -1000,7 +1000,7 @@ function adminAccessWorkspace(){
  const bodyRows=rows.length?rows.map(x=>{
    const code=x.roles?.role_code||"",expected=expectedScope[code];
    const valid=code==="PLATFORM_ADMIN"?!x.scope_territory_id:code==="PILOT_VIEWER"?Boolean(x.scope_territory_id):Boolean(expected&&x.territories?.territory_type===expected&&x.organization_id);
-   const scopeState=valid?status("SCOPE VALID"):'<span class="status warning">PERLU AUDIT</span>';
+   const scopeState=!x.active?status("INACTIVE"):valid?status("SCOPE VALID"):'<span class="status warning">PERLU AUDIT</span>';
    return '<tr><td><b>'+esc(x.user_id)+'</b></td><td>'+esc(x.roles?.role_name||code||"-")+'</td><td>'+esc(x.territories?.name||"Global")+'<small class="scope-type">'+esc(x.territories?.territory_type||"GLOBAL")+'</small></td><td><code>'+esc(x.organization_id||"—")+'</code></td><td>'+scopeState+'</td><td>'+status(x.active?"ACTIVE":"INACTIVE")+'</td><td><button type="button" class="row-action" data-access-deactivate="'+esc(x.id)+'" '+(demo||!x.active||x.user_id===access.userId?"disabled":"")+'>Deactivate</button></td></tr>';
  }).join(""):'<tr><td colspan="7"><div class="empty-state"><b>'+esc(error||"Belum ada assignment.")+'</b><span>'+(demo?"ADMIN PREVIEW tidak memiliki kewenangan produksi dan tidak membuat assignment.":"Pastikan akun ini memiliki PLATFORM_ADMIN assignment sebelum mengelola akses.")+'</span></div></td></tr>';
  return '<div class="module-head"><div><div class="eyebrow dark">ADMIN / ACCESS MANAGEMENT</div><h2>Administrator Access Management</h2><p>Kelola user → role → scope melalui Edge Function server-side. Tidak ada privilege yang ditambahkan dari JavaScript browser.</p></div><span class="status active">SERVER-SIDE GATED</span></div>'+
