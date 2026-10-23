@@ -12,6 +12,18 @@ BEGIN
     RAISE EXCEPTION 'free seven-day trial plan not seeded';
   END IF;
 
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.subscription_plan_features f
+    JOIN public.subscription_plans p ON p.id = f.plan_id
+    WHERE p.plan_code = 'TRIAL_7_DAY'
+      AND f.feature_code = 'device_limit'
+      AND f.enabled = true
+      AND f.numeric_limit = 1
+  ) THEN
+    RAISE EXCEPTION 'trial one-device entitlement not seeded';
+  END IF;
+
   IF has_function_privilege('anon', 'public.start_organization_trial(uuid,uuid,text)', 'EXECUTE')
      OR has_function_privilege('authenticated', 'public.start_organization_trial(uuid,uuid,text)', 'EXECUTE')
      OR NOT has_function_privilege('service_role', 'public.start_organization_trial(uuid,uuid,text)', 'EXECUTE') THEN
