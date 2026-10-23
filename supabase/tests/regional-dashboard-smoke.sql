@@ -15,21 +15,21 @@ BEGIN
 END;
 $$;
 
-insert into public.role_assignments (user_id, role_id, scope_territory_id, active)
-select '00000000-0000-4000-8000-000000000001', r.id, '30000000-0000-4000-8000-000000000003', true
-from public.roles r where r.role_code='DISTRICT_COORDINATOR';
-insert into public.role_assignments (user_id, role_id, scope_territory_id, active)
-select '00000000-0000-4000-8000-000000000002', r.id, '30000000-0000-4000-8000-000000000008', true
-from public.roles r where r.role_code='DISTRICT_COORDINATOR';
-insert into public.role_assignments (user_id, role_id, scope_territory_id, active)
-select '00000000-0000-4000-8000-000000000004', r.id, '30000000-0000-4000-8000-000000000003', true
-from public.roles r where r.role_code='RT_OPERATOR';
-insert into public.role_assignments (user_id, role_id, scope_territory_id, active)
-select '00000000-0000-4000-8000-000000000005', r.id, '30000000-0000-4000-8000-000000000002', true
-from public.roles r where r.role_code='REGENCY_CITY_ADMIN';
-insert into public.role_assignments (user_id, role_id, scope_territory_id, active)
-select '00000000-0000-4000-8000-000000000006', r.id, '30000000-0000-4000-8000-000000000013', true
-from public.roles r where r.role_code='DISTRICT_COORDINATOR';
+INSERT INTO public.role_assignments (user_id, role_id, scope_territory_id, active)
+SELECT '00000000-0000-4000-8000-000000000001', r.id, '30000000-0000-4000-8000-000000000003', true
+FROM public.roles r WHERE r.role_code='DISTRICT_COORDINATOR';
+INSERT INTO public.role_assignments (user_id, role_id, scope_territory_id, active)
+SELECT '00000000-0000-4000-8000-000000000002', r.id, '30000000-0000-4000-8000-000000000008', true
+FROM public.roles r WHERE r.role_code='DISTRICT_COORDINATOR';
+INSERT INTO public.role_assignments (user_id, role_id, scope_territory_id, active)
+SELECT '00000000-0000-4000-8000-000000000004', r.id, '30000000-0000-4000-8000-000000000003', true
+FROM public.roles r WHERE r.role_code='RT_OPERATOR';
+INSERT INTO public.role_assignments (user_id, role_id, scope_territory_id, active)
+SELECT '00000000-0000-4000-8000-000000000005', r.id, '30000000-0000-4000-8000-000000000002', true
+FROM public.roles r WHERE r.role_code='REGENCY_CITY_ADMIN';
+INSERT INTO public.role_assignments (user_id, role_id, scope_territory_id, active)
+SELECT '00000000-0000-4000-8000-000000000006', r.id, '30000000-0000-4000-8000-000000000013', true
+FROM public.roles r WHERE r.role_code='DISTRICT_COORDINATOR';
 
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
@@ -102,6 +102,23 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- A malformed hierarchy cycle must not make the recursive aggregation loop forever.
+SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
+SET statement_timeout = '3s';
+UPDATE public.territories
+SET parent_id = '30000000-0000-4000-8000-000000000006'
+WHERE id = '30000000-0000-4000-8000-000000000005';
+DO $$
+DECLARE d jsonb;
+BEGIN
+  d := public.regional_dashboard_summary('30000000-0000-4000-8000-000000000003');
+  IF (d->>'territory_count')::integer <> 4 THEN
+    RAISE EXCEPTION 'cyclic hierarchy changed de-duplicated territory count: %', d;
+  END IF;
+END;
+$$;
+RESET statement_timeout;
 RESET ROLE;
 
 SELECT 'regional dashboard RPC smoke tests passed' AS result;
