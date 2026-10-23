@@ -253,3 +253,23 @@
 .regional-live-panel{margin:14px 0;padding:18px;border:1px solid #dce7df;border-radius:15px;background:#fff}.regional-live-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px}.regional-live-head small{font-size:8px;letter-spacing:.14em;color:#6c8d77;font-weight:800}.regional-live-head h3{margin:6px 0;font-size:16px}.regional-live-head p{margin:0;color:#77847b;font-size:10px;line-height:1.6}.regional-live-head select{max-width:260px;min-width:150px;padding:9px;border:1px solid #d8e3da;border-radius:9px;background:#f8fbf8;color:#355541;font:inherit;font-size:10px}.regional-live-summary{margin-top:14px}.regional-live-context{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px;padding:10px 12px;border-radius:9px;background:#f0f7f1}.regional-live-context b{font-size:11px}.regional-live-context span{font-size:9px;color:#718178}.regional-live-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.regional-live-kpis>div{min-width:0;padding:12px;border:1px solid #e1e9e3;border-radius:10px}.regional-live-kpis small{display:block;color:#7b887f;font-size:9px;line-height:1.4;min-height:26px}.regional-live-kpis strong{display:block;margin-top:7px;font-size:22px;color:#1f5335;overflow-wrap:anywhere}.regional-live-summary .module-note{margin:0}
 @media(max-width:850px){.regional-live-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.regional-live-context{align-items:flex-start;flex-direction:column}}
 @media(max-width:560px){.regional-live-head{flex-direction:column}.regional-live-head select{max-width:none;width:100%}.regional-live-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.regional-live-kpis>div{padding:10px}.regional-live-kpis strong{font-size:19px}}
+
+
+/* Role-specific dashboard design workbench and safe UI-only previews. */
+.role-preview-panel{border-color:#cbded0;background:linear-gradient(135deg,#fff 0%,#f7fbf8 100%)}
+.role-preview-panel .panel-head p{max-width:700px;margin:7px 0 0;color:#718078;font-size:11px;line-height:1.65}
+.role-preview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.role-preview-card{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0;padding:17px;border:1px solid #dce8df;border-radius:13px;background:#fff;color:#20382b;text-align:left;font:inherit;cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}
+.role-preview-card:hover{transform:translateY(-2px);border-color:#8dbb9b;box-shadow:0 12px 28px #173c2b0e}
+.role-preview-card>span{display:grid;place-items:center;min-width:38px;height:34px;padding:0 8px;border-radius:9px;background:#e8f4eb;color:#28633f;font-size:10px;font-weight:850;letter-spacing:.04em}
+.role-preview-card>b{font-size:13px;line-height:1.4}
+.role-preview-card>small{color:#728078;font-size:10px;line-height:1.6;min-height:32px}
+.role-preview-card>strong{margin-top:4px;color:#32774b;font-size:10px}
+.role-preview-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 14px;padding:13px 16px;border:1px solid #e4d7b3;border-radius:12px;background:#fff9e9}
+.role-preview-toolbar>div{display:grid;gap:4px;min-width:0}
+.role-preview-toolbar small{font-size:8px;font-weight:850;letter-spacing:.12em;color:#927334}
+.role-preview-toolbar b{font-size:12px;color:#493a18}
+.role-preview-toolbar span{font-size:10px;line-height:1.5;color:#7d6c43}
+.role-preview-toolbar button{flex:0 0 auto;padding:9px 12px;border:1px solid #d9c796;border-radius:9px;background:#fff;color:#5b4924;font:inherit;font-size:10px;font-weight:750;cursor:pointer}
+@media(max-width:850px){.role-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.role-preview-grid{grid-template-columns:1fr}.role-preview-card{padding:14px}.role-preview-toolbar{align-items:stretch;flex-direction:column}.role-preview-toolbar button{width:100%}}
