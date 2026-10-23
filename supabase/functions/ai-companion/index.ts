@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authorizeCompanionRole, type RoleAssignment } from "./authorization.ts";
+import { fallbackEmergencyAssessment, isEmergencyAssessment, parseEmergencyAssessmentReply } from "./emergency.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -58,6 +59,8 @@ Deno.serve(async (req) => {
     const message = String(body.message || "").trim();
     if (!message) throw new HttpError(400, "Message is required");
     if (message.length > 2000) throw new HttpError(413, "Message is too long");
+    const isEmergency = isEmergencyAssessment(message);
+    let emergencyNeedHelp = false;
 
     const { data: assignmentRows, error: assignmentError } = await supabase
       .from("role_assignments")
@@ -116,6 +119,11 @@ Deno.serve(async (req) => {
       content: String(item.message || "").slice(0, 1200),
     }));
     let reply = fallback[role as keyof typeof fallback];
+    if (isEmergency) {
+      const emergencyFallback = fallbackEmergencyAssessment(message);
+      emergencyNeedHelp = emergencyFallback.needHelp;
+      reply = emergencyFallback.reply;
+    }
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (apiKey) {
@@ -147,14 +155,23 @@ Deno.serve(async (req) => {
               })),
               { role: "user", content: message },
             ],
-            max_output_tokens: 600,
+            max_output_tokens: isEmergency ? 180 : 600,
           }),
         });
         if (response.ok) {
           const result = await response.json();
           const generated = result.output_text ||
             result.output?.flatMap((item: any) => item.content || []).find((item: any) => item.type === "output_text")?.text;
-          if (typeof generated === "string" && generated.trim()) reply = generated.trim().slice(0, 6000);
+          if (typeof generated === "string" && generated.trim()) {
+            const raw = generated.trim();
+            if (isEmergency) {
+              const parsed = parseEmergencyAssessmentReply(raw);
+              emergencyNeedHelp = parsed.needHelp;
+              reply = parsed.reply.slice(0, 6000);
+            } else {
+              reply = raw.slice(0, 6000);
+            }
+          }
         }
       } catch {
         // Keep a safe role-specific fallback if the provider times out or is unavailable.
@@ -167,7 +184,7 @@ Deno.serve(async (req) => {
     ]);
     if (insertError) throw new HttpError(503, "Conversation could not be saved");
 
-    return new Response(JSON.stringify({ reply, voice: profile?.voice_enabled !== false }), {
+    return new Response(JSON.stringify({ reply, voice: profile?.voice_enabled !== false, emergency_need_help: emergencyNeedHelp }), {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (error) {
