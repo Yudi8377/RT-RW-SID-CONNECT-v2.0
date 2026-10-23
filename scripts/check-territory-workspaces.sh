@@ -20,6 +20,8 @@ for token in \
   'if(access.code==="RW_REVIEWER")return renderRWDashboard()' \
   'function renderRWDashboard()' \
   'function previewDashboard(code)' \
+  'const ADMIN_PREVIEW=new URLSearchParams(location.search).get("preview")==="admin";' \
+  'if(ADMIN_PREVIEW)return' \
   'Pratinjau dashboard per wilayah' \
   'Pratinjau dashboard saja' \
   'function rwReviewWorkspace()' \
