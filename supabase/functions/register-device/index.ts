@@ -36,9 +36,19 @@ Deno.serve(async (req) => {
   const { data: { user }, error: authError } = await userClient.auth.getUser();
   if (authError || !user) return json(401, { error: "UNAUTHORIZED" });
 
+  const maxBodyBytes = 64 * 1024;
+  const contentLength = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > maxBodyBytes) {
+    return json(413, { error: "REQUEST_BODY_TOO_LARGE" });
+  }
+
   let body: Record<string, unknown>;
   try {
-    const parsed = await req.json();
+    const rawBody = await req.text();
+    if (new TextEncoder().encode(rawBody).byteLength > maxBodyBytes) {
+      return json(413, { error: "REQUEST_BODY_TOO_LARGE" });
+    }
+    const parsed = JSON.parse(rawBody);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return json(400, { error: "INVALID_REQUEST" });
     }
