@@ -40,6 +40,8 @@ do
   }
 done
 
+grep -Fq "set search_path = ''" "$migration"
+
 # Edge Function must derive identity from a validated access token and accept only organization_id.
 grep -q 'userClient.auth.getUser()' "$trial_fn"
 grep -q 'organization_id' "$trial_fn"
