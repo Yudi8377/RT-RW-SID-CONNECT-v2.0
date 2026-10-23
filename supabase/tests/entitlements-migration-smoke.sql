@@ -16,10 +16,10 @@ BEGIN
     WHERE plan_code = 'TRIAL_7_DAY'
       AND active = true
       AND billing_interval = 'TRIAL'
-      AND duration_days = 7
+      AND duration_days = 14
       AND price_amount = 0
   ) THEN
-    RAISE EXCEPTION 'free seven-day trial plan not seeded';
+    RAISE EXCEPTION 'free fourteen-day trial plan not seeded';
   END IF;
 
   IF NOT EXISTS (
@@ -72,8 +72,8 @@ BEGIN
   IF (SELECT count(*) FROM public.organization_devices WHERE organization_id = '10000000-0000-4000-8000-000000000001' AND status = 'ACTIVE') <> 1 THEN
     RAISE EXCEPTION 'first trial device was not registered atomically';
   END IF;
-  IF (SELECT trial_ends_at - trial_started_at FROM public.organization_subscriptions LIMIT 1) <> interval '7 days' THEN
-    RAISE EXCEPTION 'trial duration is not exactly seven days';
+  IF (SELECT trial_ends_at - trial_started_at FROM public.organization_subscriptions LIMIT 1) <> interval '14 days' THEN
+    RAISE EXCEPTION 'trial duration is not exactly fourteen days';
   END IF;
 END;
 $$;
