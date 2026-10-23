@@ -102,3 +102,16 @@ Deno.test("rejects assignment expiring exactly at the current instant", () => {
   });
   assertEquals(result.ok, false);
 });
+
+Deno.test("rejects unknown and resident-only roles for write actions", () => {
+  for (const role of ["PILOT_VIEWER", "WARGA", "UNKNOWN_ROLE"]) {
+    const result = resolveTransactionAuthorization({
+      territoryType: "RT",
+      serviceType: "BUSINESS",
+      assignments: [assignment({ roles: { role_code: role } })],
+      now,
+    });
+    assertEquals(result.ok, false);
+    assertEquals(result.status, 403);
+  }
+});
