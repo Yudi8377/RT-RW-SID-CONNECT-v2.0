@@ -1,4 +1,4 @@
-const C=window.APP_CONFIG||{};const KEY="rtrw_sid_auth_v2",ROLE_KEY="rtrw_sid_selected_role_v2",PREVIEW_TRIAL_KEY="rtrw_sid_preview_trial_v1";const ADMIN_PREVIEW=new URLSearchParams(location.search).get("preview")==="admin"&&sessionStorage.getItem("rtrw_admin_trial_entry_v1")==="1";if(new URLSearchParams(location.search).has("trial")||new URLSearchParams(location.search).get("source")==="trial-7-days"){const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete("trial");if(cleanUrl.searchParams.get("source")==="trial-7-days")cleanUrl.searchParams.delete("source");history.replaceState(null,"",cleanUrl.pathname+cleanUrl.search+cleanUrl.hash)}const ENTRY_ROLES=["RT_OPERATOR","RW_REVIEWER","VILLAGE_VALIDATOR","DISTRICT_COORDINATOR","REGENCY_CITY_ADMIN","OPEN_SID_UMUM"];const PRODUCTION_URL="https://yudi8377.github.io/RT-RW-SID-CONNECT-v2.0/";const PUBLIC_URL=()=>PRODUCTION_URL;let sb=null;const state={view:"dashboard",sub:"overview",history:[],forward:[],rows:{},selected:new Set(),companionOpen:false,companionMessages:[],commercialTrialResults:{},commercialTrialLoading:false};const ROLE_DEFS={RT_OPERATOR:{label:"RT · Operator",desc:"Operasional RT, verifikasi awal, layanan dan data warga."},RW_REVIEWER:{label:"RW · Reviewer",desc:"Review, konsolidasi dan koordinasi antar-RT."},OPEN_SID_UMUM:{label:"OPEN SID · Umum",desc:"Akses umum/informasi SID tanpa workspace operasional RT/RW."},VILLAGE_VALIDATOR:{label:"Desa/Kelurahan · Validator",desc:"Validasi desa/kelurahan, dokumen, Data Quality dan Smart Village."},DISTRICT_COORDINATOR:{label:"Kecamatan · Koordinator",desc:"Koordinasi lintas desa/kelurahan, monitoring layanan, eskalasi dan laporan kecamatan."},REGENCY_CITY_ADMIN:{label:"Kabupaten/Kota · Administrator Wilayah",desc:"Dashboard regional, indikator agregat, pemantauan program dan laporan lintas kecamatan."},PLATFORM_ADMIN:{label:"Platform · Admin",desc:"Administrasi platform, governance dan seluruh workspace."},PILOT_VIEWER:{label:"Viewer",desc:"Akses baca sesuai scope."}};const ROLE_MODULES={PILOT_VIEWER:["dashboard"],RT_OPERATOR:["dashboard","warga","rt","identitas","kegiatan","layanan"],RW_REVIEWER:["dashboard","warga","rw","identitas","kegiatan","layanan"],OPEN_SID_UMUM:["dashboard","warga","desa","sid","layanan"],VILLAGE_VALIDATOR:["dashboard","warga","rw","desa","dokumen","dataquality","smart","gis","whatsapp","sid","gpffe","kegiatan","layanan"],DISTRICT_COORDINATOR:["dashboard","kecamatan","desa","layanan","gis","sid","gpffe","smart"],REGENCY_CITY_ADMIN:["dashboard","kabkota","kecamatan","desa","layanan","gis","sid","gpffe","smart"],PLATFORM_ADMIN:null};let access={code:"PILOT_VIEWER",source:"signed_out"};
+const C=window.APP_CONFIG||{};const KEY="rtrw_sid_auth_v2",ROLE_KEY="rtrw_sid_selected_role_v2",PREVIEW_TRIAL_KEY="rtrw_sid_preview_trial_v1";const ADMIN_PREVIEW=new URLSearchParams(location.search).get("preview")==="admin"&&sessionStorage.getItem("rtrw_admin_trial_entry_v1")==="1";if(new URLSearchParams(location.search).has("trial")||new URLSearchParams(location.search).get("source")==="trial-7-days"){const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete("trial");if(cleanUrl.searchParams.get("source")==="trial-7-days")cleanUrl.searchParams.delete("source");history.replaceState(null,"",cleanUrl.pathname+cleanUrl.search+cleanUrl.hash)}const ENTRY_ROLES=["RT_OPERATOR","RW_REVIEWER","VILLAGE_VALIDATOR","DISTRICT_COORDINATOR","REGENCY_CITY_ADMIN","OPEN_SID_UMUM"];const PRODUCTION_URL="https://yudi8377.github.io/RT-RW-SID-CONNECT-v2.0/";const PUBLIC_URL=()=>PRODUCTION_URL;let sb=null;const state={view:"dashboard",sub:"overview",history:[],forward:[],rows:{},selected:new Set(),companionOpen:false,companionMessages:[],commercialTrialResults:{},commercialTrialLoading:false,regionalScopeId:null};const ROLE_DEFS={RT_OPERATOR:{label:"RT · Operator",desc:"Operasional RT, verifikasi awal, layanan dan data warga."},RW_REVIEWER:{label:"RW · Reviewer",desc:"Review, konsolidasi dan koordinasi antar-RT."},OPEN_SID_UMUM:{label:"OPEN SID · Umum",desc:"Akses umum/informasi SID tanpa workspace operasional RT/RW."},VILLAGE_VALIDATOR:{label:"Desa/Kelurahan · Validator",desc:"Validasi desa/kelurahan, dokumen, Data Quality dan Smart Village."},DISTRICT_COORDINATOR:{label:"Kecamatan · Koordinator",desc:"Koordinasi lintas desa/kelurahan, monitoring layanan, eskalasi dan laporan kecamatan."},REGENCY_CITY_ADMIN:{label:"Kabupaten/Kota · Administrator Wilayah",desc:"Dashboard regional, indikator agregat, pemantauan program dan laporan lintas kecamatan."},PLATFORM_ADMIN:{label:"Platform · Admin",desc:"Administrasi platform, governance dan seluruh workspace."},PILOT_VIEWER:{label:"Viewer",desc:"Akses baca sesuai scope."}};const ROLE_MODULES={PILOT_VIEWER:["dashboard"],RT_OPERATOR:["dashboard","warga","rt","identitas","kegiatan","layanan"],RW_REVIEWER:["dashboard","warga","rw","identitas","kegiatan","layanan"],OPEN_SID_UMUM:["dashboard","warga","desa","sid","layanan"],VILLAGE_VALIDATOR:["dashboard","warga","rw","desa","dokumen","dataquality","smart","gis","whatsapp","sid","gpffe","kegiatan","layanan"],DISTRICT_COORDINATOR:["dashboard","kecamatan","desa","layanan","gis","sid","gpffe","smart"],REGENCY_CITY_ADMIN:["dashboard","kabkota","kecamatan","desa","layanan","gis","sid","gpffe","smart"],PLATFORM_ADMIN:null};let access={code:"PILOT_VIEWER",source:"signed_out"};
 const modules={
 dashboard:["Command Center","HOME",[["overview","Ringkasan Operasional"],["approvals","Approval Center"],["tasks","Task & Follow-up"],["activity","Audit Activity"]]],
 warga:["Warga Portal","COMMUNITY",[["registry","Profil Warga"],["household","Kartu Keluarga"],["address","Alamat & Domisili"],["services","Permohonan Layanan"],["complaints","Pengaduan & Aspirasi"]]],
@@ -505,8 +505,9 @@ function renderVillageDashboard(){
  +'</div><section class="territory-guidance"><b>Data belum dihitung secara langsung.</b><p>Ringkasan antrean baru boleh menampilkan angka setelah query produksi memakai scope wilayah dan kebijakan RLS yang teruji.</p></section>';
 }
 function renderDistrictDashboard(){
+ setTimeout(loadRegionalDashboardSummary,0);
  return (identityCache?reportIdentityHeader():"")+roleDashboardHero("KECAMATAN DIGITAL","Dashboard Koordinasi Kecamatan","Meja koordinasi lintas desa/kelurahan untuk memantau laporan agregat, eskalasi, dan kinerja layanan.")
- +'<div class="district-overview"><div class="district-overview-copy"><small>FOKUS UTAMA</small><h3>Koordinasi dan eskalasi lintas desa</h3><p>Dashboard ini dirancang untuk pemantauan agregat. Data individu warga tidak ditampilkan sebagai daftar operasional kecamatan.</p><button class="btn primary" type="button" onclick="go(\'kecamatan\',\'overview\')">Buka ringkasan kecamatan →</button></div><div class="district-steps"><div><b>01</b><span>Rekap desa/kelurahan</span></div><div><b>02</b><span>Monitoring layanan</span></div><div><b>03</b><span>Eskalasi lintas wilayah</span></div></div></div>'
+ +regionalLiveSummaryPanel()+ '<div class="district-overview"><div class="district-overview-copy"><small>FOKUS UTAMA</small><h3>Koordinasi dan eskalasi lintas desa</h3><p>Dashboard ini dirancang untuk pemantauan agregat. Data individu warga tidak ditampilkan sebagai daftar operasional kecamatan.</p><button class="btn primary" type="button" onclick="go(\'kecamatan\',\'overview\')">Buka ringkasan kecamatan →</button></div><div class="district-steps"><div><b>01</b><span>Rekap desa/kelurahan</span></div><div><b>02</b><span>Monitoring layanan</span></div><div><b>03</b><span>Eskalasi lintas wilayah</span></div></div></div>'
  +'<div class="territory-work-grid">'
  +roleActionCard("kecamatan","desa","AGREGASI","Rekap desa/kelurahan","Tinjau laporan yang tersedia pada scope kecamatan.","▦")
  +roleActionCard("kecamatan","services","PELAYANAN","Monitoring pelayanan","Pantau status layanan dan hambatan lintas desa.","▣")
@@ -515,8 +516,9 @@ function renderDistrictDashboard(){
  +'</div>';
 }
 function renderRegencyDashboard(){
+ setTimeout(loadRegionalDashboardSummary,0);
  return (identityCache?reportIdentityHeader():"")+roleDashboardHero("KABUPATEN / KOTA DIGITAL","Dashboard Eksekutif Wilayah","Pusat pemantauan indikator agregat, program pembangunan, infrastruktur, dan laporan lintas kecamatan.")
- +'<div class="regency-banner"><div><small>TINGKAT PEMANTAUAN</small><h3>Kabupaten / Kota</h3><p>Gunakan indikator agregat yang diizinkan. Identitas dan data personal tetap dibatasi menurut tujuan serta hak akses.</p></div><div class="regency-banner-mark">K/K</div></div>'
+ +regionalLiveSummaryPanel()+ '<div class="regency-banner"><div><small>TINGKAT PEMANTAUAN</small><h3>Kabupaten / Kota</h3><p>Gunakan indikator agregat yang diizinkan. Identitas dan data personal tetap dibatasi menurut tujuan serta hak akses.</p></div><div class="regency-banner-mark">K/K</div></div>'
  +'<div class="territory-work-grid">'
  +roleActionCard("kabkota","districts","KONSOLIDASI","Rekap kecamatan","Bandingkan status laporan dan tindak lanjut antar-kecamatan.","▦")
  +roleActionCard("kabkota","regional-indicators","INDIKATOR","Indikator regional","Pantau tren dan indikator dari data yang telah tervalidasi.","⌁")
@@ -525,6 +527,55 @@ function renderRegencyDashboard(){
  +roleActionCard("kabkota","reports","PELAPORAN","Laporan eksekutif","Siapkan ringkasan lintas kecamatan berbasis data yang tersedia.","▤")
  +roleActionCard("kabkota","gpffe","INTEGRASI","Analisis program GPFFE","Akses pertukaran data dan analisis yang telah disetujui.","⇄")
  +'</div>';
+}
+function regionalLiveSummaryPanel(){return '<section class="regional-live-panel"><div class="regional-live-head"><div><small>DATA REGIONAL / LIVE</small><h3>Ringkasan terotorisasi</h3><p>Angka hanya dimuat dari RPC server yang memeriksa role dan scope aktif.</p></div><select id="regional-scope-select" aria-label="Pilih wilayah" hidden onchange="selectRegionalDashboardScope(this.value)"></select></div><div id="regional-live-summary" class="regional-live-summary" role="status" aria-live="polite">Memeriksa penugasan dan ketersediaan data…</div></section>'}
+function selectRegionalDashboardScope(scopeId){const allowed=(access.scopes||[]).some(s=>s.territoryId===scopeId);if(!allowed){toast("Scope wilayah tidak termasuk penugasan aktif.");return}state.regionalScopeId=scopeId;loadRegionalDashboardSummary()}
+function regionalCount(value){const n=Number(value);return Number.isFinite(n)&&n>=0?Math.trunc(n).toLocaleString("id-ID"):"—"}
+async function loadRegionalDashboardSummary(){
+ const host=document.getElementById("regional-live-summary");
+ if(!host)return;
+ if(!sb){host.textContent="Supabase belum tersambung. Ringkasan live belum tersedia.";return}
+ const scopes=[...new Set((access.scopes||[]).map(s=>s.territoryId).filter(Boolean))];
+ if(!scopes.length){host.textContent="Akun belum memiliki penugasan wilayah aktif. Data regional tetap ditutup.";return}
+ const selector=document.getElementById("regional-scope-select");
+ let labels={};
+ try{
+  const territories=await sb.from("territories").select("id,name,territory_type").in("id",scopes);
+  if(!territories.error)for(const t of territories.data||[])labels[t.id]=t.name+" · "+t.territory_type;
+ }catch(_ignored){}
+ if(selector){
+  selector.innerHTML=scopes.map((id,i)=>'<option value="'+esc(id)+'">'+esc(labels[id]||("Wilayah terotorisasi "+(i+1)))+'</option>').join("");
+  selector.hidden=scopes.length<2;
+ }
+ const scopeId=scopes.includes(state.regionalScopeId)?state.regionalScopeId:scopes[0];
+ state.regionalScopeId=scopeId;
+ if(selector)selector.value=scopeId;
+ host.innerHTML='<div class="module-note">Memuat ringkasan untuk scope terotorisasi…</div>';
+ try{
+  const response=await sb.rpc("regional_dashboard_summary",{p_scope_territory_id:scopeId});
+  if(response.error||!response.data||typeof response.data!=="object"){
+   host.innerHTML='<div class="module-note"><b>Ringkasan regional belum aktif.</b><span>Backend agregasi belum tersedia atau belum mengizinkan scope ini. Data tidak diganti dengan angka simulasi.</span></div>';
+   return;
+  }
+  const d=response.data;
+  const roleScopeType=access.code==="DISTRICT_COORDINATOR"?"DISTRICT":"REGENCY_CITY";
+  if(d.scope_type!==roleScopeType){
+   host.innerHTML='<div class="module-note"><b>Scope tidak cocok.</b><span>Server tidak mengembalikan jenis wilayah yang sesuai dengan peran aktif.</span></div>';
+   return;
+  }
+  const kpis=[
+   ["Wilayah turunan",d.territory_count],
+   ["Total permohonan",d.service_requests_total],
+   ["Permohonan terbuka",d.service_requests_open],
+   ["Aset infrastruktur",d.infrastructure_assets],
+   ["Aplikasi bantuan",d.assistance_applications]
+  ];
+  const generated= d.generated_at ? new Date(d.generated_at) : null;
+  const stamp=generated&&!Number.isNaN(generated.getTime())?generated.toLocaleString("id-ID"):"waktu tidak tersedia";
+  host.innerHTML='<div class="regional-live-context"><b>'+esc(d.scope_name||labels[scopeId]||"Wilayah terotorisasi")+'</b><span>'+esc(d.scope_type)+' · diperbarui '+esc(stamp)+'</span></div><div class="regional-live-kpis">'+kpis.map(x=>'<div><small>'+esc(x[0])+'</small><strong>'+esc(regionalCount(x[1]))+'</strong></div>').join("")+'</div>';
+ }catch(_error){
+  host.innerHTML='<div class="module-note"><b>Ringkasan regional belum dapat dimuat.</b><span>Periksa penerapan RPC, assignment aktif, dan kebijakan akses. Tidak ada data simulasi yang ditampilkan.</span></div>';
+ }
 }
 function renderPublicSIDDashboard(){
  return roleDashboardHero("OPEN SID / INFORMASI PUBLIK","Portal Informasi SID","Akses informasi publik dan pelacakan layanan yang memang telah disediakan untuk pengguna umum.")
