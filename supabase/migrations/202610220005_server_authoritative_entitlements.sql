@@ -171,9 +171,14 @@ begin
   if not exists (
     select 1
     from public.role_assignments ra
+    join public.roles r on r.id = ra.role_id
     where ra.user_id = p_user_id
       and ra.organization_id = p_organization_id
       and ra.active = true
+      and r.role_code in (
+        'RT_OPERATOR', 'RW_REVIEWER', 'VILLAGE_VALIDATOR',
+        'DISTRICT_COORDINATOR', 'REGENCY_CITY_ADMIN', 'PLATFORM_ADMIN'
+      )
       and (ra.starts_at is null or ra.starts_at <= pg_catalog.now())
       and (ra.ends_at is null or ra.ends_at > pg_catalog.now())
   ) then
@@ -224,7 +229,7 @@ begin
     next_status, reason, source, correlation_id, safe_metadata
   ) values (
     p_organization_id, v_subscription.id, p_user_id, 'TRIAL_STARTED',
-    'TRIALING', 'Seven-day trial started by authenticated organization member',
+    'TRIALING', 'Seven-day trial started by an authorized organization administrator',
     'SYSTEM', left(p_correlation_id, 128),
     pg_catalog.jsonb_build_object('plan_code', 'TRIAL_7_DAY', 'duration_days', 7)
   );
