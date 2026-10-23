@@ -4,7 +4,7 @@ export function isEmergencyAssessment(message: string): boolean {
 
 export function fallbackEmergencyAssessment(message: string): { needHelp: boolean; reply: string } {
   const transcript = message.replace(/^EMERGENCY_ASSESSMENT\s*/i, "").trim();
-  const danger = /(tolong|butuh bantuan|terluka|cedera|berdarah|tidak bisa bergerak|sesak|pingsan|sakit sekali|darurat)/i.test(transcript);
+  const danger = /(tolong|terluka|cedera|berdarah|tidak bisa bergerak|sesak|pingsan|sakit sekali|darurat)/i.test(transcript) || (/(butuh bantuan)/i.test(transcript) && !/tidak\\s+(butuh|perlu)\\s+bantuan/i.test(transcript));
   const explicitlySafe = /(saya aman|tidak butuh bantuan|tidak perlu bantuan|saya baik-baik saja|saya tidak terluka|saya bisa berjalan)/i.test(transcript);
   // Emergency assessment fails safe: uncertain or empty answers trigger human review.
   const needHelp = danger || !explicitlySafe;
