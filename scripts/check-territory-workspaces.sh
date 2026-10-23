@@ -13,6 +13,9 @@ for token in \
   'function renderDistrictDashboard()' \
   'function renderRegencyDashboard()' \
   'function renderPublicSIDDashboard()' \
+  'function loadRegionalDashboardSummary()' \
+  'regional_dashboard_summary' \
+  'function selectRegionalDashboardScope(scopeId)' \
   'function roleSpecificDashboard()' \
   'if(access.code==="RW_REVIEWER")return rwReviewWorkspace()' \
   'function rwReviewWorkspace()' \
@@ -37,7 +40,7 @@ if grep -Eq '\["(1,284|326|17|READY)","(Warga|KK|Workflow|Platform)"' "$app"; th
   exit 1
 fi
 
-for token in '.territory-hero' '.territory-work-grid' '.rt-work-grid' '.village-workflow' '.district-overview' '.regency-banner' '.access-pending'
+for token in '.territory-hero' '.territory-work-grid' '.rt-work-grid' '.village-workflow' '.district-overview' '.regency-banner' '.access-pending' '.regional-live-panel' '.regional-live-kpis'
 do
   grep -Fq "$token" "$css" || {
     echo "Territory workspace styling missing: $token" >&2
