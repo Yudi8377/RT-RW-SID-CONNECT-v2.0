@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - "supabase/functions/start-trial/**"
-      - "supabase/migrations/202610220005_server_authoritative_entitlements.sql"
+      - "supabase/migrations/202610230001_server_authoritative_entitlements.sql"
       - "supabase/tests/**"
       - ".github/workflows/subscription-trial-quality.yml"
   push:
@@ -13,7 +13,7 @@ on:
       - main
     paths:
       - "supabase/functions/start-trial/**"
-      - "supabase/migrations/202610220005_server_authoritative_entitlements.sql"
+      - "supabase/migrations/202610230001_server_authoritative_entitlements.sql"
       - "supabase/tests/**"
       - ".github/workflows/subscription-trial-quality.yml"
 
@@ -41,7 +41,7 @@ jobs:
           file="supabase/functions/start-trial/index.ts"
           grep -q 'auth.getUser()' "$file"
           grep -q 'SUPABASE_SERVICE_ROLE_KEY' "$file"
-          migration="supabase/migrations/202610220005_server_authoritative_entitlements.sql"
+          migration="supabase/migrations/202610230001_server_authoritative_entitlements.sql"
           grep -q 'admin.rpc("start_organization_trial"' "$file"
           grep -q "('TRIAL_7_DAY', 'Trial 7 Hari', 'TRIAL', 7, 0, 'IDR', true" "$migration"
           grep -q "where p.plan_code = 'TRIAL_7_DAY'" "$migration"
@@ -86,7 +86,7 @@ jobs:
       - name: Apply entitlement migration to disposable database
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610220005_server_authoritative_entitlements.sql
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610230001_server_authoritative_entitlements.sql
       - name: Verify trial lifecycle, grants, and tenant isolation
         env:
           PGPASSWORD: postgres
