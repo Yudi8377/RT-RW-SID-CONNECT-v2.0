@@ -29,7 +29,7 @@ BEGIN
   SELECT count(*) INTO n FROM public.admin_territory_scope_options();
   IF n < 1 THEN RAISE EXCEPTION 'platform admin territory options are empty'; END IF;
   SELECT * INTO v FROM public.admin_unlinked_person_directory(NULL,50,0);
-  IF v.person_id <> '72000000-0000-4000-8000-000000000002'::uuid OR v.full_name <> 'Warga Uji Wilayah Lain' THEN
+  IF v.person_id <> '72000000-0000-4000-8000-000000000004'::uuid OR v.full_name <> 'Warga Uji Belum Terhubung' THEN
     RAISE EXCEPTION 'unexpected unlinked person result: %', row_to_json(v);
   END IF;
   SELECT count(*) INTO n FROM public.admin_unlinked_person_directory(NULL,50,0);
@@ -42,7 +42,7 @@ BEGIN
   BEGIN
     PERFORM public.admin_link_person_to_household(
       '30000000-0000-4000-8000-000000000006',
-      '72000000-0000-4000-8000-000000000002',
+      '72000000-0000-4000-8000-000000000004',
       '71000000-0000-4000-8000-000000000002',
       'KEPALA_KELUARGA',true,'Verifikasi dokumen fisik oleh admin'
     );
@@ -52,7 +52,7 @@ BEGIN
 
   result := public.admin_link_person_to_household(
     '30000000-0000-4000-8000-000000000003',
-    '72000000-0000-4000-8000-000000000002',
+    '72000000-0000-4000-8000-000000000004',
     '71000000-0000-4000-8000-000000000002',
     'KEPALA_KELUARGA',true,'Verifikasi dokumen fisik oleh admin'
   );
@@ -67,7 +67,7 @@ BEGIN
   BEGIN
     PERFORM public.admin_link_person_to_household(
       '30000000-0000-4000-8000-000000000003',
-      '72000000-0000-4000-8000-000000000002',
+      '72000000-0000-4000-8000-000000000004',
       '71000000-0000-4000-8000-000000000001',
       'ANAK',false,'Verifikasi dokumen fisik oleh admin'
     );
