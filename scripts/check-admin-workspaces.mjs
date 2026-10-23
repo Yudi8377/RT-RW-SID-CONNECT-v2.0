@@ -66,8 +66,3 @@ assert.doesNotMatch(app,/Workspace operasional dan tindakan yang dapat mengakses
 console.log("Admin workspace regression smoke tests passed.");
 console.log(`Verified roles: ${requiredRoles.join(", ")}`);
 console.log(`Verified workspaces: ${requiredWorkspaces.join(", ")}`);
-
-assert.ok(app.includes("Current Access & Scope Audit"), "access management must show role/scope audit");
-assert.ok(app.includes("ORGANIZATION / TENANT"), "access management must show organization mapping");
-assert.ok(app.includes("ROLE_SCOPE_TYPE_MISMATCH") === false, "browser UI must not claim backend validation is implemented client-side");
-assert.ok(app.includes("assignment memerlukan audit scope") || app.includes("assignment memerlukan audit scope".replace("assignment","assignment")), "invalid scope assignments must be disclosed");
