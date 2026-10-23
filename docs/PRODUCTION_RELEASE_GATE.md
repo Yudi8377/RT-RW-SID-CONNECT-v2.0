@@ -46,3 +46,42 @@
 - Deployed entrypoint imports were checked against the Supabase flat Edge Function file layout; deployed source was read back and confirmed to contain both the declared-length and actual-body checks.
 - This was a function-only deployment. No database schema, RLS/policies, role assignments, subscription records, or frontend feature flags were changed.
 - This verification confirms deployment and source contents, **not** the authenticated trial/device end-to-end path. The commercial trial and AI Companion frontend flags remain disabled pending dedicated authenticated test accounts and recorded E2E evidence.
+
+
+## Finalization checklist — regional authorization and commercial launch
+
+This checklist is intentionally fail-closed. A checked item requires recorded test evidence, not a source-code inspection alone.
+
+### Authorization matrix
+- [ ] Create dedicated non-production test identities for RT operator, RW reviewer, village validator, district coordinator, regency/city administrator, and platform administrator.
+- [ ] Assign each identity only to an active territory of the matching type. Do not reuse the current mis-scoped production assignments as evidence.
+- [ ] Verify each role can read only its assigned scope and permitted descendants; attempts to submit a sibling, parent, unrelated, inactive, future-dated, or expired scope must be denied.
+- [ ] Verify Platform Admin administration is separate from regional data authority and that the UI does not grant authority merely because a preview role was selected.
+- [ ] Test HEALTH and EDUCATION restricted domains with a valid role, a mismatched role on the same territory, and a user with no scoped role.
+- [ ] Confirm the resident and household directory RPCs validate `auth.uid()`, assignment dates, requested territory scope, selected columns, pagination bounds, and relevant data sensitivity. Confirm no anonymous execution grant.
+
+### Regional dashboard data correctness
+- [ ] Seed synthetic records in a disposable test environment, not the production resident directory.
+- [ ] Exercise create, edit, validation, approval, rejection, and cross-scope denial for supported RT workflows.
+- [ ] Reconcile each parent-level aggregate against child-level source rows and test zero-row and mixed-status cases.
+- [ ] Parent dashboards aggregate canonical records; they must not create duplicate resident/household copies.
+- [ ] Ensure higher-level views expose only aggregated or explicitly authorized fields by default.
+
+### Edge Function release procedure
+- [ ] Run the latest `rt-transaction` code against disposable test data with valid scope, wrong scope type, invalid/inactive territory, future/expired assignment, mismatched role, restricted domain, malformed JSON, and request bodies exceeding 64 KiB.
+- [ ] Confirm expected HTTP status codes and audit events; verify denied operations do not mutate records.
+- [ ] Review the currently deployed function source/version and diff it against the reviewed main-branch source before deployment.
+- [ ] Deploy only after the authorization matrix passes; immediately read back the deployed version/source and run authenticated smoke tests.
+- [ ] Verify production logs and audit records show no unexpected denial spike or cross-scope access after deployment. Roll back if the tested release gates regress.
+
+### Trial and commercial controls
+- [ ] With a dedicated test organization and authenticated account, verify Trial 7 Hari → one device registration → active entitlement → second-device denial → expiry/denial → audit trail.
+- [ ] Confirm paid entitlement cannot be activated by browser-side input and requires a trusted payment webhook or approved server-side process.
+- [ ] Keep `commercialTrialEnabled` false until the entire trial/device path is verified.
+- [ ] Keep `aiCompanionEnabled` false until live identity, scope authorization, sensitive-domain policy, and response tests pass.
+- [ ] Re-run browser/mobile smoke tests, verify GitHub Pages deployment and responsive navigation, and record the tested commit SHA.
+
+### Current decision
+The repository contains the hardening from PRs #132–#134, but production `rt-transaction` was last verified as version 5 and does not yet contain that hardening. Active production assignments observed in the read-only audit include `RT_OPERATOR` and `PLATFORM_ADMIN` scoped to a VILLAGE territory. These assignments must be corrected through an authorized, identity-verified administrative workflow before a strict production rollout. No role grants, production data changes, or trial feature activation are authorized by this checklist alone.
+
+**Release status: NOT CLEARED FOR COMMERCIAL LAUNCH** until every required gate above has evidence attached.
