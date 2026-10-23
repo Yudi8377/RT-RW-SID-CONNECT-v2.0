@@ -91,7 +91,7 @@ function isRestrictedPayloadKey(key: string): boolean {
  * This is a data-minimization guard, not a replacement for schema allowlisting.
  */
 export function sanitizeSensitivePayload<T>(value: T): T {
-  if (typeof value === "string") return value.replace(/\\b\\d{16}\\b/g, "[REDACTED_NIK]") as T;
+  if (typeof value === "string") return value.replace(/\b\d{16}\b/g, "[REDACTED_NIK]") as T;
   if (Array.isArray(value)) {
     return value.map((item) => sanitizeSensitivePayload(item)) as T;
   }
