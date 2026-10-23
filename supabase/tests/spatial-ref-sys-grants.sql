@@ -1,5 +1,6 @@
 -- Regression assertions for migration 20261023144500_restrict_spatial_ref_sys_write_grants.sql
 -- Run after the migration in a disposable Supabase/Postgres test environment.
+-- The local migration workflow enables PostGIS explicitly so these assertions execute.
 DO $test$
 BEGIN
   IF to_regclass('public.spatial_ref_sys') IS NULL THEN
