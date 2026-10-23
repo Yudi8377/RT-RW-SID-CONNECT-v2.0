@@ -43,7 +43,8 @@ CREATE TABLE public.rt_service_requests (
 CREATE TABLE public.addresses (
   id uuid PRIMARY KEY,
   territory_id uuid REFERENCES public.territories(id),
-  address_line text
+  address_line text,
+  postal_code text
 );
 CREATE TABLE public.households (
   id uuid PRIMARY KEY,
