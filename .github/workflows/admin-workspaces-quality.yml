@@ -1,0 +1,33 @@
+name: Regional admin workspace smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app.js'
+      - 'scripts/check-admin-workspaces.mjs'
+      - 'docs/ADMIN-WORKSPACE-MATRIX.md'
+      - '.github/workflows/admin-workspaces-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app.js'
+      - 'scripts/check-admin-workspaces.mjs'
+      - 'docs/ADMIN-WORKSPACE-MATRIX.md'
+      - '.github/workflows/admin-workspaces-quality.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  admin-workspaces:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify separate regional admin workspaces and protected preview
+        run: node scripts/check-admin-workspaces.mjs
