@@ -32,7 +32,7 @@ grep -Fq 'AKSES BELUM DITETAPKAN' "$app"
 
 grep -Fq 'PREVIEW · bukan status produksi' "$app"
 grep -Fq 'Data live belum dihubungkan' "$app"
-if grep -Eq '\["(1,284|326|17|READY)","(Warga|KK|Workflow|Platform)"'; then
+if grep -Eq '\["(1,284|326|17|READY)","(Warga|KK|Workflow|Platform)"' "$app"; then
   echo "Simulated production-looking admin KPI detected" >&2
   exit 1
 fi
