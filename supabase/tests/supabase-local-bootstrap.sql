@@ -1,8 +1,15 @@
 -- Test-only schema bootstrap for a disposable local Supabase stack.
 -- Auth schema, auth.uid(), anon/authenticated/service_role are provided by Supabase local.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
--- Simulate the critical production role membership discovered during the security audit.
-GRANT postgres TO anon, authenticated WITH ADMIN OPTION;
+-- Simulate the critical production membership using a disposable BYPASSRLS role.
+DO $fixture$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'national_test_bypass') THEN
+    EXECUTE 'CREATE ROLE national_test_bypass NOLOGIN BYPASSRLS';
+  END IF;
+END
+$fixture$;
+GRANT national_test_bypass TO anon, authenticated WITH ADMIN OPTION;
 -- Minimal disposable fixture simulating the production spatial_ref_sys relation and excessive API grants.
 -- This avoids requiring the PostGIS binary in CI; production extension ownership was verified separately.
 CREATE TABLE IF NOT EXISTS public.spatial_ref_sys (
