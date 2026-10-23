@@ -30,38 +30,6 @@ on:
       - 'scripts/check-entitlements-migration.sh'
       - 'scripts/check-entitlements-release-gates.sh'
       - 'scripts/check-territory-workspaces.sh'
-name: Regional dashboard quality
-
-on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'app.js'
-      - 'config.js'
-      - 'theme.css'
-      - 'scripts/check-commercial-trial-ui.sh'
-      - 'supabase/migrations/**'
-      - 'supabase/tests/**'
-      - 'docs/regional-dashboard-hierarchy.md'
-      - 'scripts/check-entitlements-migration.sh'
-      - 'scripts/check-entitlements-release-gates.sh'
-      - 'scripts/check-territory-workspaces.sh'
-      - 'docs/territory-specific-workspaces.md'
-      - 'supabase/functions/rt-transaction/**'
-      - 'supabase/functions/_shared/**'
-      - '.github/workflows/regional-dashboard-quality.yml'
-  push:
-    branches: [feat/regional-dashboard-hierarchy-v1, main]
-    paths:
-      - 'app.js'
-      - 'config.js'
-      - 'theme.css'
-      - 'scripts/check-commercial-trial-ui.sh'
-      - 'supabase/migrations/**'
-      - 'docs/regional-dashboard-hierarchy.md'
-      - 'scripts/check-entitlements-migration.sh'
-      - 'scripts/check-entitlements-release-gates.sh'
-      - 'scripts/check-territory-workspaces.sh'
       - 'docs/territory-specific-workspaces.md'
       - 'supabase/functions/rt-transaction/**'
       - 'supabase/functions/_shared/**'
@@ -85,7 +53,7 @@ jobs:
           grep -q 'resolveTransactionAuthorization' supabase/functions/rt-transaction/index.ts
           grep -q 'starts_at,ends_at' supabase/functions/rt-transaction/index.ts
           grep -q 'organization_valid' supabase/functions/rt-transaction/index.ts
-          grep -q '64\*1024' supabase/functions/rt-transaction/index.ts
+          grep -q '64\\*1024' supabase/functions/rt-transaction/index.ts
           grep -q 'Internal server error' supabase/functions/rt-transaction/index.ts
       - name: Set up Deno
         uses: denoland/setup-deno@v2
