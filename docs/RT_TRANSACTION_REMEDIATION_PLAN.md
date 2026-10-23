@@ -36,6 +36,7 @@ Observed at 2026-10-23 13:49 UTC:
 - Additional SECURITY DEFINER functions callable by authenticated include admin household linking/directory functions and regional dashboard/resident/household RPCs; each requires function-body and caller-scope review.
 - Leaked-password protection is disabled.
 - PostGIS is installed in public; extension relocation requires compatibility/dependency testing.
+- Production ACL inspection found `anon` and `authenticated` have explicit ALL privileges on extension-owned `public.spatial_ref_sys`, while PUBLIC has read access. A targeted migration proposal is tracked in PR #144; it must pass disposable migration tests before deployment.
 
 ### Safe triage order
 1. Capture complete Advisor output and exact grants/function definitions.
