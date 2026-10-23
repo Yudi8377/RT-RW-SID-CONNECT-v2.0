@@ -130,7 +130,7 @@ Deno.test("removes NIK and client-controlled authority fields from nested payloa
       person_id: "client-forged-person",
       relationship_label: "ANAK",
     }],
-    notes: "Synthetic test only",
+    notes: "Synthetic test only; NIK 1234567890123456",
   }) as Record<string, unknown>;
   assertEquals("applicant_nik" in safe, false);
   assertEquals("NIK Pemohon" in safe, false);
@@ -142,5 +142,5 @@ Deno.test("removes NIK and client-controlled authority fields from nested payloa
   assertEquals("person_id" in members[0], false);
   assertEquals(members[0].full_name, "Synthetic Member");
   assertEquals(safe.applicant_name, "Synthetic Resident");
-  assertEquals(safe.notes, "Synthetic test only");
+  assertEquals(safe.notes, "Synthetic test only; NIK [REDACTED_NIK]");
 });
