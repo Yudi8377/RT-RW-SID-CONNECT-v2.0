@@ -19,4 +19,10 @@ grep -q 'role: "user", content: message' "$file"
 grep -q 'typeof generated === "string" && generated.trim()' "$file"
 grep -q 'Keep a safe role-specific fallback' "$file"
 
-echo "AI Companion input-hardening static checks passed."
+# Frontend must call only the hardened function and remain off until backend release.
+grep -q 'sb.functions.invoke("ai-companion"' app.js
+grep -q 'C.aiCompanionEnabled!==true' app.js
+grep -q 'aiCompanionEnabled:false' config.js
+grep -q 'state.companionMessages=\[\]' app.js
+
+echo "AI Companion backend and frontend release-gate checks passed."
