@@ -1,0 +1,40 @@
+name: Transaction Authorization Unit Tests
+
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/_shared/transaction-authorization.ts"
+      - "supabase/functions/_shared/transaction-authorization.test.ts"
+      - ".github/workflows/transaction-authorization-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/_shared/transaction-authorization.ts"
+      - "supabase/functions/_shared/transaction-authorization.test.ts"
+      - ".github/workflows/transaction-authorization-tests.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: transaction-authorization-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Deno authorization matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Format check
+        run: deno fmt --check supabase/functions/_shared/transaction-authorization.ts supabase/functions/_shared/transaction-authorization.test.ts
+      - name: Type check
+        run: deno check supabase/functions/_shared/transaction-authorization.test.ts
+      - name: Run authorization tests
+        run: deno test --fail-fast supabase/functions/_shared/transaction-authorization.test.ts
