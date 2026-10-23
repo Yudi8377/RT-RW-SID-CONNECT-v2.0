@@ -194,6 +194,9 @@ begin
     select 1
     from public.role_assignments ra
     join public.roles r on r.id = ra.role_id
+    join public.organizations o
+      on o.id = ra.organization_id
+     and o.active = true
     where ra.user_id = p_user_id
       and ra.organization_id = p_organization_id
       and ra.active = true
