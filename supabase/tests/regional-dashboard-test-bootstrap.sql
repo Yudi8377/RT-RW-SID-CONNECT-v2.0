@@ -62,10 +62,16 @@ CREATE TABLE public.assistance_applications (
   territory_id uuid REFERENCES public.territories(id)
 );
 
-INSERT INTO public.roles (role_code, role_name, critical)
-VALUES ('RT_OPERATOR','RT Operator',false);
-INSERT INTO public.permissions (permission_code, permission_name, critical)
-VALUES ('workspace.read','Read workspace',false);
+INSERT INTO public.roles (id, role_code, role_name, critical) VALUES
+ ('90000000-0000-4000-8000-000000000001','DISTRICT_COORDINATOR','Kecamatan Coordinator',true),
+ ('90000000-0000-4000-8000-000000000002','REGENCY_CITY_ADMIN','Kabupaten/Kota Administrator',true),
+ ('90000000-0000-4000-8000-000000000003','VILLAGE_VALIDATOR','Village Validator',true),
+ ('90000000-0000-4000-8000-000000000004','RT_OPERATOR','RT Operator',false);
+INSERT INTO public.permissions (permission_code, permission_name, critical) VALUES
+ ('workspace.read','Read workspace',false),
+ ('regional.dashboard.read','Read regional dashboard within assigned scope',false),
+ ('regional.report.read','Read regional reports within assigned scope',false),
+ ('regional.program.review','Review regional program information within assigned scope',true);
 
 INSERT INTO auth.users (id) VALUES
  ('00000000-0000-4000-8000-000000000001'),
