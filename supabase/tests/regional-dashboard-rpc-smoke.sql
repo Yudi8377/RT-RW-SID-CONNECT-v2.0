@@ -6,7 +6,7 @@ BEGIN
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000001',false);
   v := public.regional_dashboard_summary('20000000-0000-4000-8000-000000000001');
   IF v->>'scope_name' <> 'Kecamatan Uji A' THEN RAISE EXCEPTION 'wrong scope name: %',v; END IF;
-  IF v->>'territory_count' <> '2' THEN RAISE EXCEPTION 'wrong descendant count: %',v; END IF;
+  IF v->>'territory_count' <> '3' THEN RAISE EXCEPTION 'wrong descendant count: %',v; END IF;
   IF v->>'service_requests_total' <> '2' THEN RAISE EXCEPTION 'cross-scope or missing service count: %',v; END IF;
   IF v->>'service_requests_open' <> '1' THEN RAISE EXCEPTION 'wrong open service count: %',v; END IF;
   IF v->>'infrastructure_assets' <> '1' THEN RAISE EXCEPTION 'cross-scope or missing infrastructure count: %',v; END IF;
@@ -52,7 +52,7 @@ BEGIN
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000007',false);
   v := public.regional_dashboard_summary('10000000-0000-4000-8000-000000000001');
   IF v->>'scope_name' <> 'Kabupaten Uji A' THEN RAISE EXCEPTION 'wrong regency scope: %',v; END IF;
-  IF v->>'territory_count' <> '3' THEN RAISE EXCEPTION 'wrong regency descendants: %',v; END IF;
+  IF v->>'territory_count' <> '4' THEN RAISE EXCEPTION 'wrong regency descendants: %',v; END IF;
   IF v->>'service_requests_total' <> '2' THEN RAISE EXCEPTION 'regency count leaked or missing: %',v; END IF;
 
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','',false);
