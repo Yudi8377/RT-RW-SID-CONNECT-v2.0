@@ -480,17 +480,78 @@ function adminControlCenter(){
   ["READY","Platform","Governance baseline"]
  ].map(x=>'<div class="kpi-card"><div class="kpi-top"><span>'+x[1]+'</span><i>◈</i></div><strong>'+x[0]+'</strong><small>'+x[2]+'</small></div>').join("")+'</div><section class="panel wide"><div class="panel-head"><div><small>ADMINISTRATION</small><h3>Control Modules</h3></div>'+status("AUDIT_READY")+'</div><div class="dashboard-grid admin-control-grid">'+cards.map(x=>'<button type="button" class="admin-control-card" onclick="go(\'admin\',\''+x[1]+'\')"><span class="admin-card-icon">⚙</span><div><b>'+esc(x[0])+'</b><small>'+esc(x[2])+'</small></div><strong>→</strong></button>').join("")+'</div></section><section class="panel wide"><div class="panel-head"><div><small>GOVERNANCE GATE</small><h3>Operational rule</h3></div><span class="status active">ENABLED</span></div><div class="module-note"><b>Admin does not bypass authorization.</b><span>Privilege produksi tetap mengikuti role assignment, scope wilayah, permission dan RLS. Preview ini hanya mempercepat akses ke dashboard administrator dan tidak membuat hak akses Supabase baru.</span></div></section>';
 }
+function roleScopeCount(){return Array.isArray(access.scopes)?access.scopes.length:0}
+function roleDashboardHero(kicker,title,description){return '<div class="territory-hero"><div><div class="eyebrow dark">'+esc(kicker)+'</div><h2>'+esc(title)+'</h2><p>'+esc(description)+'</p></div><div class="territory-scope"><span>OTORISASI</span><b>'+esc(roleLabel(access.code))+'</b><small>'+roleScopeCount()+' penugasan scope aktif · data mengikuti RLS</small></div></div>'}
+function roleActionCard(module,sub,kicker,title,description,icon){return '<button class="territory-action" type="button" onclick="go(\''+module+'\',\''+sub+'\')"><span class="territory-action-icon">'+esc(icon||'→')+'</span><span class="territory-action-copy"><small>'+esc(kicker)+'</small><b>'+esc(title)+'</b><span>'+esc(description)+'</span></span><strong aria-hidden="true">↗</strong></button>'}
+function renderRTDashboard(){
+ return (identityCache?reportIdentityHeader():"")+roleDashboardHero("RT DIGITAL / OPERASIONAL","Dashboard Pengurus RT","Pusat kerja pengurus RT untuk data warga, surat, kegiatan, dan tindak lanjut dalam satu wilayah RT.")
+ +'<div class="territory-status-row"><div><span class="territory-status-dot"></span><b>Ruang kerja RT</b><small>Angka operasional ditampilkan setelah sumber data terotorisasi tersedia.</small></div><span class="status">BERDASARKAN SCOPE</span></div>'
+ +'<div class="territory-work-grid rt-work-grid">'
+ +roleActionCard("rt","residents","DATA DASAR","Warga dan keluarga","Kelola daftar warga serta KK sesuai penugasan.","♙")
+ +roleActionCard("rt","letters","PELAYANAN","Surat pengantar","Catat permohonan, lengkapi persyaratan, dan siapkan verifikasi.","▤")
+ +roleActionCard("kegiatan","calendar","KOMUNITAS","Agenda dan kegiatan","Atur agenda, musyawarah, kegiatan sosial, dan pengingat.","◷")
+ +roleActionCard("rt","verification","ALUR KERJA","Verifikasi RT","Tinjau data dan permohonan sebelum diteruskan ke RW.","✓")
+ +roleActionCard("layanan","requests","LAYANAN WARGA","Permohonan dan pengaduan","Pantau tindak lanjut dan status layanan dalam cakupan RT.","▣")
+ +roleActionCard("rt","reports","PELAPORAN","Rekap RT","Siapkan rekap dan laporan untuk proses konsolidasi wilayah.","↗")
+ +'</div><section class="territory-guidance"><b>Prinsip operasional</b><p>RT hanya mengelola data dan permohonan yang berada dalam penugasan aktifnya. Perubahan sensitif harus mengikuti alur verifikasi dan dicatat pada audit trail.</p></section>';
+}
+function renderVillageDashboard(){
+ return (identityCache?reportIdentityHeader():"")+roleDashboardHero("DESA / KELURAHAN","Dashboard Validasi Wilayah","Meja kerja pemerintah desa/kelurahan untuk memvalidasi pengajuan dari RW, mengelola dokumen, dan memantau layanan.")
+ +'<div class="village-workflow"><div><small>TAHAP 01</small><b>Terima</b><span>Pengajuan dari wilayah bawah</span></div><i>→</i><div><small>TAHAP 02</small><b>Validasi</b><span>Periksa data dan dokumen</span></div><i>→</i><div><small>TAHAP 03</small><b>Tindak lanjut</b><span>Setujui, koreksi, atau eskalasi</span></div></div>'
+ +'<div class="territory-work-grid">'
+ +roleActionCard("desa","validation","VALIDASI","Antrean validasi","Periksa usulan yang masuk dari RW dan wilayah di bawah kewenangan.","✓")
+ +roleActionCard("dokumen","inbox","DOKUMEN","Dokumen masuk","Kelola kelengkapan, persetujuan, arsip, dan status dokumen.","▤")
+ +roleActionCard("dataquality","queue","KUALITAS DATA","Pemeriksaan kualitas","Tinjau kelengkapan, konsistensi, dan usulan koreksi data.","⌕")
+ +roleActionCard("layanan","queue","PELAYANAN","Layanan desa/kelurahan","Pantau permohonan, eskalasi, dan tindak lanjut pelayanan.","▣")
+ +'</div><section class="territory-guidance"><b>Data belum dihitung secara langsung.</b><p>Ringkasan antrean baru boleh menampilkan angka setelah query produksi memakai scope wilayah dan kebijakan RLS yang teruji.</p></section>';
+}
+function renderDistrictDashboard(){
+ return (identityCache?reportIdentityHeader():"")+roleDashboardHero("KECAMATAN DIGITAL","Dashboard Koordinasi Kecamatan","Meja koordinasi lintas desa/kelurahan untuk memantau laporan agregat, eskalasi, dan kinerja layanan.")
+ +'<div class="district-overview"><div class="district-overview-copy"><small>FOKUS UTAMA</small><h3>Koordinasi dan eskalasi lintas desa</h3><p>Dashboard ini dirancang untuk pemantauan agregat. Data individu warga tidak ditampilkan sebagai daftar operasional kecamatan.</p><button class="btn primary" type="button" onclick="go(\'kecamatan\',\'overview\')">Buka ringkasan kecamatan →</button></div><div class="district-steps"><div><b>01</b><span>Rekap desa/kelurahan</span></div><div><b>02</b><span>Monitoring layanan</span></div><div><b>03</b><span>Eskalasi lintas wilayah</span></div></div></div>'
+ +'<div class="territory-work-grid">'
+ +roleActionCard("kecamatan","desa","AGREGASI","Rekap desa/kelurahan","Tinjau laporan yang tersedia pada scope kecamatan.","▦")
+ +roleActionCard("kecamatan","services","PELAYANAN","Monitoring pelayanan","Pantau status layanan dan hambatan lintas desa.","▣")
+ +roleActionCard("kecamatan","escalations","TINDAK LANJUT","Eskalasi","Koordinasikan persoalan yang perlu ditindaklanjuti lintas wilayah.","↗")
+ +roleActionCard("kecamatan","reports","PELAPORAN","Laporan kecamatan","Siapkan laporan berbasis data agregat yang terotorisasi.","▤")
+ +'</div>';
+}
+function renderRegencyDashboard(){
+ return (identityCache?reportIdentityHeader():"")+roleDashboardHero("KABUPATEN / KOTA DIGITAL","Dashboard Eksekutif Wilayah","Pusat pemantauan indikator agregat, program pembangunan, infrastruktur, dan laporan lintas kecamatan.")
+ +'<div class="regency-banner"><div><small>TINGKAT PEMANTAUAN</small><h3>Kabupaten / Kota</h3><p>Gunakan indikator agregat yang diizinkan. Identitas dan data personal tetap dibatasi menurut tujuan serta hak akses.</p></div><div class="regency-banner-mark">K/K</div></div>'
+ +'<div class="territory-work-grid">'
+ +roleActionCard("kabkota","districts","KONSOLIDASI","Rekap kecamatan","Bandingkan status laporan dan tindak lanjut antar-kecamatan.","▦")
+ +roleActionCard("kabkota","regional-indicators","INDIKATOR","Indikator regional","Pantau tren dan indikator dari data yang telah tervalidasi.","⌁")
+ +roleActionCard("kabkota","programs","PEMBANGUNAN","Program wilayah","Tinjau program, tahapan pelaksanaan, dan kebutuhan tindak lanjut.","✦")
+ +roleActionCard("kabkota","infrastructure","ASET WILAYAH","Infrastruktur dan aset","Pantau informasi aset wilayah sesuai izin akses.","⌖")
+ +roleActionCard("kabkota","reports","PELAPORAN","Laporan eksekutif","Siapkan ringkasan lintas kecamatan berbasis data yang tersedia.","▤")
+ +roleActionCard("kabkota","gpffe","INTEGRASI","Analisis program GPFFE","Akses pertukaran data dan analisis yang telah disetujui.","⇄")
+ +'</div>';
+}
+function renderPublicSIDDashboard(){
+ return roleDashboardHero("OPEN SID / INFORMASI PUBLIK","Portal Informasi SID","Akses informasi publik dan pelacakan layanan yang memang telah disediakan untuk pengguna umum.")
+ +'<div class="public-sid-banner"><span>◎</span><div><b>Informasi publik, bukan data administrasi internal</b><p>Portal ini tidak memberikan akses ke NIK, data KK, data sensitif warga, atau workspace pengurus.</p></div></div>'
+ +'<div class="territory-work-grid">'
+ +roleActionCard("desa","transparency","INFORMASI","Transparansi wilayah","Lihat informasi publik yang telah disahkan untuk ditampilkan.","▤")
+ +roleActionCard("layanan","tracking","LAYANAN","Pelacakan layanan","Lacak status layanan menggunakan mekanisme yang tersedia.","⌕")
+ +roleActionCard("sid","contract","INTEGRASI","Katalog integrasi","Lihat katalog dan kontrak integrasi yang diizinkan.","⇄")
+ +'</div>';
+}
 function scopedRoleDashboard(cfg){
- const cards=cfg.links.map(([module,sub,title,description])=>'<button class="panel role-dash-link" type="button" onclick="go(\''+module+'\',\''+sub+'\')"><div class="panel-head"><div><small>'+esc(cfg.kicker)+'</small><h3>'+esc(title)+'</h3></div><span class="nav-icon">↗</span></div><p>'+esc(description)+'</p><span class="text-btn">Buka workspace →</span></button>').join("");
- return (identityCache?reportIdentityHeader():"")+'<div class="welcome"><div><div class="eyebrow dark">'+esc(cfg.kicker)+'</div><h2>'+esc(cfg.title)+'</h2><p>'+esc(cfg.description)+'</p></div><div class="date-chip">AKSES BERDASARKAN ROLE<br><small>Role + wilayah + RLS</small></div></div><div class="module-note"><b>Ruang kerja terpisah.</b><span>Menu dan data yang tersedia mengikuti penugasan akun dan cakupan wilayah. Pemilihan role di halaman masuk tidak memberikan hak akses dengan sendirinya.</span></div><div class="dashboard-grid role-dash-grid">'+cards+'</div>';
+ if(access.code==="RT_OPERATOR")return renderRTDashboard();
+ if(access.code==="VILLAGE_VALIDATOR")return renderVillageDashboard();
+ if(access.code==="DISTRICT_COORDINATOR")return renderDistrictDashboard();
+ if(access.code==="REGENCY_CITY_ADMIN")return renderRegencyDashboard();
+ if(access.code==="OPEN_SID_UMUM")return renderPublicSIDDashboard();
+ const cards=cfg.links.map(([module,sub,title,description])=>roleActionCard(module,sub,cfg.kicker,title,description,"↗")).join("");
+ return (identityCache?reportIdentityHeader():"")+roleDashboardHero(cfg.kicker,cfg.title,cfg.description)+'<div class="territory-work-grid">'+cards+'</div>';
 }
 function roleSpecificDashboard(){
  const cfg={
- RT_OPERATOR:{kicker:"DASHBOARD RT",title:"Operasional Rukun Tetangga",description:"Kelola pencatatan awal, layanan warga, agenda, dan pengajuan yang menjadi tanggung jawab RT.",links:[["rt","dashboard","Operasional RT","Ringkasan kerja dan administrasi pada tingkat RT."],["warga","registry","Data Warga","Akses data warga sesuai penugasan dan kebijakan akses."],["layanan","requests","Permohonan Layanan","Pantau permohonan dan tindak lanjut pada cakupan RT."],["kegiatan","calendar","Agenda RT","Kelola agenda dan kegiatan komunitas."]]},
- VILLAGE_VALIDATOR:{kicker:"DASHBOARD DESA / KELURAHAN",title:"Validasi dan layanan desa",description:"Validasi data dan dokumen, pantau layanan, serta konsolidasikan laporan dari wilayah di bawah kewenangan Anda.",links:[["desa","validation","Validasi Wilayah","Tinjau data dan usulan yang masuk ke desa/kelurahan."],["dokumen","inbox","Dokumen Masuk","Kelola dokumen dan tahapan persetujuan."],["dataquality","queue","Kualitas Data","Periksa anomali, kelengkapan, dan koreksi data."],["layanan","queue","Pelayanan Desa","Pantau permohonan dan eskalasi layanan."]]},
- DISTRICT_COORDINATOR:{kicker:"DASHBOARD KECAMATAN",title:"Koordinasi lintas desa",description:"Pantau laporan agregat, layanan dan eskalasi dari desa/kelurahan sesuai cakupan kecamatan.",links:[["kecamatan","overview","Ringkasan Kecamatan","Tinjau status wilayah dan layanan pada scope aktif."],["kecamatan","desa","Rekap Desa / Kelurahan","Bandingkan kemajuan laporan dan validasi."],["kecamatan","escalations","Eskalasi","Tindak lanjuti persoalan lintas wilayah."],["gis","map","Peta Wilayah","Lihat peta sesuai izin dan cakupan akses."]]},
- REGENCY_CITY_ADMIN:{kicker:"DASHBOARD KOTA / KABUPATEN",title:"Pemantauan wilayah daerah",description:"Pantau indikator agregat dan program lintas kecamatan; akses tetap dibatasi oleh role dan wilayah yang ditugaskan.",links:[["kabkota","overview","Ringkasan Daerah","Ringkasan agregat sesuai scope kabupaten/kota."],["kabkota","districts","Rekap Kecamatan","Tinjau konsolidasi laporan kecamatan."],["kabkota","programs","Program Wilayah","Pantau program dan capaian lintas wilayah."],["kabkota","reports","Laporan Eksekutif","Akses laporan daerah sesuai kewenangan."]]},
- OPEN_SID_UMUM:{kicker:"DASHBOARD INFORMASI SID",title:"Informasi SID",description:"Akses informasi dan layanan umum yang tersedia secara sah, tanpa akses ke data operasional pribadi.",links:[["desa","transparency","Transparansi","Jelajahi informasi publik yang sudah dipublikasikan."],["layanan","tracking","Pelacakan Layanan","Lacak layanan yang dapat diakses oleh akun."],["sid","contract","Katalog Integrasi","Lihat kontrak integrasi yang diizinkan untuk peran ini."]]}
+ RT_OPERATOR:{kicker:"DASHBOARD RT",title:"Operasional Rukun Tetangga",description:"Kelola pencatatan awal, layanan warga, agenda, dan pengajuan yang menjadi tanggung jawab RT.",links:[]},
+ VILLAGE_VALIDATOR:{kicker:"DASHBOARD DESA / KELURAHAN",title:"Validasi dan layanan desa",description:"Validasi data dan dokumen, pantau layanan, serta konsolidasikan laporan dari wilayah di bawah kewenangan Anda.",links:[]},
+ DISTRICT_COORDINATOR:{kicker:"DASHBOARD KECAMATAN",title:"Koordinasi lintas desa",description:"Pantau laporan agregat, layanan dan eskalasi dari desa/kelurahan sesuai cakupan kecamatan.",links:[]},
+ REGENCY_CITY_ADMIN:{kicker:"DASHBOARD KABUPATEN / KOTA",title:"Pemantauan wilayah daerah",description:"Pantau indikator agregat dan program lintas kecamatan sesuai kewenangan.",links:[]},
+ OPEN_SID_UMUM:{kicker:"DASHBOARD INFORMASI SID",title:"Informasi SID",description:"Akses informasi publik dan layanan umum tanpa akses ke data operasional pribadi.",links:[]}
  };
  if(access.code==="RW_REVIEWER")return rwReviewWorkspace();
  return cfg[access.code]?scopedRoleDashboard(cfg[access.code]):null;
