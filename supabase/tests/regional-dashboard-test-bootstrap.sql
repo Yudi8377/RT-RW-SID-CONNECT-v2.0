@@ -2,6 +2,7 @@
 -- This fixture intentionally contains no production data or credentials.
 CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
+CREATE ROLE service_role NOLOGIN;
 
 CREATE SCHEMA auth;
 CREATE TABLE auth.users (id uuid PRIMARY KEY);
@@ -110,3 +111,52 @@ INSERT INTO public.assistance_applications (territory_id) VALUES
  ('30000000-0000-4000-8000-000000000007'),
  ('30000000-0000-4000-8000-000000000009'),
  ('30000000-0000-4000-8000-000000000012');
+
+-- Minimal resident-directory fixtures for the scoped RPC security suite.
+INSERT INTO public.roles (id, role_code, role_name, critical) VALUES
+ ('90000000-0000-4000-8000-000000000005','RW_REVIEWER','RW Reviewer',false)
+ON CONFLICT (role_code) DO NOTHING;
+
+INSERT INTO auth.users (id) VALUES
+ ('a1000000-0000-4000-8000-000000000008'),
+ ('a1000000-0000-4000-8000-000000000009'),
+ ('a1000000-0000-4000-8000-000000000010')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.role_assignments (user_id, role_id, scope_territory_id, active, starts_at, ends_at)
+SELECT u.user_id, r.id, t.id, true, now() - interval '1 day', NULL
+FROM (VALUES
+ ('a1000000-0000-4000-8000-000000000008'::uuid,'RT_OPERATOR','30000000-0000-4000-8000-000000000006'::uuid),
+ ('a1000000-0000-4000-8000-000000000009'::uuid,'RW_REVIEWER','30000000-0000-4000-8000-000000000005'::uuid),
+ ('a1000000-0000-4000-8000-000000000010'::uuid,'VILLAGE_VALIDATOR','30000000-0000-4000-8000-000000000004'::uuid),
+ ('00000000-0000-4000-8000-000000000001'::uuid,'DISTRICT_COORDINATOR','30000000-0000-4000-8000-000000000003'::uuid)
+) AS u(user_id, role_code, scope_id)
+JOIN public.roles r ON r.role_code=u.role_code
+JOIN public.territories t ON t.id=u.scope_id
+WHERE NOT EXISTS (
+ SELECT 1 FROM public.role_assignments ra
+ WHERE ra.user_id=u.user_id AND ra.role_id=r.id AND ra.scope_territory_id=t.id AND ra.active
+);
+
+CREATE TABLE public.addresses (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ territory_id uuid NOT NULL REFERENCES public.territories(id),
+ address_line text NOT NULL,
+ postal_code text
+);
+CREATE TABLE public.households (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ household_number_hash text NOT NULL,
+ address_id uuid REFERENCES public.addresses(id),
+ status text NOT NULL DEFAULT 'ACTIVE'
+);
+CREATE TABLE public.persons (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ full_name text NOT NULL,
+ birth_place text,
+ birth_date date,
+ gender text,
+ classification text NOT NULL,
+ status text NOT NULL DEFAULT 'ACTIVE',
+ created_at timestamptz NOT NULL DEFAULT now()
+);

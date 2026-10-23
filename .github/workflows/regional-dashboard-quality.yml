@@ -9,6 +9,7 @@ on:
       - 'theme.css'
       - 'scripts/check-commercial-trial-ui.sh'
       - 'supabase/migrations/**'
+      - 'supabase/tests/**'
       - 'docs/regional-dashboard-hierarchy.md'
       - 'scripts/check-entitlements-migration.sh'
       - 'scripts/check-entitlements-release-gates.sh'

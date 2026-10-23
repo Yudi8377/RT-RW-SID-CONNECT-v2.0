@@ -418,7 +418,7 @@ async function saveHouseholdForm(mode,id){
  if(payload.applicant_nik&&!/^\\d{16}$/.test(payload.applicant_nik)){toast("NIK pemohon harus 16 digit bila diisi");return}
  if(payload.members.some(m=>!m.full_name)){toast("Nama setiap anggota keluarga wajib diisi");return}
  const {data:{user}}=await sb.auth.getUser();if(!user){toast("Silakan Sign In untuk menyimpan");return}
- const resp=await sb.functions.invoke("rt-transaction",{body:{service_type:"HOUSEHOLD",payload:{...payload,full_name:payload.head_name,household_number:payload.household_number}}});
+ const scope=liveDemoScope();if(!scope){toast("Penugasan RT aktif belum tersedia.");return}const resp=await sb.functions.invoke("rt-transaction",{body:{service_type:"HOUSEHOLD",territory_id:scope,payload:{...payload,full_name:payload.head_name,household_number:payload.household_number}}});
  if(resp.error||!resp.data?.ok){toast("Gagal menyimpan KK: "+(resp.data?.error||resp.error?.message||"Unknown error"));return}
  closeModal();state.selected.clear();await render();toast("✓ Pengajuan KK F-1.02 tersimpan dan masuk workflow verifikasi · hasil pelayanan dipetakan ke F-1.09");
 }
@@ -443,7 +443,7 @@ async function saveForm(mode,id){
    const rtMap={deaths:"DEATH",letters:"LETTER",births:"BIRTH",moves:"MOVE",domicile:"DOMICILE",marriage:"MARRIAGE",residents:"PERSON",households:"HOUSEHOLD",verification:"VERIFICATION",complaints:"COMPLAINT",security:"SECURITY",activities:"ACTIVITY",social:"SOCIAL",health:"HEALTH",education:"EDUCATION",economy:"BUSINESS",employment:"EMPLOYMENT",trade:"TRADE",environment:"ENVIRONMENT",infrastructure:"INFRASTRUCTURE",organizations:"ORGANIZATION",volunteers:"VOLUNTEER",dues:"DUES",planning:"PLANNING",disaster:"DISASTER",dataquality:"DATAQUALITY",gis:"GIS",intelligence:"RT_INTELLIGENCE",smart:"SMART_VILLAGE",inventory:"INVENTORY",reports:"REPORT",dashboard:"RT_REPORT"};
    const wargaMap={address:"DOMICILE",services:"SERVICE_REQUEST",complaints:"COMPLAINT"};
    const service_type=(state.view==="rt"?rtMap[state.sub]:wargaMap[state.sub])||state.sub.toUpperCase();
-   const resp=await sb.functions.invoke("rt-transaction",{body:{service_type,payload:{...payload,full_name:payload["Nama Lengkap"]||payload["Nama Warga"]||payload["Nama"],national_id:payload["NIK"]||payload["NIK Almarhum/Almarhumah"]||payload["NIK Pemohon"],date_of_death:payload["Tanggal Kematian"],place_of_death:payload["Tempat Kematian"],cause_category:payload["Penyebab Kematian"],source_document_path:payload["Dokumen Keterangan Kematian"]}}});
+   const scope=liveDemoScope();if(!scope){toast("Penugasan wilayah aktif belum tersedia.");return}const resp=await sb.functions.invoke("rt-transaction",{body:{service_type,territory_id:scope,payload:{...payload,full_name:payload["Nama Lengkap"]||payload["Nama Warga"]||payload["Nama"],national_id:payload["NIK"]||payload["NIK Almarhum/Almarhumah"]||payload["NIK Pemohon"],date_of_death:payload["Tanggal Kematian"],place_of_death:payload["Tempat Kematian"],cause_category:payload["Penyebab Kematian"],source_document_path:payload["Dokumen Keterangan Kematian"]}}});
    if(resp.error||!resp.data?.ok)throw new Error(resp.data?.error||resp.error?.message||"Gagal menyimpan melalui workflow");
    seedRows();state.rows[key()].unshift({id:resp.data.record?.request_number||resp.data.record?.id||"SYNC-"+Date.now(),values,status:resp.data.record?.status||"SUBMITTED",updated:"Supabase"});
    persist();closeModal();state.selected.clear();await render();toast("✓ Data tersimpan di Supabase dan masuk workflow · "+service_type);return;
@@ -639,7 +639,8 @@ function renderRWDashboard(){
 function rwReviewWorkspace(){setTimeout(rwReviewLoad,50);return printHeader+'<div class="module-head"><div><div class="eyebrow dark">COMMUNITY / RW REVIEW</div><h2>RW Review Center</h2><p>Queue verifikasi dari RT berdasarkan scope wilayah dan audit trail.</p></div><button class="primary compact" onclick="rwReviewLoad()">↻ Refresh</button></div><div class="module-kpis"><div><small>ROLE</small><strong>RW REVIEWER</strong><span>Scoped authorization</span></div><div><small>FLOW</small><strong>RT → RW → DESA</strong><span>Progressive verification</span></div><div><small>AUDIT</small><strong>ENABLED</strong><span>Every transition logged</span></div></div><section class="panel"><div class="panel-head"><div><small>APPROVAL QUEUE</small><h3>Data RT menunggu review</h3></div><span class="status-chip">LIVE</span></div><div id="rw-review-items"><div class="module-note">Memuat...</div></div></section>';}
 function commandCenterWorkspace(){const cfg={overview:["Ringkasan Operasional","Pantau status warga, layanan, verifikasi dan aktivitas platform dalam satu ringkasan."],approvals:["Approval Center","Daftar keputusan yang membutuhkan otorisasi manusia sebelum data diteruskan atau dipublikasikan."],tasks:["Task & Follow-up","Kelola pekerjaan tertunda, koreksi data, tindak lanjut layanan dan eskalasi."],activity:["Audit Activity","Jejak aktivitas operasional berdasarkan aktor, waktu, modul, scope dan tindakan."]}[state.sub]||["Command Center","Workspace operasional"];const cards={overview:[["DATA WARGA","1,284","Data terstruktur"],["VERIFIKASI","17","Menunggu tindakan"],["LAYANAN","48","Layanan aktif"],["AKTIVITAS","24","Aktivitas hari ini"]],approvals:[["RT → RW","0","Menunggu review"],["RW → DESA","0","Menunggu validasi"],["DOKUMEN","0","Menunggu approval"],["SENSITIVE","0","Menunggu otorisasi"]],tasks:[["OPEN","0","Task terbuka"],["DUE TODAY","0","Jatuh tempo hari ini"],["CORRECTION","0","Perlu koreksi"],["ESCALATED","0","Perlu eskalasi"]],activity:[["LOGIN","0","Aktivitas autentikasi"],["DATA","0","Perubahan data"],["WORKFLOW","0","Transisi workflow"],["AUDIT","0","Event tercatat"]]}[state.sub]||[];return '<div class="module-head"><div><div class="eyebrow dark">COMMAND CENTER / '+esc(state.sub.toUpperCase())+'</div><h2>'+esc(cfg[0])+'</h2><p>'+esc(cfg[1])+'</p></div><button class="primary compact" onclick="render()">↻ Refresh</button></div><div class="module-kpis">'+cards.map(x=>'<div><small>'+esc(x[0])+'</small><strong>'+esc(x[1])+'</strong><span>'+esc(x[2])+'</span></div>').join("")+'</div><section class="panel"><div class="panel-head"><div><small>DATA OPERASIONAL</small><h3>'+esc(cfg[0])+'</h3></div><span class="status-chip">READY</span></div><div class="command-actions"><button class="btn primary" onclick="openForm()">＋ Tambah / Catat</button><button class="btn" onclick="exportData()">⇩ Export</button><button class="btn" onclick="printWorkspace()">⎙ Print</button></div><div class="module-note"><b>Governance aktif.</b><span>Setiap tindakan mengikuti scope, role, klasifikasi data dan audit trail. Angka 0 berarti belum ada transaksi pada scope ini, bukan error.</span></div></section>';}
 
-function liveDemoScope(){return "f06b8420-54f5-4ee4-b487-bacc7b374dd2"}
+function liveDemoScope(){const ids=[...new Set((access.scopes||[]).map(item=>item.territoryId).filter(Boolean))];if(!ids.length)return null;if(state.regionalScopeId&&ids.includes(state.regionalScopeId))return state.regionalScopeId;return ids[0]}
+function isResidentDirectoryView(view,sub){return (view==="rt"&&["residents","births","deaths","moves","domicile","households"].includes(sub))||(view==="warga"&&["registry","household","address"].includes(sub))}
 async function liveCount(table,filters={}){
   if(!sb)return 0;
   let q=sb.from(table).select("id",{count:"exact",head:true});
@@ -656,34 +657,31 @@ async function canonicalDemoRows(view,sub,scope){
   if(!sb)return null;
   const isRT=view==="rt",isWarga=view==="warga",isJolie=view==="jolie",isDesa=view==="desa";
   if((isRT&&["residents","births","deaths","moves","domicile","households"].includes(sub))||(isWarga&&["registry","household","address"].includes(sub))){
-    const peopleR=await sb.from("persons").select("id,full_name,birth_place,birth_date,gender,status,classification,created_at").eq("classification","CONFIDENTIAL").order("full_name").limit(100);
-    if(peopleR.error)throw peopleR.error;
-    const people=peopleR.data||[], personMap=new Map(people.map(p=>[p.id,p]));
-    if((isRT&&["residents","births"].includes(sub))||(isWarga&&sub==="registry")){
-      let chosen=people;
-      if(sub==="births")chosen=people.filter(p=>p.birth_date&&new Date(p.birth_date).getFullYear()>=2020);
-      return chosen.map(p=>asDomainDemoRow("persons",p.id,p.full_name,p.status,{nama:p.full_name,tempat_lahir:p.birth_place,tanggal_lahir:p.birth_date,jenis_kelamin:p.gender,catatan:"Warga sintetis untuk demo; bukan data kependudukan resmi"},sub,p.created_at));
-    }
-    if(isRT&&sub==="deaths"){
-      const ids=people.filter(p=>p.status==="DECEASED").map(p=>p.id);
-      if(!ids.length)return [];
-      const d=await sb.from("death_records").select("id,person_id,date_of_death,place_of_death,cause_category,verification_status,notes,created_at").in("person_id",ids).order("date_of_death",{ascending:false}).limit(50);
-      if(d.error)throw d.error;
-      return (d.data||[]).map(x=>asDomainDemoRow("death_records",x.id,"Data kematian · "+(personMap.get(x.person_id)?.full_name||"Warga demo"),x.verification_status,{nama_warga:personMap.get(x.person_id)?.full_name||"Warga demo",tanggal_kematian:x.date_of_death,tempat_kematian:x.place_of_death,kategori_penyebab:x.cause_category,keterangan:x.notes||"DATA SIMULASI"},sub,x.created_at));
-    }
-    if(isRT&&["moves","domicile"].includes(sub)){
-      const ids=people.map(p=>p.id);
-      const m=await sb.from("demo_residency_movements").select("id,demo_code,person_id,movement_type,event_date,origin_label,destination_label,status,notes").in("person_id",ids).order("event_date",{ascending:false}).limit(50);
-      if(m.error)throw m.error;
-      return (m.data||[]).map(x=>asDomainDemoRow("demo_residency_movements",x.id,(x.movement_type||"Perpindahan")+" · "+(personMap.get(x.person_id)?.full_name||x.demo_code),x.status,{nama_warga:personMap.get(x.person_id)?.full_name||"Warga demo",jenis_perpindahan:x.movement_type,tanggal:x.event_date,dari:x.origin_label,tujuan:x.destination_label,keterangan:x.notes||"DATA SIMULASI"},sub,x.event_date));
+    if(!scope)throw new Error("Penugasan wilayah aktif tidak tersedia untuk membaca data warga.");
+    if((isRT&&["residents","births","deaths","moves","domicile"].includes(sub))||(isWarga&&sub==="registry")){
+      const peopleR=await sb.rpc("rt_resident_directory",{p_scope_territory_id:scope,p_limit:100,p_offset:0});
+      if(peopleR.error)throw peopleR.error;
+      const people=(peopleR.data||[]).map(p=>({...p,id:p.person_id,status:p.person_status,created_at:p.person_created_at}));
+      const personMap=new Map(people.map(p=>[p.id,p]));
+      if((isRT&&["residents","births"].includes(sub))||(isWarga&&sub==="registry")){
+        let chosen=people.filter(p=>p.status==="ACTIVE");
+        if(sub==="births")chosen=chosen.filter(p=>p.birth_date&&new Date(p.birth_date).getFullYear()>=2020);
+        return chosen.map(p=>asDomainDemoRow("persons",p.id,p.full_name,p.status,{nama:p.full_name,tempat_lahir:p.birth_place,tanggal_lahir:p.birth_date,jenis_kelamin:p.gender,catatan:"Data dari relasi warga-KK terverifikasi pada scope aktif."},sub,p.created_at));
+      }
+      if(isRT&&sub==="deaths"){
+        const ids=people.filter(p=>p.status==="DECEASED").map(p=>p.id);
+        if(!ids.length)return [];
+        const d=await sb.from("death_records").select("id,person_id,date_of_death,place_of_death,cause_category,verification_status,notes,created_at").in("person_id",ids).order("date_of_death",{ascending:false}).limit(50);
+        if(d.error)throw d.error;
+        return (d.data||[]).map(x=>asDomainDemoRow("death_records",x.id,"Data kematian · "+(personMap.get(x.person_id)?.full_name||"Warga"),x.verification_status,{nama_warga:personMap.get(x.person_id)?.full_name||"Warga",tanggal_kematian:x.date_of_death,tempat_kematian:x.place_of_death,kategori_penyebab:x.cause_category,keterangan:x.notes||""},sub,x.created_at));
+      }
+      // Residency movements are not shown until a scope-aware, audited read path is available.
+      if(isRT&&["moves","domicile"].includes(sub))return [];
     }
     if((isRT&&sub==="households")||(isWarga&&["household","address"].includes(sub))){
-      const h=await sb.from("households").select("id,household_number_hash,address_id,status,created_at").like("household_number_hash","DEMO-KK-%").order("household_number_hash").limit(50);
+      const h=await sb.rpc("rt_household_directory",{p_scope_territory_id:scope,p_limit:100,p_offset:0});
       if(h.error)throw h.error;
-      const addressIds=[...new Set((h.data||[]).map(x=>x.address_id).filter(Boolean))];
-      let addressMap=new Map();
-      if(addressIds.length){const ar=await sb.from("addresses").select("id,address_line,postal_code,territory_id").in("id",addressIds);if(ar.error)throw ar.error;addressMap=new Map((ar.data||[]).map(x=>[x.id,x]));}
-      return (h.data||[]).map(x=>{const a=addressMap.get(x.address_id)||{};return asDomainDemoRow("households",x.id,"Kartu Keluarga Demo "+String(x.household_number_hash||"").replace("DEMO-KK-",""),x.status,{label_kk:"KK Demo "+String(x.household_number_hash||"").replace("DEMO-KK-",""),alamat:a.address_line||"Alamat demo",kode_pos:a.postal_code||"",catatan:"KK sintetis; bukan dokumen resmi"},sub,x.created_at);});
+      return (h.data||[]).map(x=>asDomainDemoRow("households",x.household_id,"Kartu Keluarga · "+String(x.household_id).slice(-8),x.household_status,{label_kk:"KK · "+String(x.household_id).slice(-8),alamat:x.address_line||"Alamat belum dicatat",kode_pos:x.postal_code||"",catatan:"Data KK sesuai scope wilayah terotorisasi."},sub,x.household_created_at));
     }
   }
   if((isRT&&["economy","trade"].includes(sub))||(isJolie&&["marketplace","customers","crm"].includes(sub))){
@@ -710,10 +708,14 @@ async function refreshLiveWorkspace(){
   if(!sb)return;
   const host=document.querySelector(".workspace-table"); if(!host)return;
   const scope=liveDemoScope(), module=state.view.toUpperCase(), sub=state.sub;
+  const residentView=isResidentDirectoryView(state.view,sub);
+  if(residentView&&!scope){updateLiveKpis([["WARGA","—","Penugasan scope belum tersedia"],["KK","—","Tidak ada data fallback"],["STATUS","TERTUTUP","Akses wilayah belum diverifikasi"]]);renderLiveRows([]);return;}
   try{
     let rows=await canonicalDemoRows(state.view,sub,scope);
     if(rows===null)rows=[];
-    if(rows.length){
+    if(residentView){
+      updateLiveKpis([["WARGA",rows.length,"Hasil direktori scope server-side"],["SUMBER","RPC","Pembacaan dibatasi per wilayah"],["STATUS",rows.length?"TERHUBUNG":"KOSONG",rows.length?"Relasi warga–KK aktif":"Belum ada relasi terverifikasi"]]);
+    }else if(rows.length){
       updateLiveKpis([["DATA DOMAIN",rows.length,"Record demo terhubung ke tabel domain"],["SUMBER","CANONICAL","Data sintetis / baca-saja"],["AKSI","DETAIL","Perubahan resmi memerlukan alur CRUD terpisah"]]);
     }else if(state.view==="warga"){
       const [portal,people,households]=await Promise.all([
@@ -757,17 +759,16 @@ async function refreshLiveWorkspace(){
       if(!rows.length)rows=await demoRows(source[0],null);
       updateLiveKpis([["MENU",titleForLiveModule(state.view),"Workspace aktif"],["DATASET",rows.length,"Record contoh tersimpan"],["STATUS","DEMO","Data simulasi; bukan data resmi"]]);
     }
-    if(!rows.length){
+    if(!rows.length&&!residentView){
       const fallbackMap={dashboard:"PLATFORM_ADMIN",warga:"WARGA_PORTAL",rt:"RT_DIGITAL",rw:"RW_DIGITAL",desa:"DESA_DIGITAL",smart:"SMART_VILLAGE",dokumen:"DOC_TTE",kegiatan:"COMMUNITY",layanan:"LAYANAN",identitas:"IDENTITY",jolie:"JOLIE_BUSINESS",gis:"GIS",whatsapp:"WHATSAPP",sid:"SID_BRIDGE",gpffe:"GPFFE_EXCHANGE",admin:"PLATFORM_ADMIN",dataquality:"DATA_QUALITY"};
       const fallbackModule=fallbackMap[state.view];
       if(fallbackModule)rows=await demoRows(fallbackModule,null);
     }
     renderLiveRows(rows);
-  }catch(e){console.warn("live workspace",e)}
+  }catch(e){console.warn("live workspace",e);if(residentView){updateLiveKpis([["WARGA","—","RPC aman belum tersedia"],["SCOPE","—","Tidak ada fallback simulasi"],["STATUS","DITUTUP","Data pribadi tidak dibaca langsung"]]);const body=host.querySelector("tbody");if(body){const cols=host.querySelectorAll("thead th").length||1;body.innerHTML='<tr><td colspan="'+cols+'"><div class="empty-state"><b>Direktori warga belum aktif.</b><span>RPC terotorisasi belum tersedia atau scope belum diizinkan. Tidak ada data contoh yang ditampilkan sebagai data resmi.</span></div></td></tr>';}}}
 }
 const liveRowCache=new Map();
-let identityCache=null;
-function identityTypeForAccess(){return access.code==="RW_REVIEWER"?"RW":access.code==="RT_OPERATOR"?"RT":"RW"}
+let identityCache=null;function identityTypeForAccess(){return access.code==="RW_REVIEWER"?"RW":access.code==="RT_OPERATOR"?"RT":"RW"}
 async function loadIdentity(){if(!sb)return null;const type=identityTypeForAccess();const q=await sb.from("demo_operational_records").select("id,territory_id,record_type,title,status,payload,updated_at").eq("territory_id",liveDemoScope()).eq("module_code","IDENTITY").eq("submenu_code","profil").eq("record_type",type+"_IDENTITY").eq("status","ACTIVE").order("updated_at",{ascending:false}).limit(1);if(q.error){console.warn("identity load",q.error.message);return identityCache}identityCache=q.data?.[0]?.payload||null;return identityCache}
 function identityDefaults(type=identityTypeForAccess()){return {identity_type:type,identity_code:type==="RT"?"RT 001":"RW 001",official_name:type==="RT"?"RUKUN TETANGGA 001 / RW 001":"RUKUN WARGA 001",province_name:"",regency_name:"",district_name:"",village_name:"RT 001 / RW 001",hamlet_name:"",postal_code:"",address_line:"",chairman_name:"",secretary_name:"",treasurer_name:"",contact_phone:"",contact_email:"",website:"",logo_url:"",letterhead_title:type==="RT"?"RUKUN TETANGGA 001 / RW 001":"RUKUN WARGA 001",letterhead_subtitle:"WILAYAH RT/RW",letterhead_line1:"KECAMATAN · KABUPATEN/KOTA",letterhead_line2:"PROVINSI",stamp_label:type==="RT"?"RT 001 / RW 001":"RW 001",signature_name:"",signature_role:type==="RT"?"Ketua RT":"Ketua RW",signature_delegation:"",document_prefix:type==="RT"?"RT":"RW",document_number_format:"{{PREFIX}}/{{YYYY}}/{{SEQ}}",report_footer:"Dokumen RT/RW–SID CONNECT · sesuai kewenangan dan wilayah.",qr_verification_base:"",active_from:"",active_until:"",classification:"INTERNAL"}}
 function identityField(label,key,type="text",hint="",p={}){return '<label>'+label+'<small>'+hint+'</small><input id="identity_'+key+'" type="'+type+'" value="'+esc(p?.[key]??"")+'"></label>'}
@@ -934,37 +935,34 @@ async function loadCitizen360(){
  if(!sb||state.view!=="warga"||state.sub!=="registry")return;
  const body=document.getElementById("citizen360-body"),kpis=document.getElementById("citizen360-kpis"),count=document.getElementById("citizen360-count");
  if(!body)return;
+ const scope=liveDemoScope();
+ const showMessage=(title,detail)=>{body.innerHTML='<tr><td colspan="5"><div class="empty-state"><b>'+esc(title)+'</b><span>'+esc(detail)+'</span></div></td></tr>';if(count)count.textContent="Data belum tersedia";};
+ if(!scope){showMessage("Penugasan wilayah belum tersedia.","Hubungi administrator untuk menetapkan role dan scope aktif.");return;}
  try{
-  const [p,e,ed,h,v,s]=await Promise.all([
-   sb.from("persons").select("id,full_name,gender,email,status,classification").order("full_name").limit(500),
-   sb.from("rt_employment_profiles").select("person_id,job_title,employment_type,status").limit(1000),
-   sb.from("rt_education_profiles").select("person_id,education_level,institution,status").limit(1000),
-   sb.from("rt_health_observations").select("person_id,observation_type,verification_status").limit(1000),
-   sb.from("rt_volunteer_profiles").select("person_id,volunteer_domain,status").limit(1000),
-   sb.from("rt_service_requests").select("id,status,service_type,payload,created_at").eq("territory_id",liveDemoScope()).limit(1000)
-  ]);
-  if(p.error)throw p.error;
-  const map=new Map();
-  const add=(id,key,row)=>{if(!id)return;const x=map.get(id)||{};(x[key]??=[]).push(row);map.set(id,x)};
-  (e.data||[]).forEach(x=>add(x.person_id,"employment",x));
-  (ed.data||[]).forEach(x=>add(x.person_id,"education",x));
-  (h.data||[]).forEach(x=>add(x.person_id,"health",x));
-  (v.data||[]).forEach(x=>add(x.person_id,"volunteer",x));
-  const people=(p.data||[]).map(x=>{const rel=map.get(x.id)||{};const service=(s.data||[]).filter(r=>r.payload?.person_id===x.id);const item={...x,employment:rel.employment||[],education:rel.education||[],health:rel.health||[],volunteer:rel.volunteer||[],services:service};citizen360Cache.set(x.id,item);return item});
+  const response=await sb.rpc("rt_resident_directory",{p_scope_territory_id:scope,p_limit:100,p_offset:0});
+  if(response.error)throw response.error;
+  const people=(response.data||[]).map(x=>({...x,id:x.person_id,status:x.person_status,created_at:x.person_created_at}));
+  citizen360Cache.clear();
+  people.forEach(x=>citizen360Cache.set(x.person_id,x));
   window.__citizen360People=people;
-  const linked=people.filter(x=>x.employment.length||x.education.length||x.health.length||x.volunteer.length||x.services.length).length;
-  const serviceCount=people.reduce((n,x)=>n+x.services.length,0);
-  if(kpis)kpis.innerHTML='<div><small>WARGA</small><strong>'+people.length+'</strong><span>Canonical persons</span></div><div><small>PROFILE LINKS</small><strong>'+linked+'</strong><span>Memiliki relasi lintas modul</span></div><div><small>LAYANAN</small><strong>'+serviceCount+'</strong><span>Referensi service request</span></div>';
-  const renderRows=(list)=>{body.innerHTML=list.map(x=>'<tr><td><button class="row-link" type="button" data-citizen-view="'+esc(x.id)+'"><b>'+esc(x.full_name||"-")+'</b></button><small>'+esc(x.email||"")+'</small></td><td>'+esc(x.gender||"-")+'</td><td>'+status(x.status||"-")+'</td><td>'+esc(x.education[0]?.education_level||"-")+'</td><td>'+esc(x.employment[0]?.job_title||"-")+'</td><td>'+esc(x.health.length?x.health.length+" observasi":"-")+'</td><td>'+esc((x.services.length+x.volunteer.length)>0?(x.services.length+" layanan · "+x.volunteer.length+" relawan"):"-")+'</td></tr>').join("")||'<tr><td colspan="7"><div class="empty-state"><b>Tidak ada hasil.</b><span>Ubah kata pencarian.</span></div></td></tr>';count.textContent=list.length+" warga ditampilkan";};
+  const householdCount=new Set(people.map(x=>x.household_id).filter(Boolean)).size;
+  if(kpis)kpis.innerHTML='<div><small>WARGA</small><strong>'+people.length+'</strong><span>Dalam scope aktif</span></div><div><small>KK TERHUBUNG</small><strong>'+householdCount+'</strong><span>Relasi aktif</span></div><div><small>SUMBER</small><strong>RPC</strong><span>Server-authorized</span></div>';
+  const renderRows=list=>{
+   body.innerHTML=list.map(x=>'<tr><td><button class="row-link" type="button" data-citizen-view="'+esc(x.person_id)+'"><b>'+esc(x.full_name||"-")+'</b></button></td><td>'+esc(x.gender||"-")+'</td><td>'+status(x.person_status||"-")+'</td><td>'+esc(x.is_head?"Kepala keluarga":x.relationship_label||"Anggota")+'</td><td>'+esc(String(x.household_id||"").slice(-8)||"-")+'</td></tr>').join("")||'<tr><td colspan="5"><div class="empty-state"><b>Belum ada relasi warga–KK terverifikasi.</b><span>Data lama tidak dihubungkan berdasarkan tebakan. Tambahkan relasi melalui proses administrasi resmi.</span></div></td></tr>';
+   if(count)count.textContent=list.length+" warga ditampilkan";
+  };
   renderRows(people);
-  const search=document.getElementById("citizen360-search");search?.addEventListener("input",()=>{const q=search.value.trim().toLowerCase();renderRows(people.filter(x=>(x.full_name||"").toLowerCase().includes(q)||(x.email||"").toLowerCase().includes(q)));});
- }catch(err){body.innerHTML='<tr><td colspan="7"><div class="empty-state"><b>Gagal memuat Citizen 360.</b><span>'+esc(err.message||"Periksa RLS dan koneksi Supabase.")+'</span></div></td></tr>';if(count)count.textContent="Gagal memuat"}
+  const search=document.getElementById("citizen360-search");
+  search?.addEventListener("input",()=>{const q=search.value.trim().toLowerCase();renderRows(people.filter(x=>(x.full_name||"").toLowerCase().includes(q)));});
+ }catch(_error){
+  showMessage("Direktori warga belum aktif.","RPC aman belum diterapkan atau scope tidak diizinkan. Data pribadi tidak dibaca langsung sebagai fallback.");
+  if(kpis)kpis.innerHTML='<div><small>WARGA</small><strong>—</strong><span>Belum tersedia</span></div><div><small>KK TERHUBUNG</small><strong>—</strong><span>Belum tersedia</span></div><div><small>SUMBER</small><strong>RPC</strong><span>Belum aktif</span></div>';
+ }
 }
 function openCitizen360(id){
  const x=citizen360Cache.get(id);if(!x){toast("Profil warga tidak ditemukan");return}
- const card=(title,rows,fields)=>'<article class="analysis-card"><h4>'+title+'</h4>'+(rows.length?rows.slice(0,8).map(r=>'<div class="signal-row"><span>'+esc(fields(r)[0])+'</span><b>'+esc(fields(r)[1])+'</b></div>').join(""):'<p>Tidak ada relasi tersimpan.</p>')+'</article>';
- const html='<div class="detail-grid"><div><small>NAMA</small><b>'+esc(x.full_name)+'</b></div><div><small>STATUS</small><b>'+esc(x.status||"-")+'</b></div><div><small>EMAIL</small><b>'+esc(x.email||"-")+'</b></div><div><small>CLASSIFICATION</small><b>'+esc(x.classification||"-")+'</b></div></div><div class="analysis-grid">'+card("Pendidikan",x.education,r=>[r.education_level||"-",r.institution||"-"])+card("Pekerjaan",x.employment,r=>[r.job_title||"-",r.employment_type||"-"])+card("Kesehatan",x.health,r=>[r.observation_type||"-",r.verification_status||"-"])+card("Relawan",x.volunteer,r=>[r.volunteer_domain||"-",r.status||"-"])+card("Layanan",x.services,r=>[r.service_type||"Service request",r.status||"-"])+'</div><div class="module-note"><b>Canonical relationship.</b><span>Relasi profile menggunakan <code>person_id</code>. Permohonan layanan menggunakan referensi <code>payload.person_id</code>. Tidak ada penyalinan nama sebagai primary identity.</span></div>';
- modal("Citizen 360 · "+(x.full_name||"Warga"),html,true);
+ const html='<div class="detail-grid"><div><small>NAMA</small><b>'+esc(x.full_name||"-")+'</b></div><div><small>STATUS</small><b>'+esc(x.person_status||"-")+'</b></div><div><small>JENIS KELAMIN</small><b>'+esc(x.gender||"-")+'</b></div><div><small>TEMPAT / TANGGAL LAHIR</small><b>'+esc([x.birth_place,x.birth_date].filter(Boolean).join(" · ")||"-")+'</b></div><div><small>HUBUNGAN KELUARGA</small><b>'+esc(x.is_head?"Kepala keluarga":x.relationship_label||"Anggota")+'</b></div><div><small>REFERENSI KK</small><b>'+esc(String(x.household_id||"").slice(-8)||"-")+'</b></div></div><div class="module-note"><b>Data minimum.</b><span>NIK, nomor telepon, email, alamat lengkap, dan profil sensitif tidak ditampilkan pada direktori ini. Akses tambahan membutuhkan endpoint khusus dengan izin dan audit terpisah.</span></div>';
+ modal("Detail warga · "+(x.full_name||"Warga"),html,true);
 }
 document.addEventListener("click",function(e){const el=e.target.closest("[data-citizen-view]");if(!el)return;e.preventDefault();e.stopImmediatePropagation();openCitizen360(el.dataset.citizenView);});
 document.addEventListener("click",async function(e){
