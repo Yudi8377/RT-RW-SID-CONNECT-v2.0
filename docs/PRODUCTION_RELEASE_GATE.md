@@ -23,6 +23,13 @@
 - Read-only production verification shows active assignments only for Platform Admin, RT Operator, and Warga. The RT Operator points to a VILLAGE territory and has no `organization_id`; RW, Desa/Kelurahan, Kecamatan, and Kabupaten/Kota have no active assignments. No automatic role grants were made.
 - Current Supabase Security Advisor findings include: RLS enabled without policies on `village.integration_tenant_mappings`, `public.spatial_ref_sys` without RLS (PostGIS extension table), PostGIS `st_estimatedextent` overloads executable by anon/authenticated, other SECURITY DEFINER function grants, PostGIS installed in `public`, and leaked-password protection disabled. Each needs impact-based review; do not apply blanket revocations or RLS changes without dependency analysis.
 
+## Read-only audit procedure
+
+- Run [`supabase/tests/regional-release-readonly-audit.sql`](../supabase/tests/regional-release-readonly-audit.sql) in the Supabase SQL Editor using an authorized audit connection before rollout.
+- The script is SELECT-only: it summarizes active role/territory mappings, reports relevant RPC execute grants, checks RLS/policy counts for subscription/device tables, and confirms expected role codes. It does not mutate production state.
+- Treat `SECURITY DEFINER`/`authenticated` grants as a review signal, not an automatic reason to revoke access. Verify each function body and intended caller before changing grants.
+- The most recent read-only check confirms the current production scope mismatch remains unresolved; the script is evidence collection, not a repair mechanism.
+
 ## Remaining release blockers
 
 1. **Authenticated end-to-end test:** verify organization assignment → Trial 7 Hari → one device registered → subscription active → expiry/denial → audit event. The functions are deployed, but this complete live flow has not yet been verified.
