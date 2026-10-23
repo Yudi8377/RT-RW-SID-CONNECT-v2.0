@@ -45,6 +45,14 @@ do
 done
 
 grep -Fq 'PILOT_VIEWER:["dashboard"]' "$app"
+workspace_block="$(sed -n '/^function workspace(){/,/^function openRecordDetail(id)/p' "$app")"
+grep -Fq 'function productionUnavailableWorkspace()' "$app"
+grep -Fq 'return productionUnavailableWorkspace();' <<<"$workspace_block"
+if grep -Fq 'seedRows();const m=modules[state.view]' <<<"$workspace_block"; then
+  echo "Mock/sample CRUD fallback must not run in authenticated production workspaces" >&2
+  exit 1
+fi
+grep -Fq 'Data contoh dan penyimpanan lokal dinonaktifkan pada workspace ini.' "$app"
 grep -Fq 'AKSES BELUM DITETAPKAN' "$app"
 
 grep -Fq 'Pratinjau UI · bukan status produksi' "$app"
