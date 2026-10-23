@@ -15,6 +15,7 @@ on:
       - 'scripts/check-entitlements-release-gates.sh'
       - 'scripts/check-territory-workspaces.sh'
       - 'docs/territory-specific-workspaces.md'
+      - 'supabase/functions/rt-transaction/**'
       - '.github/workflows/regional-dashboard-quality.yml'
   push:
     branches: [feat/regional-dashboard-hierarchy-v1, main]
@@ -42,6 +43,12 @@ jobs:
         uses: actions/checkout@v4
       - name: Check JavaScript syntax
         run: node --check app.js
+      - name: Check RT transaction authorization guards
+        shell: bash
+        run: |
+          grep -q 'territory.territory_type' supabase/functions/rt-transaction/index.ts
+          grep -q 'roleTerritoryTypes' supabase/functions/rt-transaction/index.ts
+          grep -q 'validAssignments' supabase/functions/rt-transaction/index.ts
       - name: Check whitespace errors
         run: git diff --check
       - name: Check gated commercial trial UI
