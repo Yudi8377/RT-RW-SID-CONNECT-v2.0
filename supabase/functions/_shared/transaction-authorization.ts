@@ -66,3 +66,40 @@ export function resolveTransactionAuthorization(input: {
 
   return { ok: true, status: 200, reason: "Authorized", scopedRoles };
 }
+
+const RESTRICTED_PAYLOAD_KEYS = new Set([
+  "status", "classification", "approvalstatus", "verificationstatus",
+  "createdby", "approvedby", "verifiedby",
+]);
+
+function isRestrictedPayloadKey(key: string): boolean {
+  const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return normalized.includes("nik") ||
+    normalized.includes("nationalid") ||
+    normalized.includes("identitynumber") ||
+    normalized.includes("nomorindukkependudukan") ||
+    normalized.endsWith("personid") ||
+    normalized.endsWith("householdid") ||
+    normalized.endsWith("organizationid") ||
+    normalized.endsWith("territoryid") ||
+    RESTRICTED_PAYLOAD_KEYS.has(normalized);
+}
+
+/**
+ * Removes direct national-identity identifiers and client-controlled authority
+ * fields before generic JSON payloads are persisted or copied to audit records.
+ * This is a data-minimization guard, not a replacement for schema allowlisting.
+ */
+export function sanitizeSensitivePayload<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeSensitivePayload(item)) as T;
+  }
+  if (value !== null && typeof value === "object") {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+      if (!isRestrictedPayloadKey(key)) sanitized[key] = sanitizeSensitivePayload(nested);
+    }
+    return sanitized as T;
+  }
+  return value;
+}
