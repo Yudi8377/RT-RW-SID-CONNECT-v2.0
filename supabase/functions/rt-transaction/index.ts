@@ -2,13 +2,71 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveTransactionAuthorization, sanitizeSensitivePayload } from "../_shared/transaction-authorization.ts";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const CANONICAL=new Set(["BUSINESS","TRADE","EMPLOYMENT","EDUCATION","HEALTH","ENVIRONMENT","INFRASTRUCTURE","VOLUNTEER","PLANNING","DISASTER","ORGANIZATION"]);
-const text=(v)=>v==null||v===""?null:String(v).trim()||null;
-const num=(v)=>v==null||v===""?0:Number(v);
-class HttpError extends Error { constructor(status:number,message:string){super(message);this.status=status;} status:number; }
-const json=(body:unknown,status=200,requestId?:string)=>new Response(JSON.stringify({...body,...(requestId?{request_id:requestId}:{})}),{status,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
-async function hashNIK(v){if(!v)return null;const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(String(v).trim()));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("")}
-async function writeAudit(admin:any,row:any,requestId:string){const {error}=await admin.from("audit_logs").insert(row);if(error){console.error("[rt-transaction:audit]",requestId,error.message||"audit insert failed");return false;}return true;}
-async function findPersonIdsByNIK(admin:any,nikValues:string[],territoryId:string){const unique=[...new Set(nikValues.filter(Boolean))];if(!unique.length)return new Map<string,string>();const hashes=await Promise.all(unique.map(hashNIK));const {data:people,error:peopleError}=await admin.from("persons").select("id,national_id_hash").in("national_id_hash",hashes);if(peopleError)throw peopleError;if(!people?.length)return new Map<string,string>();const personIds=people.map(x=>x.id);const {data:residencies,error:residencyError}=await admin.from("residencies").select("person_id,residency_status,verification_status,valid_from,valid_until,addresses!inner(territory_id)").in("person_id",personIds);if(residencyError)throw residencyError;const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());const scopedPersonIds=new Set((residencies||[]).filter(r=>r.residency_status==="ACTIVE"&&["RT_VERIFIED","VILLAGE_VALIDATED"].includes(r.verification_status)&&(!r.valid_from||r.valid_from<=today)&&(!r.valid_until||r.valid_until>=today)&&r.addresses?.territory_id===territoryId).map(r=>r.person_id));return new Map((people||[]).filter(p=>p.national_id_hash&&scopedPersonIds.has(p.id)).map(p=>[p.national_id_hash,p.id]));}
+const text = (v: unknown): string | null => v == null || v === "" ? null : String(v).trim() || null;
+const num = (v: unknown): number => v == null || v === "" ? 0 : Number(v);
+class HttpError extends Error { status: number; constructor(status: number, message: string) { super(message); this.status = status; } }
+const json = (body: unknown, status = 200, requestId?: string) => {
+  const safeBody = body !== null && typeof body === "object" && !Array.isArray(body)
+    ? body as Record<string, unknown>
+    : { data: body };
+  return new Response(JSON.stringify({ ...safeBody, ...(requestId ? { request_id: requestId } : {}) }), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+};
+async function hashNIK(v: string): Promise<string> {
+  if (!/^\\d{16}$/.test(v)) throw new HttpError(400, "NIK must contain 16 digits");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v.trim()));
+  return Array.from(new Uint8Array(digest)).map((b: number) => b.toString(16).padStart(2, "0")).join("");
+}
+async function writeAudit(admin: any, row: Record<string, unknown>, requestId: string): Promise<boolean> {
+  const { error } = await admin.from("audit_logs").insert(row);
+  if (error) {
+    console.error("[rt-transaction:audit]", requestId, error.message || "audit insert failed");
+    return false;
+  }
+  return true;
+}
+type PersonHashRow = { id: string; national_id_hash: string | null };
+type ResidencyScopeRow = {
+  person_id: string;
+  residency_status: string;
+  verification_status: string;
+  valid_from: string | null;
+  valid_until: string | null;
+  addresses?: { territory_id: string | null } | null;
+};
+async function findPersonIdsByNIK(admin: any, nikValues: string[], territoryId: string): Promise<Map<string, string>> {
+  const unique: string[] = [...new Set<string>(nikValues.filter((v: string) => Boolean(v)))];
+  if (!unique.length) return new Map<string, string>();
+  const hashes: string[] = await Promise.all(unique.map((nik: string) => hashNIK(nik)));
+  const { data: people, error: peopleError } = await admin.from("persons")
+    .select("id,national_id_hash").in("national_id_hash", hashes);
+  if (peopleError) throw peopleError;
+  const peopleRows = (people || []) as PersonHashRow[];
+  if (!peopleRows.length) return new Map<string, string>();
+  const personIds: string[] = peopleRows.map((person: PersonHashRow) => person.id);
+  const { data: residencies, error: residencyError } = await admin.from("residencies")
+    .select("person_id,residency_status,verification_status,valid_from,valid_until,addresses!inner(territory_id)")
+    .in("person_id", personIds);
+  if (residencyError) throw residencyError;
+  const residencyRows = (residencies || []) as ResidencyScopeRow[];
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+  const scopedPersonIds = new Set<string>(residencyRows
+    .filter((residency: ResidencyScopeRow) =>
+      residency.residency_status === "ACTIVE" &&
+      ["RT_VERIFIED", "VILLAGE_VALIDATED"].includes(residency.verification_status) &&
+      (!residency.valid_from || residency.valid_from <= today) &&
+      (!residency.valid_until || residency.valid_until >= today) &&
+      residency.addresses?.territory_id === territoryId
+    )
+    .map((residency: ResidencyScopeRow) => residency.person_id));
+  return new Map<string, string>(peopleRows
+    .filter((person: PersonHashRow) => Boolean(person.national_id_hash) && scopedPersonIds.has(person.id))
+    .map((person: PersonHashRow) => [person.national_id_hash as string, person.id] as [string, string]));
+}
 Deno.serve(async(req)=>{
  const requestId=crypto.randomUUID();
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
@@ -34,12 +92,12 @@ Deno.serve(async(req)=>{
   if(!territory||territory.active!==true)throw new HttpError(403,"Territory is not available for this action");
   const {data:assign,error:ae}=await admin.from("role_assignments").select("id,organization_id,active,starts_at,ends_at,roles(role_code)").eq("user_id",user.id).eq("scope_territory_id",territory_id).eq("active",true);
   if(ae)throw ae;
-  const assignmentOrgIds=[...new Set((assign||[]).map(x=>x.organization_id).filter(Boolean))];
+  const assignmentOrgIds=[...new Set<string>(((assign||[]) as any[]).map((x:any)=>x.organization_id).filter((id:any):id is string=>typeof id==="string"&&id.length>0))];
   const orgById=new Map<string,any>();
   if(assignmentOrgIds.length){
    const {data:orgs,error:oe}=await admin.from("organizations").select("id,active,territory_id").in("id",assignmentOrgIds);
    if(oe)throw oe;
-   for(const org of orgs||[])orgById.set(org.id,org);
+   for(const org of (orgs||[]) as any[])orgById.set(org.id,org);
   }
   const allowedTerritoryIds=new Set<string>([territory.id]);
   let parentId=territory.parent_id||null;
@@ -49,7 +107,7 @@ Deno.serve(async(req)=>{
    if(!parent||parent.active!==true)break;
    allowedTerritoryIds.add(parent.id);parentId=parent.parent_id||null;
   }
-  // Fail closed unless the assignment organization is active and mapped to this territory or an active ancestor.\n  const assignmentsWithOrg=(assign||[]).map(x=>({...x,organization_valid:Boolean(x.organization_id&&orgById.get(x.organization_id)?.active===true&&orgById.get(x.organization_id)?.territory_id&&allowedTerritoryIds.has(orgById.get(x.organization_id).territory_id))}));
+  // Fail closed unless the assignment organization is active and mapped to this territory or an active ancestor.\n  const assignmentsWithOrg=((assign||[]) as any[]).map((x:any)=>({...x,organization_valid:Boolean(x.organization_id&&orgById.get(x.organization_id)?.active===true&&orgById.get(x.organization_id)?.territory_id&&allowedTerritoryIds.has(orgById.get(x.organization_id).territory_id))}));
   const decision=resolveTransactionAuthorization({territoryType:territory.territory_type,serviceType:service_type,assignments:assignmentsWithOrg,now:Date.now()});
   if(!decision.ok)throw new HttpError(decision.status,decision.reason);
   const scopedRoles=decision.scopedRoles;
@@ -59,18 +117,18 @@ Deno.serve(async(req)=>{
     if(!applicant_name||!address||!rt||!rw||!request_kk)throw new HttpError(400,"F-1.02 requires applicant, address, RT, RW and KK request");
     const applicantNik=text(rawPayload.applicant_nik||rawPayload["NIK Pemohon"]);
     if(applicantNik && !/^\\d{16}$/.test(applicantNik))throw new HttpError(400,"NIK Pemohon must contain 16 digits");
-    const members=Array.isArray(rawPayload.members)?rawPayload.members:[];
+    const members:Record<string,any>[]=Array.isArray(rawPayload.members)?rawPayload.members as Record<string,any>[]:[];
     if(members.length>50)throw new HttpError(400,"A household request can contain at most 50 members");
-    if(members.some(m=>!m?.full_name))throw new HttpError(400,"Every household member requires full_name");
-    const memberNiks=members.map(m=>text(m.nik||m.NIK||m["NIK Warga"]||m.national_id));
-    if(memberNiks.some(value=>value&&!/^\\d{16}$/.test(value)))throw new HttpError(400,"Each member NIK, when provided, must contain 16 digits");
-    const allNiks=[applicantNik,...memberNiks].filter((value):value is string=>Boolean(value));
+    if(members.some((m:Record<string,any>)=>!m?.full_name))throw new HttpError(400,"Every household member requires full_name");
+    const memberNiks=members.map((m:Record<string,any>)=>text(m.nik||m.NIK||m["NIK Warga"]||m.national_id));
+    if(memberNiks.some((value:string|null)=>value&&!/^\\d{16}$/.test(value)))throw new HttpError(400,"Each member NIK, when provided, must contain 16 digits");
+    const allNiks: string[]=[applicantNik,...memberNiks].filter((value):value is string=>Boolean(value));
     const personIdsByHash=await findPersonIdsByNIK(admin,allNiks,territory_id);
     const hashByNik=new Map<string,string>();
     for(const nikValue of allNiks)hashByNik.set(nikValue,await hashNIK(nikValue));
     const applicantHash=applicantNik?hashByNik.get(applicantNik):undefined;
     const applicantPersonId=applicantHash?personIdsByHash.get(applicantHash)||null:null;
-    const safeMembers=members.map((member,index)=>{
+    const safeMembers=members.map((member:Record<string,any>,index:number)=>{
       const safeMember=sanitizeSensitivePayload(member) as Record<string,unknown>;
       const memberNik=memberNiks[index];
       const memberHash=memberNik?hashByNik.get(memberNik):undefined;
@@ -85,11 +143,11 @@ Deno.serve(async(req)=>{
     if(!(await writeAudit(admin,{actor_user_id:user.id,action:"F1_02_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:{request_number:record.request_number,service_type:record.service_type,status:record.status,form_code:"F-1.02",result_form_code:"F-1.09"},source:"GOVERNMENT_FORM_COMPLIANCE",authority:scopedRoles.join(",")},requestId)))return json({ok:false,error:"Submission was saved but audit confirmation failed. Do not resubmit; contact support using the request ID."},500,requestId);
     return json({ok:true,type:service_type,form_code:"F-1.02",result_form_code:"F-1.09",record},200,requestId);
   }
-  let person_id=null; const nik=text(rawPayload.NIK||rawPayload["NIK Warga"]||rawPayload["NIK Pemohon"]||rawPayload["NIK Almarhum/Almarhumah"]);
+  let person_id:string|null=null; const nik=text(rawPayload.NIK||rawPayload["NIK Warga"]||rawPayload["NIK Pemohon"]||rawPayload["NIK Almarhum/Almarhumah"]);
   if(nik&&!/^\\d{16}$/.test(nik))throw new HttpError(400,"NIK must contain 16 digits");
   if(nik){const h=await hashNIK(nik);const personIdsByHash=await findPersonIdsByNIK(admin,[nik],territory_id);person_id=personIdsByHash.get(h)||null;}
   if(CANONICAL.has(service_type)){
-    let table="",row={territory_id,created_by:user.id};
+    let table="",row:Record<string,unknown>={territory_id,created_by:user.id};
     if(service_type==="BUSINESS"){table="rt_business_profiles";row={...row,owner_person_id:person_id,business_name:text(p["Nama Usaha"]),business_type:text(p["Jenis Usaha"])||"LAINNYA",sector:text(p["Sektor"]),products_services:text(p["Produk/Jasa"]),scale:text(p["Skala Usaha"]),worker_count:num(p["Tenaga Kerja"]),sales_channels:text(p["Kanal Penjualan"]),licensing_status:text(p["Legalitas/Perizinan"]),needs:text(p["Kebutuhan Usaha"]),constraints:text(p["Kendala"]),potential:text(p["Potensi"]),verification_status:"SUBMITTED",classification:"INTERNAL",source:"RT_DIGITAL"};if(!row.business_name)throw new HttpError(400,"Nama Usaha wajib diisi");}
     if(service_type==="TRADE"){table="rt_trade_activities";row={...row,actor_name:text(p["Pelaku"]),trade_type:text(p["Jenis Perdagangan"])||"LAINNYA",products_services:text(p["Produk/Jasa"]),location_channel:text(p["Lokasi/Kanal"]),operating_hours:text(p["Jam Operasional"]),event_promotion:text(p["Event/Promosi"]),needs:text(p["Kebutuhan"]),status:"SUBMITTED",classification:"INTERNAL"}}
     if(service_type==="EMPLOYMENT"){table="rt_employment_profiles";row={...row,person_id,work_status:text(p["Status Kerja"])||"LAINNYA",occupation:text(p["Pekerjaan/Profesi"]),skills:text(p["Keahlian"]),certifications:text(p["Sertifikasi"]),training_needs:text(p["Kebutuhan Kerja/Pelatihan"]),verification_status:"SUBMITTED",classification:"CONFIDENTIAL"}}
