@@ -123,4 +123,9 @@ $$;
 RESET statement_timeout;
 RESET ROLE;
 
+-- Restore the fixture hierarchy after the deliberate cycle-safety check above.
+UPDATE public.territories
+SET parent_id = '30000000-0000-4000-8000-000000000002'
+WHERE id = '30000000-0000-4000-8000-000000000003';
+
 SELECT 'regional dashboard RPC smoke tests passed' AS result;
