@@ -120,7 +120,7 @@ BEGIN
     AND m.valid_from <= CURRENT_DATE
     AND (m.valid_to IS NULL OR m.valid_to >= CURRENT_DATE)
     AND p.classification = 'CONFIDENTIAL'
-    AND p.status = 'ACTIVE'
+    AND p.status IN ('ACTIVE','DECEASED')
     AND h.status = 'ACTIVE'
   ORDER BY m.is_head DESC, p.full_name ASC
   LIMIT LEAST(GREATEST(COALESCE(p_limit, 50), 1), 100)
