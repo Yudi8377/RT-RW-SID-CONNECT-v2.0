@@ -12,7 +12,12 @@ Deno.serve(async(req)=>{
   const anon=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:auth}}});
   const {data:{user},error:ue}=await anon.auth.getUser(); if(ue||!user)throw new Error("Authenticated user required");
   const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const body=await req.json(); const service_type=String(body.service_type||"").trim().toUpperCase(); const territory_id=String(body.territory_id||"").trim(); const p=body.payload&&typeof body.payload==="object"?body.payload:{};
+  const declaredLength=Number(req.headers.get("content-length")||0);
+  if(Number.isFinite(declaredLength)&&declaredLength>64*1024)return new Response(JSON.stringify({ok:false,error:"Request body exceeds 64 KiB"}),{status:413,headers:{...cors,"Content-Type":"application/json"}});
+  const rawBody=await req.text();
+  if(new TextEncoder().encode(rawBody).byteLength>64*1024)return new Response(JSON.stringify({ok:false,error:"Request body exceeds 64 KiB"}),{status:413,headers:{...cors,"Content-Type":"application/json"}});
+  let body;try{body=JSON.parse(rawBody)}catch{return new Response(JSON.stringify({ok:false,error:"Invalid JSON body"}),{status:400,headers:{...cors,"Content-Type":"application/json"}})}
+  const service_type=String(body.service_type||"").trim().toUpperCase(); const territory_id=String(body.territory_id||"").trim(); const p=body.payload&&typeof body.payload==="object"?body.payload:{};
   if(!service_type||!territory_id)throw new Error("service_type and territory_id are required");
   const {data:territory,error:te}=await admin.from("territories").select("id,territory_type,active").eq("id",territory_id).maybeSingle();
   if(te)throw te;
