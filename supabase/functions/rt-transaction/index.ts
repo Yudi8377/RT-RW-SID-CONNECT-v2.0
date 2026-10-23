@@ -1,36 +1,55 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveTransactionAuthorization } from "../_shared/transaction-authorization.ts";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
-const ROLE_ALLOW=["RT_OPERATOR","RW_REVIEWER","VILLAGE_VALIDATOR","PLATFORM_ADMIN","PILOT_VIEWER"];
 const CANONICAL=new Set(["BUSINESS","TRADE","EMPLOYMENT","EDUCATION","HEALTH","ENVIRONMENT","INFRASTRUCTURE","VOLUNTEER","PLANNING","DISASTER","ORGANIZATION"]);
 const text=(v)=>v==null||v===""?null:String(v).trim()||null;
 const num=(v)=>v==null||v===""?0:Number(v);
+class HttpError extends Error { constructor(status:number,message:string){super(message);this.status=status;} status:number; }
+const json=(body:unknown,status=200,requestId?:string)=>new Response(JSON.stringify({...body,...(requestId?{request_id:requestId}:{})}),{status,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
 async function hashNIK(v){if(!v)return null;const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(String(v).trim()));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("")}
 Deno.serve(async(req)=>{
+ const requestId=crypto.randomUUID();
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
+ if(req.method!=="POST")return json({ok:false,error:"Method not allowed"},405,requestId);
  try{
-  const auth=req.headers.get("Authorization"); if(!auth)throw new Error("Authorization required");
+  const auth=req.headers.get("Authorization"); if(!auth)throw new HttpError(401,"Authorization required");
   const anon=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:auth}}});
-  const {data:{user},error:ue}=await anon.auth.getUser(); if(ue||!user)throw new Error("Authenticated user required");
+  const {data:{user},error:ue}=await anon.auth.getUser(); if(ue||!user)throw new HttpError(401,"Authenticated user required");
   const admin=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const declaredLength=Number(req.headers.get("content-length")||0);
-  if(Number.isFinite(declaredLength)&&declaredLength>64*1024)return new Response(JSON.stringify({ok:false,error:"Request body exceeds 64 KiB"}),{status:413,headers:{...cors,"Content-Type":"application/json"}});
+  if(Number.isFinite(declaredLength)&&declaredLength>64*1024)return json({ok:false,error:"Request body exceeds 64 KiB"},413,requestId);
   const rawBody=await req.text();
-  if(new TextEncoder().encode(rawBody).byteLength>64*1024)return new Response(JSON.stringify({ok:false,error:"Request body exceeds 64 KiB"}),{status:413,headers:{...cors,"Content-Type":"application/json"}});
-  let body;try{body=JSON.parse(rawBody)}catch{return new Response(JSON.stringify({ok:false,error:"Invalid JSON body"}),{status:400,headers:{...cors,"Content-Type":"application/json"}})}
-  const service_type=String(body.service_type||"").trim().toUpperCase(); const territory_id=String(body.territory_id||"").trim(); const p=body.payload&&typeof body.payload==="object"?body.payload:{};
-  if(!service_type||!territory_id)throw new Error("service_type and territory_id are required");
-  const {data:territory,error:te}=await admin.from("territories").select("id,territory_type,active").eq("id",territory_id).maybeSingle();
+  if(new TextEncoder().encode(rawBody).byteLength>64*1024)return json({ok:false,error:"Request body exceeds 64 KiB"},413,requestId);
+  let body;try{body=JSON.parse(rawBody)}catch{return json({ok:false,error:"Invalid JSON body"},400,requestId)}
+  if(!body||typeof body!=="object"||Array.isArray(body))throw new HttpError(400,"Request body must be a JSON object");
+  const service_type=String(body.service_type||"").trim().toUpperCase(); const territory_id=String(body.territory_id||"").trim();
+  if(!service_type||service_type.length>64||!territory_id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(territory_id))throw new HttpError(400,"A valid service_type and territory_id are required");
+  const p=body.payload;
+  if(!p||typeof p!=="object"||Array.isArray(p))throw new HttpError(400,"payload must be a JSON object");
+  const {data:territory,error:te}=await admin.from("territories").select("id,territory_type,active,parent_id").eq("id",territory_id).maybeSingle();
   if(te)throw te;
-  if(!territory||territory.active!==true)throw new Error("Active territory not found");
+  if(!territory||territory.active!==true)throw new HttpError(403,"Territory is not available for this action");
   const {data:assign,error:ae}=await admin.from("role_assignments").select("id,organization_id,active,starts_at,ends_at,roles(role_code)").eq("user_id",user.id).eq("scope_territory_id",territory_id).eq("active",true);
   if(ae)throw ae;
-  const now=Date.now();
-  const validAssignments=(assign||[]).filter((x)=>{const start=x.starts_at?Date.parse(x.starts_at):null;const end=x.ends_at?Date.parse(x.ends_at):null;return (start===null||Number.isFinite(start)&&start<=now)&&(end===null||Number.isFinite(end)&&end>now)});
-  const roles=validAssignments.map((x)=>x.roles?.role_code).filter(Boolean);
-  const roleTerritoryTypes={RT_OPERATOR:["RT"],RW_REVIEWER:["RW"],VILLAGE_VALIDATOR:["VILLAGE"],PLATFORM_ADMIN:["RT"]};
-  const scopedRoles=roles.filter((role)=>ROLE_ALLOW.includes(role)&&(roleTerritoryTypes[role]||[]).includes(territory.territory_type));
-  if(!scopedRoles.length)throw new Error("User role is not authorized for this territory type");
-  if(["HEALTH","EDUCATION"].includes(service_type)&&!scopedRoles.some((r)=>["RT_OPERATOR","VILLAGE_VALIDATOR","PLATFORM_ADMIN"].includes(r)))throw new Error("Sensitive domain requires RT_OPERATOR or village validation authority");
+  const assignmentOrgIds=[...new Set((assign||[]).map(x=>x.organization_id).filter(Boolean))];
+  const orgById=new Map<string,any>();
+  if(assignmentOrgIds.length){
+   const {data:orgs,error:oe}=await admin.from("organizations").select("id,active,territory_id").in("id",assignmentOrgIds);
+   if(oe)throw oe;
+   for(const org of orgs||[])orgById.set(org.id,org);
+  }
+  const allowedTerritoryIds=new Set<string>([territory.id]);
+  let parentId=territory.parent_id||null;
+  for(let depth=0;parentId&&depth<8&&!allowedTerritoryIds.has(parentId);depth++){
+   const {data:parent,error:parentError}=await admin.from("territories").select("id,parent_id,active").eq("id",parentId).maybeSingle();
+   if(parentError)throw parentError;
+   if(!parent||parent.active!==true)break;
+   allowedTerritoryIds.add(parent.id);parentId=parent.parent_id||null;
+  }
+  const assignmentsWithOrg=(assign||[]).map(x=>({...x,organization_valid:Boolean(x.organization_id&&orgById.get(x.organization_id)?.active===true&&orgById.get(x.organization_id)?.territory_id&&allowedTerritoryIds.has(orgById.get(x.organization_id).territory_id))}));
+  const decision=resolveTransactionAuthorization({territoryType:territory.territory_type,serviceType:service_type,assignments:assignmentsWithOrg,now:Date.now()});
+  if(!decision.ok)throw new HttpError(decision.status,decision.reason);
+  const scopedRoles=decision.scopedRoles;
   if(service_type==="HOUSEHOLD"){
     const applicant_name=text(p.applicant_name||p.head_name); const address=text(p.address); const rt=text(p.rt||p.RT); const rw=text(p.rw||p.RW);
     const request_kk=Boolean(p.request_kk||p.request_type);
@@ -43,7 +62,7 @@ Deno.serve(async(req)=>{
     const {data:record,error:re}=await admin.from("rt_service_requests").insert({territory_id,service_type,payload,status:"SUBMITTED",created_by:user.id,authority:"RT_DIGITAL"}).select().single();
     if(re)throw re;
     await admin.from("audit_logs").insert({actor_user_id:user.id,action:"F1_02_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"GOVERNMENT_FORM_COMPLIANCE",authority:scopedRoles.join(",")});
-    return new Response(JSON.stringify({ok:true,type:service_type,form_code:"F-1.02",result_form_code:"F-1.09",record}),{headers:{...cors,"Content-Type":"application/json"}});
+    return json({ok:true,type:service_type,form_code:"F-1.02",result_form_code:"F-1.09",record},200,requestId);
   }
   let person_id=null; const nik=text(p.NIK||p["NIK Warga"]||p["NIK Pemohon"]||p["NIK Almarhum/Almarhumah"]);
   if(nik){const h=await hashNIK(nik);const {data:person,error:pe}=await admin.from("persons").select("id").eq("national_id_hash",h).maybeSingle();if(pe)throw pe;person_id=person?.id||null;}
@@ -62,10 +81,14 @@ Deno.serve(async(req)=>{
     if(service_type==="ORGANIZATION"){table="rt_organization_profiles";row={...row,name:text(p["Nama Organisasi/Komunitas"]),organization_type:text(p["Jenis"]),leaders:text(p["Pengurus"]),member_count:num(p["Jumlah Anggota"]),main_activities:text(p["Kegiatan Utama"]),status:text(p["Status"])||"ACTIVE"};if(!row.name)throw new Error("Nama organisasi/komunitas wajib diisi")}
     const {data:record,error:re}=await admin.from(table).insert(row).select().single();if(re)throw re;
     await admin.from("audit_logs").insert({actor_user_id:user.id,action:"RT_CANONICAL_SUBMITTED",entity_type:table,entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"RT_DIGITAL",authority:scopedRoles.join(",")});
-    return new Response(JSON.stringify({ok:true,type:service_type,canonical:true,table,record}),{headers:{...cors,"Content-Type":"application/json"}});
+    return json({ok:true,type:service_type,canonical:true,table,record},200,requestId);
   }
   const {data:record,error:re}=await admin.from("rt_service_requests").insert({territory_id,service_type,payload:p,status:"SUBMITTED",created_by:user.id,authority:"RT_DIGITAL"}).select().single();if(re)throw re;
   await admin.from("audit_logs").insert({actor_user_id:user.id,action:"RT_SERVICE_SUBMITTED",entity_type:"rt_service_requests",entity_id:record.id,scope_territory_id:territory_id,after_data:record,source:"RT_DIGITAL",authority:scopedRoles.join(",")});
-  return new Response(JSON.stringify({ok:true,type:"SERVICE_REQUEST",record}),{headers:{...cors,"Content-Type":"application/json"}});
- }catch(e){return new Response(JSON.stringify({ok:false,error:String(e?.message||e)}),{status:400,headers:{...cors,"Content-Type":"application/json"}})}
+  return json({ok:true,type:"SERVICE_REQUEST",record},200,requestId);
+ }catch(e){
+  if(e instanceof HttpError)return json({ok:false,error:e.message},e.status,requestId);
+  console.error("[rt-transaction]",requestId,e instanceof Error?e.message:"unknown internal error");
+  return json({ok:false,error:"Internal server error. Reference the request ID when contacting support."},500,requestId);
+ }
 });
