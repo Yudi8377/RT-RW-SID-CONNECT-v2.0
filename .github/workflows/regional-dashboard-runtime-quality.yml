@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/202610220002_regional_dashboard_summary_rpc.sql'
-      - 'supabase/migrations/202610240001_scoped_resident_directory.sql'
+      - 'supabase/migrations/202610230001_scoped_resident_directory.sql'
       - 'supabase/tests/resident-directory-smoke.sql'
       - 'supabase/tests/regional-dashboard-test-bootstrap.sql'
       - 'supabase/tests/regional-dashboard-rpc-smoke.sql'
@@ -57,7 +57,7 @@ jobs:
       - name: Apply resident directory migration to disposable database
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610240001_scoped_resident_directory.sql
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610230001_scoped_resident_directory.sql
       - name: Test resident directory scope and least privilege
         env:
           PGPASSWORD: postgres
