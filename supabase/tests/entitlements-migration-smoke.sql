@@ -124,7 +124,7 @@ $;
 
 -- RLS allows the assigned user to read its own organization's subscription only.
 SET ROLE authenticated;
-SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', false);
 DO $$
 BEGIN
   IF (SELECT count(*) FROM public.organization_subscriptions) <> 1 THEN
@@ -132,7 +132,7 @@ BEGIN
   END IF;
 END;
 $$;
-SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', true);
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000003', false);
 DO $$
 BEGIN
   IF (SELECT count(*) FROM public.organization_subscriptions) <> 0 THEN
