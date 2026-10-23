@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isCurrentAssignment, isUuid, trialPeriod } from "./policy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,19 +24,6 @@ function json(status: number, payload: Record<string, unknown>) {
   return new Response(JSON.stringify(payload), { status, headers: corsHeaders });
 }
 
-function isUuid(value: unknown): value is string {
-  return typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
-function isCurrentAssignment(assignment: Assignment, now: number): boolean {
-  if (assignment.active !== true) return false;
-  const start = assignment.starts_at ? Date.parse(assignment.starts_at) : Number.NEGATIVE_INFINITY;
-  const end = assignment.ends_at ? Date.parse(assignment.ends_at) : Number.POSITIVE_INFINITY;
-  return Number.isFinite(start) || start === Number.NEGATIVE_INFINITY
-    ? (Number.isFinite(end) || end === Number.POSITIVE_INFINITY) && start <= now && end > now
-    : false;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -126,8 +114,7 @@ Deno.serve(async (req) => {
   if (currentLookupError) return json(503, { error: "SUBSCRIPTION_LOOKUP_FAILED" });
   if (currentSubscription) return json(409, { error: "SUBSCRIPTION_ALREADY_CURRENT" });
 
-  const startsAt = now.toISOString();
-  const endsAt = new Date(nowMs + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { startsAt, endsAt } = trialPeriod(now, TRIAL_DAYS);
   const { data: subscription, error: insertError } = await admin
     .from("organization_subscriptions")
     .insert({
