@@ -924,12 +924,12 @@ async function adminUsersWorkspace(){
 }
 const citizen360Cache=new Map();
 function citizen360Workspace(){
- return '<div class="module-head"><div><div class="eyebrow dark">COMMUNITY / CANONICAL DATA</div><h2>Profil Warga · Citizen 360</h2><p>Satu entitas warga menjadi sumber referensi lintas modul. Profil, pendidikan, pekerjaan, kesehatan, relawan dan permohonan layanan ditampilkan berdasarkan <b>person_id</b> dan referensi layanan.</p></div><span class="status active">CANONICAL PERSON</span></div>'+
- '<section class="panel wide"><div class="module-note"><b>Data contoh.</b><span>Record yang tampil digunakan untuk memperlihatkan struktur dan alur layanan. Data pribadi dan tindakan resmi tetap mengikuti kewenangan pengguna.</span></div></section>'+
- '<section class="panel wide"><div class="panel-head"><div><small>CANONICAL REGISTRY</small><h3>Warga Terhubung</h3></div><div class="toolbar-right"><input id="citizen360-search" type="search" placeholder="Cari nama / email..." style="min-width:260px"></div></div>'+
- '<div class="module-kpis" id="citizen360-kpis"><div><small>WARGA</small><strong>—</strong><span>Memuat data</span></div><div><small>PROFILE LINKS</small><strong>—</strong><span>Lintas modul</span></div><div><small>LAYANAN</small><strong>—</strong><span>Referensi layanan</span></div></div>'+
- '<div class="table-wrap"><table class="workspace-table"><thead><tr><th>NAMA</th><th>GENDER</th><th>STATUS</th><th>PENDIDIKAN</th><th>PEKERJAAN</th><th>KESEHATAN</th><th>RELASI</th></tr></thead><tbody id="citizen360-body"><tr><td colspan="7"><div class="empty-state"><b>Memuat 250+ data warga...</b><span>Menyiapkan hubungan lintas modul dari canonical person.</span></div></td></tr></tbody></table></div>'+
- '<div class="table-foot"><span id="citizen360-count">Memuat...</span><span>Canonical source: public.persons</span></div></section>';
+ return '<div class="module-head"><div><div class="eyebrow dark">COMMUNITY / CANONICAL DATA</div><h2>Profil Warga · Citizen 360</h2><p>Direktori warga menampilkan data minimum yang sudah terhubung ke KK dan berada dalam scope aktif. Relasi lama tidak dibuat otomatis tanpa verifikasi.</p></div><span class="status active">CANONICAL PERSON</span></div>'+
+ '<section class="panel wide"><div class="module-note"><b>Data terotorisasi.</b><span>Hanya relasi warga–KK yang sudah diverifikasi yang ditampilkan. Data pribadi sensitif dan nomor identitas tidak ditampilkan pada direktori ini.</span></div></section>'+
+ '<section class="panel wide"><div class="panel-head"><div><small>CANONICAL REGISTRY</small><h3>Warga Terhubung</h3></div><div class="toolbar-right"><input id="citizen360-search" type="search" placeholder="Cari nama warga..." style="min-width:260px"></div></div>'+
+ '<div class="module-kpis" id="citizen360-kpis"><div><small>WARGA</small><strong>—</strong><span>Memuat data</span></div><div><small>KK TERHUBUNG</small><strong>—</strong><span>Relasi aktif</span></div><div><small>SUMBER</small><strong>RPC</strong><span>Server-authorized</span></div></div>'+
+ '<div class="table-wrap"><table class="workspace-table"><thead><tr><th>NAMA</th><th>GENDER</th><th>STATUS</th><th>HUBUNGAN KELUARGA</th><th>REFERENSI KK</th></tr></thead><tbody id="citizen360-body"><tr><td colspan="5"><div class="empty-state"><b>Menunggu direktori terotorisasi.</b><span>Data akan muncul setelah relasi warga–KK dan scope wilayah tervalidasi.</span></div></td></tr></tbody></table></div>'+
+ '<div class="table-foot"><span id="citizen360-count">Memuat...</span><span>Canonical source: public.persons + household_person_memberships</span></div></section>';
 }
 async function loadCitizen360(){
  if(!sb||state.view!=="warga"||state.sub!=="registry")return;
