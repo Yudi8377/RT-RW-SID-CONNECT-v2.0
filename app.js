@@ -999,7 +999,9 @@ async function startCommercialTrial(){
       };
       const message=messages[code]||"Aktivasi trial gagal. Silakan coba kembali atau hubungi administrator.";
       const status=document.getElementById("commercial-trial-status");if(status)status.textContent=message;
-      if(button){button.disabled=false;button.textContent="Coba Lagi";}
+      const conflict=["TRIAL_ALREADY_USED","SUBSCRIPTION_ALREADY_CURRENT","TRIAL_OR_SUBSCRIPTION_ALREADY_EXISTS"].includes(code);
+      if(button){button.disabled=conflict;button.textContent=conflict?"Trial Tidak Tersedia":"Coba Lagi";}
+      if(conflict)setTimeout(refreshCommercialTrialStatus,0);
       return;
     }
     const sub=response.data.subscription;
