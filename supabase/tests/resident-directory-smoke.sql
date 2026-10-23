@@ -1,8 +1,8 @@
 -- Scoped resident directory tests: assignment, hierarchy, minimal fields and least privilege.
 -- Regression guard: household directory schema intentionally does not assume households.created_at.
 INSERT INTO public.addresses (id, territory_id, address_line) VALUES
- ('70000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001','Alamat uji RT'),
- ('70000000-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000002','Alamat uji wilayah lain');
+ ('70000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000006','Alamat uji RT'),
+ ('70000000-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000007','Alamat uji wilayah lain');
 INSERT INTO public.households (id, household_number_hash, address_id, status) VALUES
  ('71000000-0000-4000-8000-000000000001','HASH-UJI-1','70000000-0000-4000-8000-000000000001','ACTIVE'),
  ('71000000-0000-4000-8000-000000000002','HASH-UJI-2','70000000-0000-4000-8000-000000000002','ACTIVE');
@@ -24,48 +24,48 @@ DECLARE
 BEGIN
   -- RT sees only active CONFIDENTIAL residents assigned to that RT.
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000008',false);
-  SELECT * INTO v FROM public.rt_resident_directory('40000000-0000-4000-8000-000000000001',50,0);
+  SELECT * INTO v FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000006',50,0);
   IF v.full_name <> 'Warga Uji RT' OR v.is_head IS DISTINCT FROM true THEN
     RAISE EXCEPTION 'RT directory returned unexpected row: %', row_to_json(v);
   END IF;
-  SELECT count(*) INTO n FROM public.rt_resident_directory('40000000-0000-4000-8000-000000000001',50,0);
+  SELECT count(*) INTO n FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000006',50,0);
   IF n <> 1 THEN RAISE EXCEPTION 'RT directory leaked or omitted records: %', n; END IF;
 
-  SELECT * INTO v FROM public.rt_household_directory('40000000-0000-4000-8000-000000000001',50,0);
+  SELECT * INTO v FROM public.rt_household_directory('30000000-0000-4000-8000-000000000006',50,0);
   IF v.address_line <> 'Alamat uji RT' THEN RAISE EXCEPTION 'RT household scope returned unexpected address: %', row_to_json(v); END IF;
-  SELECT count(*) INTO n FROM public.rt_household_directory('40000000-0000-4000-8000-000000000001',50,0);
+  SELECT count(*) INTO n FROM public.rt_household_directory('30000000-0000-4000-8000-000000000006',50,0);
   IF n <> 1 THEN RAISE EXCEPTION 'RT household directory leaked or omitted records: %', n; END IF;
 
   -- RW can see assigned descendant RT data, not unrelated village data.
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000009',false);
-  SELECT count(*) INTO n FROM public.rt_resident_directory('60000000-0000-4000-8000-000000000001',50,0);
+  SELECT count(*) INTO n FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000005',50,0);
   IF n <> 1 THEN RAISE EXCEPTION 'RW descendant scope incorrect: %', n; END IF;
-  SELECT count(*) INTO n FROM public.rt_household_directory('60000000-0000-4000-8000-000000000001',50,0);
+  SELECT count(*) INTO n FROM public.rt_household_directory('30000000-0000-4000-8000-000000000005',50,0);
   IF n <> 1 THEN RAISE EXCEPTION 'RW household descendant scope incorrect: %', n; END IF;
 
   -- Village validator sees descendants within its assigned village.
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000010',false);
-  SELECT count(*) INTO n FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000001',50,0);
+  SELECT count(*) INTO n FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000004',50,0);
   IF n <> 1 THEN RAISE EXCEPTION 'Village descendant scope incorrect: %', n; END IF;
 
   -- RT cannot use an RW scope and a regional role cannot call this person-level endpoint.
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000008',false);
   BEGIN
-    PERFORM * FROM public.rt_resident_directory('60000000-0000-4000-8000-000000000001',50,0);
+    PERFORM * FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000005',50,0);
     RAISE EXCEPTION 'RT user unexpectedly used RW scope';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','a1000000-0000-4000-8000-000000000001',false);
   BEGIN
-    PERFORM * FROM public.rt_resident_directory('20000000-0000-4000-8000-000000000001',50,0);
+    PERFORM * FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000003',50,0);
     RAISE EXCEPTION 'district role unexpectedly read person-level directory';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 
   PERFORM pg_catalog.set_config('request.jwt.claim.sub','',false);
   BEGIN
-    PERFORM * FROM public.rt_resident_directory('40000000-0000-4000-8000-000000000001',50,0);
+    PERFORM * FROM public.rt_resident_directory('30000000-0000-4000-8000-000000000006',50,0);
     RAISE EXCEPTION 'anonymous directory call unexpectedly succeeded';
   EXCEPTION WHEN SQLSTATE '28000' THEN NULL;
   END;
