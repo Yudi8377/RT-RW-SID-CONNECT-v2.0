@@ -15,6 +15,8 @@ on:
       - 'scripts/check-entitlements-release-gates.sh'
       - 'scripts/check-territory-workspaces.sh'
       - 'scripts/check-regional-demo-entry.mjs'
+      - 'scripts/check-context-specific-forms.mjs'
+      - 'docs/FORM_REGULATORY_MAPPING.md'
       - 'docs/territory-specific-workspaces.md'
       - 'supabase/functions/rt-transaction/**'
       - 'supabase/functions/_shared/**'
@@ -76,6 +78,8 @@ jobs:
         run: bash scripts/check-territory-workspaces.sh
       - name: Check selected-region interactive demo isolation
         run: node scripts/check-regional-demo-entry.mjs
+      - name: Check context-specific form schemas
+        run: node scripts/check-context-specific-forms.mjs
       - name: Check regional migration safety markers
         shell: bash
         run: |
