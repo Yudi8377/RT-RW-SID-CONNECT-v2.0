@@ -10,7 +10,7 @@ on:
       - "supabase/migrations/202610230001_server_authoritative_entitlements.sql"
       - "supabase/migrations/202610230002_device_entitlement_enforcement.sql"
       - "supabase/migrations/202610230005_trial_14_days.sql"
-      - "supabase/migrations/20261024100000_trial_7_day_reconciliation.sql"
+      - "supabase/migrations/20261024125347_trial_7_day_reconciliation.sql"
       - "supabase/tests/**"
       - ".github/workflows/subscription-trial-quality.yml"
   push:
@@ -150,7 +150,7 @@ jobs:
       - name: Apply forward-only seven-day reconciliation to disposable database
         env:
           PGPASSWORD: postgres
-        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20261024100000_trial_7_day_reconciliation.sql
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20261024125347_trial_7_day_reconciliation.sql
       - name: Verify trial lifecycle, device limits, grants, and tenant isolation
         env:
           PGPASSWORD: postgres
