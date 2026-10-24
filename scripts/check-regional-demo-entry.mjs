@@ -11,4 +11,8 @@ assert.match(app, /rtrw_demo_records_v1/, "demo records must use a separate loca
 assert.match(app, /if\(!DEMO_MODE&&C\.supabasePublishableKey&&window\.supabase\)/, "demo mode must not initialize the Supabase client");
 assert.match(app, /DEMO INTERAKTIF · DATA SINTETIS TERISOLASI/, "regional demo must disclose synthetic isolated data");
 assert.match(app, /Kembali ke Pemilihan Wilayah/, "regional demo must offer a clear way back to the region picker");
+assert.ok(app.includes("function demoScopedWorkspace()"), "regional demo must render an interactive local workspace");
+assert.ok(app.includes("if(ADMIN_PREVIEW)return DEMO_MODE?demoScopedWorkspace():previewScopedWorkspace();"), "demo mode must use its own interactive workspace rather than the UI-only preview");
+assert.ok(app.includes("Tambah data demo"), "demo workspace must expose a create action");
+assert.ok(app.includes("rtrw_demo_records_v1"), "create/update/delete demo data must use isolated local persistence");
 console.log("Regional demo entry regression checks passed.");
