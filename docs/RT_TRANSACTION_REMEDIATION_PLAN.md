@@ -2,9 +2,9 @@
 
 **Evidence snapshot:** 2026-10-23. This plan records source observations and current advisor output; it is not a claim of exploit or breach.
 
-## A. Deployed Edge Function rt-transaction — version 5
+## A. Deployed Edge Function rt-transaction — version 6 (2026-10-24)
 
-Observed deployed SHA-256: 8e7f459331ec63915fe72ce8916cc9678d1dcc303818ab67406811b70b4b6e25. JWT verification is enabled.
+Observed deployed SHA-256: `7ac17247005df2103f1c7d29f1014e12ab1f7288720fae7cefe56859e146279b`. JWT verification is enabled. The deployed entrypoint was read back after deployment and confirmed to contain the shared role/scope/validity authorization logic, request-size and JSON-shape validation, active territory and organization mapping checks, and audit-failure handling. Deployment identity is verified; authenticated positive/negative production smoke tests are still outstanding. The previous version 5 SHA-256 was `8e7f459331ec63915fe72ce8916cc9678d1dcc303818ab67406811b70b4b6e25`.
 
 ### Confirmed source-level concerns
 - CORS uses wildcard origin. Confirm whether browser access needs to be public; if credentials are involved, use an explicit origin allowlist and never combine credentialed access with wildcard origins.

@@ -5,7 +5,7 @@
 
 ## Confirmed
 
-- GitHub Pages deployment #489 completed successfully on commit `a6e0f8f4c7c693681a7d93b5c60360cd31aef2c5`; the Android Test APK #209 workflow is still running at the time of this check.
+- GitHub Pages deployment #513 and Android Test APK #233 both completed successfully on commit `ef9ea5fd2df591fe4ea85132f59791fadfdb1496` (2026-10-23 23:25 UTC). These confirm deployment/build only; they do not substitute for authenticated end-to-end or device-runtime acceptance tests.
 - Disposable Supabase migration-chain validation and the relevant regional/trial CI checks passed before rollout.
 - The production database accepted the following reviewed additive migrations in order:
   - `regional_dashboard_roles` (production migration version `20261023075802`)
@@ -89,7 +89,7 @@ This checklist is intentionally fail-closed. A checked item requires recorded te
 - [ ] Re-run browser/mobile smoke tests, verify GitHub Pages deployment and responsive navigation, and record the tested commit SHA.
 
 ### Current decision
-The current GitHub `main` source of `rt-transaction` imports the shared role/scope/validity authorization helper and validates request size/shape, active territory and organization mapping. Unit tests for the helper passed in workflow run #40039217291 and were merged in PR #150. Production `rt-transaction` was last verified as version 5 with SHA-256 `8e7f459331ec63915fe72ce8916cc9678d1dcc303818ab67406811b70b4b6e25` and still runs the older source; the hardened main-branch source has not yet been deployed. Active production assignments observed in the read-only audit include `RT_OPERATOR` and `PLATFORM_ADMIN` scoped to a VILLAGE territory. These assignments must be corrected through an authorized, identity-verified administrative workflow before a strict production rollout. No role grants, production data changes, or trial feature activation are authorized by this checklist alone.
+The current GitHub `main` source of `rt-transaction` imports the shared role/scope/validity authorization helper and validates request size/shape, active territory and organization mapping. Unit tests for the helper passed in workflow run #40039217291 and were merged in PR #150. On 2026-10-24, the hardened entrypoint was deployed to Supabase production as `rt-transaction` version 6 with JWT verification enabled and SHA-256 `7ac17247005df2103f1c7d29f1014e12ab1f7288720fae7cefe56859e146279b`; the deployed source was read back and confirmed to contain the shared authorization logic, request-size checks, organization validation, and audit-failure handling. This verifies deployment and source identity only: authenticated live smoke tests remain outstanding. Active production assignments observed in the read-only audit include `RT_OPERATOR` and `PLATFORM_ADMIN` scoped to a VILLAGE territory. These assignments must be corrected through an authorized, identity-verified administrative workflow before a strict production rollout. No role grants, production data changes, or trial feature activation are authorized by this checklist alone.
 
 ## National program documents added — 2026-10-24
 
