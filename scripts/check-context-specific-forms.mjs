@@ -2,30 +2,24 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 
 const app = readFileSync("app.js", "utf8");
-assert.match(app, /function contextualFallbackSchema\(\)/, "contextual fallback schema must exist");
-assert.match(app, /"identitas:profil"/, "RT/RW identity profile form must be specific");
-assert.match(app, /"identitas:pengurus"/, "RT/RW management form must be specific");
-assert.match(app, /"kegiatan:meeting"/, "meeting form must be specific");
-assert.match(app, /"kegiatan:minutes"/, "minutes form must be specific");
-assert.match(app, /"layanan:complaints"/, "complaint form must be specific");
-assert.match(app, /"desa:development"/, "village development form must be specific");
-assert.match(app, /"desa:regulation"/, "village regulation form must be specific");
-assert.match(app, /"kecamatan:escalations"/, "district escalation form must be specific");
-assert.match(app, /"kabkota:programs"/, "regency/city program form must be specific");
-assert.match(app, /"admin:forms"/, "form governance must include legal-review metadata");
-assert.match(app, /if\(\(state\.view==="rt"\|\|state\.view==="warga"\)&&schemas\[state\.sub\]\)return schemas\[state\.sub\]/, "legacy resident schemas must be limited to resident/RT modules");
-assert.match(app, /return contextualFallbackSchema\(\)/, "unmapped regional submenus must get contextual fields, not null/generic shared fields");
-
-const formKeys = [...app.matchAll(/\["([^"]+)",\s*"[^"]+",\s*"[^"]+"\]/g)].map((m) => m[1]);
-assert.ok(formKeys.length > 100, "expected substantial existing form registry to remain intact");
-console.log("Context-specific form checks passed.");
-
-
-// Every actual submenu in the product navigation must resolve through the dedicated registry.
-assert.match(app, /function submenuSpecificSchema\(\)/, "dedicated submenu form registry must exist");
-assert.match(app, /const submenuSchema=submenuSpecificSchema\(\); if\(submenuSchema\)return submenuSchema/, "submenu-specific schema must take priority over broad module fallback");
+assert.match(app, /function contextualFallbackSchema\(\)/);
+assert.match(app, /function submenuSpecificSchema\(\)/);
+assert.match(app, /const submenuSchema=submenuSpecificSchema\(\); if\(submenuSchema\)return submenuSchema/);
+assert.match(app, /return contextualFallbackSchema\(\)/);
 const moduleBlock = app.match(/const modules=\{([\s\S]*?)\n\};/);
 assert.ok(moduleBlock, "navigation module registry must exist");
-const modulePairs = [...moduleBlock[1].matchAll(/\[\s*["']([^"']+)["']\s*,\s*["'][^"']+["']\s*\]/g)];
-assert.ok(modulePairs.length >= 100, "navigation should retain broad submenu coverage");
-assert.match(app, /familyBySub=/, "submenu IDs must be classified into task-specific form families");
+const submenuIds = new Set([...moduleBlock[1].matchAll(/\[\s*["']([^"']+)["']\s*,\s*["'][^"']+["']\s*\]/g)].map(m => m[1]));
+assert.ok(submenuIds.size >= 100, "expected broad submenu coverage");
+const familyBlock = app.match(/const familyBySub=\{([\s\S]*?)\n \};/);
+assert.ok(familyBlock, "submenu-to-form-family registry must exist");
+const familyEntries = [...familyBlock[1].matchAll(/(?:^|,)\s*["']?([^"',:\s]+)["']?\s*:\s*"([^"]+)"/g)];
+const familyBySub = new Map(familyEntries.map(m => [m[1], m[2]]));
+const missingMappings = [...submenuIds].filter(id => !familyBySub.has(id));
+assert.deepEqual(missingMappings, [], "every navigable submenu must map to a specific form family");
+const schemaBlock = app.match(/const S=\{([\s\S]*?)\n \};\n if\(module==="rt"/);
+assert.ok(schemaBlock, "form family schema registry must exist");
+const schemaFamilies = new Set([...schemaBlock[1].matchAll(/^\s*([A-Za-z][A-Za-z0-9]*):\[/gm)].map(m => m[1]));
+const undefinedFamilies = [...new Set([...familyBySub.values()])].filter(family => !schemaFamilies.has(family));
+assert.deepEqual(undefinedFamilies, [], "every form family must resolve to a defined schema");
+assert.match(app, /if\(\(state\.view==="rt"\|\|state\.view==="warga"\)&&schemas\[state\.sub\]\)return schemas\[state\.sub\]/);
+console.log("Context-specific form checks passed: every navigation submenu maps to a defined form family.");
