@@ -1,11 +1,11 @@
 # Production Release Gate — RT/RW-SID CONNECT
 
 **Last checked:** 2026-10-24  
-**Current status (2026-10-24): NOT CLEARED FOR COMMERCIAL LAUNCH OR REAL-DATA NATIONAL PRODUCTION.** GitHub Pages workflow #517 and Android Test APK #237 succeeded on commit `7868057c4f1d61f1544a1eddbb55c58665528d8f`, but authenticated regional E2E, production PostGIS privilege remediation, data-protection, physical-device QA and recovery/capacity evidence remain incomplete. Commercial trial and AI Companion remain disabled.
+**Current status (2026-10-24): NOT CLEARED FOR COMMERCIAL LAUNCH OR REAL-DATA NATIONAL PRODUCTION.** GitHub Pages workflow #519 and Android Test APK #239 succeeded on commit `b98fdd67629c4bddde851b0fbbf5df1ca65eac34`. Authenticated regional/trial E2E, production PostGIS privilege remediation, data-protection, physical-device QA and recovery/capacity evidence remain incomplete. Commercial trial and AI Companion remain disabled.
 
 ## Confirmed
 
-- Latest GitHub Pages deployment #517 and Android Test APK #237 succeeded on commit `7868057c4f1d61f1544a1eddbb55c58665528d8f`. The APK artifact `rt-rw-sid-connect-android-test-v1` is 26,119,231 bytes with digest `sha256:b68f5d79bb21637617e539a76414d70c72654fec61593baaac8020e30b5bb07b` and expires 2026-11-07. [Pages workflow #517](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/actions/runs/40074341969) and [Android workflow #237](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/actions/runs/40074342199). These confirm deployment/build only; they do not substitute for authenticated end-to-end or device-runtime acceptance tests.
+- Latest main-branch GitHub Pages deployment #519 and Android Test APK #239 succeeded on commit `b98fdd67629c4bddde851b0fbbf5df1ca65eac34`. Android artifact `rt-rw-sid-connect-android-test-v1` is 26,119,223 bytes, artifact digest `sha256:e3701190b5e43c2d772eb25d6c5e1866fe489a1cd2570c640fc0ea83ee5d5793`, and expires 2026-11-07. [Pages workflow #519](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/actions/runs/40076489723) and [Android workflow #239](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/actions/runs/40076489779). Regional admin smoke #49, Subscription Trial Quality #171 and Regional dashboard quality #216 also succeeded on the same commit. These confirm deployment/build and CI checks only; they do not substitute for authenticated end-to-end or device-runtime acceptance tests.
 - Disposable Supabase migration-chain validation and the relevant regional/trial CI checks passed before rollout.
 - The production database accepted the following reviewed additive migrations in order:
   - `regional_dashboard_roles` (production migration version `20261023075802`)
@@ -32,7 +32,7 @@
 
 ## Remaining release blockers
 
-1. **Authenticated end-to-end test:** verify organization assignment → Trial 7 Hari → one device registered → subscription active → expiry/denial → audit event. The functions are deployed, but this complete live flow has not yet been verified.
+1. **Trial term reconciliation and authenticated E2E:** the current release offer is Trial 7 Hari, but migration `202610230005_trial_14_days.sql` changed the server-authoritative plan to 14 days. [PR #163](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/pull/163) proposes a forward-only reconciliation to seven days and updates the migration smoke test; until CI passes and the PR is reviewed/merged, the mismatch remains unresolved. Existing subscription end timestamps must not be rewritten. Then verify organization assignment → Trial 7 Hari → one device registered → subscription active → expiry/denial → audit event. The functions are deployed, but this complete live flow has not yet been verified.
 2. **Regional role and scope test:** verify RT, RW, Desa/Kelurahan, Kecamatan, and Kabupaten/Kota with dedicated test accounts and test scopes. Preserve Platform Admin; do not automatically grant new roles to real users.
 3. **Entitlement model reconciliation:** decide how existing `sv_account_entitlements` should coexist with or migrate to `organization_subscriptions`; do not silently treat the two systems as interchangeable.
 4. **Security Advisor triage:** review the current findings individually and confirm least-privilege after the regional RPC and resident-directory grants.
