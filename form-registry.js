@@ -4,7 +4,7 @@
  */
 (function () {
   const f = (label, type = "text", hint = "") => [label, type, hint];
-  const s = (label, options, hint = "Pilih salah satu") => [label, "select", options.join("|") + (hint ? "" : "")];
+  const s = (label, options, hint = "Pilih salah satu") => [label, "select", (Array.isArray(options) ? options.join("|") : String(options))];
   const t = (label, hint = "Uraian lengkap") => [label, "textarea", hint];
   const date = (label, hint = "Tanggal kejadian") => [label, "date", hint];
   const status = (label = "Status tindak lanjut") => s(label, ["Draf", "Diajukan", "Dalam pemeriksaan", "Perlu perbaikan", "Selesai"]);
