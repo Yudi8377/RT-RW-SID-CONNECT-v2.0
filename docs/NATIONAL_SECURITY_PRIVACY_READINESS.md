@@ -105,3 +105,24 @@ Until blockers are resolved with recorded evidence, status is **NOT CLEARED FOR 
 
 ## Critical privileged-role membership finding (2026-10-23)
 Read-only production metadata found `anon` and `authenticated` are members of `postgres` with INHERIT, SET and ADMIN options; `postgres` has BYPASSRLS. This can undermine RLS and least privilege. No exploitation or breach is confirmed. The containment migration was applied as production migration `revoke_client_postgres_membership` (version `20261023150838`) and verified: neither client role can inherit or SET `postgres`. The separate `public.spatial_ref_sys` direct write grants remain unresolved; the current SQL connection cannot revoke grants made by `supabase_admin`. See `docs/CRITICAL_CLIENT_ROLE_MEMBERSHIP_FINDING.md`.
+
+
+## Verification refresh — 2026-10-24
+
+This section supersedes older snapshot statements above where they conflict with this dated update.
+
+- Production `rt-transaction` is now version 6, with JWT verification enabled. The deployed entrypoint was read back and its SHA-256 verified as `7ac17247005df2103f1c7d29f1014e12ab1f7288720fae7cefe56859e146279b`. This proves deployment identity and source contents only; authenticated live positive/negative smoke tests remain outstanding.
+- GitHub Pages workflow #514 succeeded on commit `6a2f06550ef1b60a234daace86cf5f39541eefe9`. Android Test APK workflow #234 subsequently completed successfully; release build, emergency-service manifest verification, APK verification, and artifact upload all passed. Artifact `rt-rw-sid-connect-android-test-v1` is 26,119,233 bytes with SHA-256 `aa652f6fd68cdec6e2d232b96328c4dc8bc9ddd2740a3464508557c3f6dd63b` (expires 2026-11-07). This is CI artifact validation, not physical-device QA or store-release signing.
+- PR #146 (https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/pull/146) is merged and its disposable migration chain, trial-quality, and regional-dashboard workflows passed. It adds a narrowly scoped migration to remove API-role write privileges on PostGIS `spatial_ref_sys` while preserving SELECT. **This migration has not been verified as applied in production**; production remains blocked because the current SQL execution context cannot revoke privileges owned/granted by the extension administrator. Do not treat merged code or disposable validation as production remediation.
+- The latest Supabase Security Advisor refresh at 2026-10-24 still reports: one ERROR for RLS disabled on `public.spatial_ref_sys`; one WARN for PostGIS installed in `public`; three WARNs for anon-executable `st_estimatedextent` SECURITY DEFINER overloads; ten WARNs for authenticated-executable SECURITY DEFINER functions; one WARN for leaked-password protection disabled; and five INFO findings for RLS-enabled tables with no policies. The latter are not automatically vulnerabilities: preserve deny-by-default until intended trusted callers and tests are documented.
+- Active production role assignments still require identity-verified correction; do not guess or auto-assign RT/RW/village/district/regency-city scopes. Trial and AI Companion remain disabled.
+
+### Next blocking actions
+
+1. Use an authorized Supabase/platform-admin execution path to apply the already-reviewed `spatial_ref_sys` privilege remediation, then verify effective grants and rerun Security Advisor. If ownership prevents this, escalate to Supabase support or the authorized project owner; do not broaden grants or bypass ownership.
+2. Correct production role assignments through the audited identity-verification workflow, then run authenticated scope-positive and cross-scope-negative tests with dedicated test identities.
+3. Complete Android workflow #234 and inspect the produced APK; run browser/mobile smoke tests against the deployed site.
+4. Execute the full authenticated trial/device lifecycle in a disposable or explicitly approved test organization, including second-device denial, expiry, and audit evidence.
+5. Keep national real-data launch blocked until the above evidence and backup/recovery, privacy, and operational controls are reviewed.
+
+**Current decision remains: NOT CLEARED FOR COMMERCIAL LAUNCH OR REAL-DATA NATIONAL PRODUCTION.**
