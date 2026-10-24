@@ -27,14 +27,14 @@ const modulesStart = app.indexOf("const modules=");
 const modulesEnd = app.indexOf("const icons=", modulesStart);
 assert.ok(modulesStart >= 0 && modulesEnd > modulesStart, "menu registry must exist");
 const moduleSource = app.slice(modulesStart, modulesEnd);
-const views = [...moduleSource.matchAll(/(?:^|\\n)\\s*([a-z][\\w-]*):\\["([^"]+)","[^"]+",\\s*\\[([\\s\\S]*?)\\]\\](?:,|\\n)/g)];
+const views = [...moduleSource.matchAll(/(?:^|\n)\s*([a-z][\w-]*):\["([^"]+)","[^"]+",\s*\[([\s\S]*?)\]\](?:,|\n)/g)];
 const routeKeys = [];
 for (const match of views) {
   const view = match[1];
-  for (const sub of match[3].matchAll(/\\[\\s*"([^"]+)"\\s*,\\s*"([^"]+)"/g)) routeKeys.push(`${view}:${sub[1]}`);
+  for (const sub of match[3].matchAll(/\[\s*"([^"]+)"\s*,\s*"([^"]+)"/g)) routeKeys.push(`${view}:${sub[1]}`);
 }
 const officialSource = app.slice(app.indexOf("const OFFICIAL_SCHEMAS="), app.indexOf("function officialSchema"));
-const officialKeys = new Set([...officialSource.matchAll(/"([^"]+)":\\[/g)].map(match => match[1]));
+const officialKeys = new Set([...officialSource.matchAll(/"([^"]+)":\[/g)].map(match => match[1]));
 const missing = routeKeys.filter(route => !registry[route] && !officialKeys.has(route));
 assert.deepEqual(missing, [], `every menu/submenu needs a specific schema: ${missing.join(", ")}`);
 console.log(`Form registry OK: ${Object.keys(registry).length} route-specific schemas; ${routeKeys.length} menu routes covered; ${officialKeys.size} official intake schemas retained.`);
