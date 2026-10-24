@@ -1,11 +1,11 @@
 # Production Release Gate — RT/RW-SID CONNECT
 
 **Last checked:** 2026-10-24  
-**Current status (2026-10-24): NOT CLEARED FOR COMMERCIAL LAUNCH OR REAL-DATA NATIONAL PRODUCTION.** GitHub Pages workflow #515 and Android Test APK #235 succeeded, but authenticated regional E2E, production PostGIS privilege remediation, data-protection, physical-device QA and recovery/capacity evidence remain incomplete. Commercial trial and AI Companion remain disabled.
+**Current status (2026-10-24): NOT CLEARED FOR COMMERCIAL LAUNCH OR REAL-DATA NATIONAL PRODUCTION.** GitHub Pages workflow #517 and Android Test APK #237 succeeded on commit `7868057c4f1d61f1544a1eddbb55c58665528d8f`, but authenticated regional E2E, production PostGIS privilege remediation, data-protection, physical-device QA and recovery/capacity evidence remain incomplete. Commercial trial and AI Companion remain disabled.
 
 ## Confirmed
 
-- Latest GitHub Pages deployment #515 succeeded on commit `d481243b880812d87430dbf289b8b3add2e02bdc`; Android Test APK #235 succeeded on the same commit. The APK artifact `rt-rw-sid-connect-android-test-v1` is 26,119,212 bytes with digest `sha256:6e0fad18b1d140ae6028678ca33ed342dfe87ac9d18935a91f9a95f032794c06` and expires 2026-11-07. These confirm deployment/build only; they do not substitute for authenticated end-to-end or device-runtime acceptance tests.
+- Latest GitHub Pages deployment #517 and Android Test APK #237 succeeded on commit `7868057c4f1d61f1544a1eddbb55c58665528d8f`. The APK artifact `rt-rw-sid-connect-android-test-v1` is 26,119,231 bytes with digest `sha256:b68f5d79bb21637617e539a76414d70c72654fec61593baaac8020e30b5bb07b` and expires 2026-11-07. [Pages workflow #517](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/actions/runs/40074341969) and [Android workflow #237](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/actions/runs/40074342199). These confirm deployment/build only; they do not substitute for authenticated end-to-end or device-runtime acceptance tests.
 - Disposable Supabase migration-chain validation and the relevant regional/trial CI checks passed before rollout.
 - The production database accepted the following reviewed additive migrations in order:
   - `regional_dashboard_roles` (production migration version `20261023075802`)
