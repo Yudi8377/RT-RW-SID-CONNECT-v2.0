@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'app.js'
+      - 'form-registry.js'
+      - 'scripts/validate-form-registry.mjs'
+      - 'docs/FORMULIR-DAN-RUJUKAN-REGULASI.md'
       - 'scripts/check-admin-workspaces.mjs'
       - 'docs/ADMIN-WORKSPACE-MATRIX.md'
       - '.github/workflows/admin-workspaces-quality.yml'
@@ -31,3 +34,5 @@ jobs:
           node-version: 22
       - name: Verify separate regional admin workspaces and protected preview
         run: node scripts/check-admin-workspaces.mjs
+      - name: Verify specific regulatory form schemas for every menu
+        run: node scripts/validate-form-registry.mjs
