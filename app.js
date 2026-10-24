@@ -1070,6 +1070,21 @@ document.addEventListener("click",async function(e){
   }
   const el=document.getElementById("workspace");if(el)el.innerHTML=await emergencyLocationWorkspace();
 });
+function demoScopedWorkspace(){
+ seedRows();
+ const profile={
+ RT_OPERATOR:{scope:"RT · ADMINISTRASI LINGKUNGAN",title:"Demo operasional RT",summary:"Kelola contoh data warga, agenda, surat, dan tindak lanjut dalam lingkungan simulasi.",flow:"RT"},
+ RW_REVIEWER:{scope:"RW · KONSOLIDASI ANTAR-RT",title:"Demo koordinasi RW",summary:"Kelola contoh review, catatan koordinasi, dan tindak lanjut dari RT.",flow:"RW"},
+ VILLAGE_VALIDATOR:{scope:"DESA / KELURAHAN",title:"Demo layanan desa",summary:"Kelola contoh antrean layanan, dokumen, dan validasi administratif.",flow:"Desa"},
+ DISTRICT_COORDINATOR:{scope:"KECAMATAN",title:"Demo koordinasi kecamatan",summary:"Kelola contoh tindak lanjut lintas desa dan ringkasan layanan.",flow:"Kecamatan"},
+ REGENCY_CITY_ADMIN:{scope:"KABUPATEN / KOTA",title:"Demo pemantauan daerah",summary:"Kelola contoh laporan agregat dan tindak lanjut program wilayah.",flow:"Kabupaten/Kota"},
+ OPEN_SID_UMUM:{scope:"INFORMASI PUBLIK",title:"Demo portal informasi SID",summary:"Jelajahi contoh informasi publik dan catatan layanan umum.",flow:"SID"},
+ PLATFORM_ADMIN:{scope:"ADMINISTRASI PLATFORM",title:"Admin Utama · pratinjau",summary:"Area admin utama tetap terpisah dari demo wilayah.",flow:"Admin"}
+ }[access.code]||{scope:"DEMO",title:"Demo wilayah",summary:"Data contoh terisolasi.",flow:"Demo"};
+ const rows=state.rows[key()]||[];
+ const records=rows.map(r=>'<article class="panel" style="padding:14px;margin:10px 0"><div style="display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap"><div><b>'+esc(r.values?.[1]||r.values?.[0]||r.id)+'</b><div class="muted" style="margin-top:5px">'+esc((r.values||[]).slice(2,4).filter(Boolean).join(" · ")||"Data sintetis")+'</div><small>'+esc(r.id)+' · '+esc(r.updated||"Data DEMO")+'</small></div><div style="display:flex;gap:8px;flex-wrap:wrap"><span class="status">'+esc(r.status||"DEMO")+'</span><button class="btn" type="button" onclick="openForm(\'update\',\''+esc(r.id)+'\')">Edit</button><button class="btn danger-outline" type="button" onclick="state.selected.clear();state.selected.add(\''+esc(r.id)+'\');deleteSelected()">Hapus</button></div></div></article>').join("");
+ return '<section class="panel preview-workspace"><div class="eyebrow dark">DEMO INTERAKTIF · DATA SINTETIS TERISOLASI</div><div class="preview-workspace-head"><div><h2>'+esc(profile.title)+'</h2><p>'+esc(profile.summary)+'</p></div><span class="status">MODE DEMO</span></div><div class="preview-workspace-context"><div><small>RUANG KERJA</small><b>'+esc(profile.scope)+'</b></div><div><small>MENU AKTIF</small><b>'+esc((modules[state.view]?.[0]||"Workspace")+" · "+subTitle())+'</b></div></div><div class="module-note"><b>Semua perubahan hanya tersimpan di browser ini.</b><span>Data sintetis, bukan data warga nyata. Demo tidak membuat koneksi Supabase dan tidak mengubah database produksi.</span></div><div class="form-actions"><button class="btn primary" type="button" onclick="openForm(\'insert\')">+ Tambah data demo</button><button class="btn" type="button" onclick="state.rows[key()]=undefined;seedRows();persist();render()">Reset data menu ini</button></div><div class="preview-flow-grid"><div class="preview-flow-step"><small>WILAYAH</small><b>'+esc(profile.flow)+'</b></div><div class="preview-flow-step"><small>REKOD DEMO</small><b>'+rows.length+'</b></div><div class="preview-flow-step"><small>PENYIMPANAN</small><b>Browser lokal</b></div></div><h3>Data demonstrasi</h3>'+ (records||'<div class="module-note"><b>Belum ada data.</b><span>Tambahkan record demonstrasi menggunakan tombol di atas.</span></div>')+'</section>';
+}
 function previewScopedWorkspace(){
  const profile={
  RT_OPERATOR:{scope:"SATU RUKUN TETANGGA",title:"Meja kerja RT",summary:"Pencatatan awal data warga dan keluarga, persiapan surat, verifikasi awal, serta tindak lanjut layanan di satu RT.",flow:["Terima permohonan warga","Periksa kelengkapan dan identitas","Teruskan ke RW bila perlu"],guard:"RT hanya menyiapkan dan memverifikasi data awal. Perubahan resmi dan data pribadi tidak diproses pada pratinjau ini."},
@@ -1108,7 +1123,7 @@ function productionUnavailableWorkspace(){
  return '<section class="panel production-workspace-gate"><div class="eyebrow dark">WORKSPACE OPERASIONAL</div><div class="production-gate-head"><div><h2>'+esc(section)+'</h2><p>'+esc(current)+' · '+esc(scopeLabel)+'</p></div><span class="status">MENUNGGU INTEGRASI LIVE</span></div><div class="production-gate-message"><b>Data contoh dan penyimpanan lokal dinonaktifkan pada workspace ini.</b><p>'+esc(explanation)+'</p><p>Modul ini belum memiliki pembacaan dan transaksi produksi yang tervalidasi. Tidak ada record, angka, atau status contoh yang akan disamarkan sebagai data live.</p></div><div class="production-gate-actions"><button class="btn primary" type="button" onclick="go(\'dashboard\',\'overview\')">Kembali ke dashboard peran</button></div></section>';
 }
 function workspace(){
- if(ADMIN_PREVIEW)return previewScopedWorkspace();
+ if(ADMIN_PREVIEW)return DEMO_MODE?demoScopedWorkspace():previewScopedWorkspace();
  if(state.view==="rw"&&state.sub==="review")return rwReviewWorkspace();
  if(state.view==="kecamatan"||state.view==="kabkota")return productionUnavailableWorkspace();
  if(state.view==="warga"&&state.sub==="registry"){setTimeout(loadCitizen360,50);return citizen360Workspace();}
