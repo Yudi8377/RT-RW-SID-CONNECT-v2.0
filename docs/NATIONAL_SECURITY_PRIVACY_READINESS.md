@@ -1,11 +1,11 @@
 # National Security & Privacy Readiness — RT/RW-SID CONNECT
 
-**Status:** Working control register. Findings below reflect checks recorded on 2026-10-23; rerun before release. This is not certification or legal advice.
+**Status:** Working control register. Historical findings are dated in their sections; latest verification refresh is 2026-10-24. Rerun checks before release. This is not certification or legal advice.
 
 ## 1. Known blockers
 
 - Commercial trial and AI Companion frontend flags remain disabled. Keep disabled until dedicated authenticated end-to-end evidence passes.
-- Production rt-transaction was last recorded at version 5 and had not been verified to contain all reviewed main-branch hardening. Diff reviewed source against deployed source before deployment.
+- Production `rt-transaction` is version 6 with JWT verification enabled; deployed entrypoint SHA-256 is recorded in the 2026-10-24 verification refresh. Authenticated positive/negative live smoke tests remain outstanding.
 - Production assignments included RT_OPERATOR and PLATFORM_ADMIN attached to a VILLAGE territory; RT operator lacked organization mapping. RW, village validator, district and regency/city assignments were not present. Correct only through identity-verified, audited admin workflow.
 - No complete authenticated trial/device lifecycle evidence: organization → trial → device → expiry/denial → audit.
 - Security Advisor findings require individual triage: RLS-enabled tables without policies, public.spatial_ref_sys (production ACL inspection confirmed anon/authenticated have all table privileges on this PostGIS extension table while PUBLIC has read access), PostGIS function grants, extension schema placement, other SECURITY DEFINER grants, duplicate permissive policies, and leaked-password protection disabled. A targeted candidate migration to remove only API write privileges while preserving SELECT is under PR #144; it is not deployed.
@@ -121,7 +121,7 @@ This section supersedes older snapshot statements above where they conflict with
 
 1. Use an authorized Supabase/platform-admin execution path to apply the already-reviewed `spatial_ref_sys` privilege remediation, then verify effective grants and rerun Security Advisor. If ownership prevents this, escalate to Supabase support or the authorized project owner; do not broaden grants or bypass ownership.
 2. Correct production role assignments through the audited identity-verification workflow, then run authenticated scope-positive and cross-scope-negative tests with dedicated test identities.
-3. Complete Android workflow #234 and inspect the produced APK; run browser/mobile smoke tests against the deployed site.
+3. Android workflow #235 completed successfully; artifact upload and CI APK checks passed. Next, perform physical-device Android QA and browser/mobile smoke tests against the deployed site; CI success is not physical-device validation.
 4. Execute the full authenticated trial/device lifecycle in a disposable or explicitly approved test organization, including second-device denial, expiry, and audit evidence.
 5. Keep national real-data launch blocked until the above evidence and backup/recovery, privacy, and operational controls are reviewed.
 
