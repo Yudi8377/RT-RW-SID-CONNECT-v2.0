@@ -309,6 +309,27 @@ function governmentFormRegistryWorkspace(){
 function officialSchema(){return OFFICIAL_SCHEMAS[key()]||null}
 function submenuSpecificSchema(){
  const module=state.view, sub=state.sub, title=subTitle();
+ const familyByContext={
+ "dashboard:overview":"summary","dashboard:approvals":"approval","dashboard:tasks":"task","dashboard:activity":"task",
+ "warga:services":"service","warga:complaints":"complaint",
+ "identitas:profil":"identity","identitas:pengurus":"official","identitas:wilayah":"identity","identitas:kop":"document","identitas:nomor":"numbering","identitas:tanda-tangan":"delegation","identitas:stempel":"verification",
+ "rt:dashboard":"summary","rt:residents":"resident","rt:households":"household","rt:births":"civilEvent","rt:deaths":"civilEvent","rt:moves":"movement","rt:domicile":"address","rt:marriage":"civilEvent","rt:letters":"document","rt:verification":"verification","rt:complaints":"complaint","rt:activities":"event","rt:social":"indicator","rt:health":"indicator","rt:education":"indicator","rt:economy":"indicator","rt:employment":"indicator","rt:trade":"indicator","rt:security":"complaint","rt:environment":"asset","rt:infrastructure":"asset","rt:inventory":"asset","rt:organizations":"coordination","rt:volunteers":"coordination","rt:dues":"finance","rt:planning":"program","rt:disaster":"complaint","rt:dataquality":"quality","rt:gis":"indicator","rt:intelligence":"indicator","rt:smart":"indicator","rt:reports":"regionalSummary",
+ "rw:consolidation":"consolidation","rw:review":"review","rw:programs":"program","rw:coordination":"coordination","rw:security":"complaint","rw:indicators":"indicator",
+ "kegiatan:calendar":"event","kegiatan:meeting":"meeting","kegiatan:attendance":"attendance","kegiatan:minutes":"minutes","kegiatan:arisan":"finance","kegiatan:rutinan":"event","kegiatan:pengajian":"event","kegiatan:tahlilan":"event","kegiatan:social-events":"event","kegiatan:other-events":"event","kegiatan:cash":"finance","kegiatan:reminder":"notification",
+ "layanan:queue":"serviceQueue","layanan:requests":"service","layanan:complaints":"complaint","layanan:tracking":"serviceQueue","layanan:sla":"serviceQueue",
+ "desa:validation":"verification","desa:services":"service","desa:development":"development","desa:assets":"asset","desa:regulation":"regulation","desa:transparency":"regionalSummary",
+ "dokumen:inbox":"document","dokumen:compose":"document","dokumen:approval":"approval","dokumen:signing":"signature","dokumen:verification":"verification","dokumen:archive":"document",
+ "dataquality:score":"quality","dataquality:queue":"quality","dataquality:duplicate":"quality","dataquality:consistency":"quality","dataquality:repair":"quality",
+ "smart:evidence":"verification","smart:environment":"asset","smart:innovation":"program",
+ "gis:assets":"asset","gis:privacy":"governance","gis:emergency":"complaint",
+ "whatsapp:inbox":"serviceQueue","whatsapp:templates":"notification","whatsapp:notifications":"notification","whatsapp:delivery":"notification","whatsapp:consent":"governance","whatsapp:broadcast":"notification",
+ "sid:mapping":"integration","sid:sync":"integration","sid:validation":"verification","sid:conflict":"integration","sid:logs":"governance",
+ "gpffe:catalog":"dataExchange","gpffe:requests":"dataExchange","gpffe:exports":"dataExchange","gpffe:audit":"governance","gpffe:contract":"dataExchange",
+ "kecamatan:overview":"summary","kecamatan:desa":"regionalSummary","kecamatan:services":"serviceQueue","kecamatan:escalations":"escalation","kecamatan:indicators":"indicator","kecamatan:reports":"regionalSummary",
+ "kabkota:overview":"summary","kabkota:districts":"regionalSummary","kabkota:regional-indicators":"indicator","kabkota:programs":"program","kabkota:infrastructure":"asset","kabkota:complaints":"complaint","kabkota:reports":"regionalSummary","kabkota:gpffe":"dataExchange",
+ "admin:tenant":"governance","admin:territory":"identity","admin:users":"governance","admin:access":"governance","admin:roles":"governance","admin:policies":"governance","admin:templates":"document","admin:forms":"governance","admin:security":"governance","admin:audit":"governance","admin:backup":"governance","admin:resident-links":"household","admin:health":"governance",
+ "jolie:crm":"service","jolie:customers":"service","jolie:suppliers":"service","jolie:inventory":"asset","jolie:sales":"finance","jolie:purchasing":"finance","jolie:accounting":"finance","jolie:marketplace":"program","jolie:bi":"regionalSummary"
+ };
  const familyBySub={
   "residents":"resident",
   "registry":"resident",
@@ -443,7 +464,7 @@ function submenuSpecificSchema(){
   "bi":"regionalSummary",
   "gpffe":"dataExchange"
  };
- const family=familyBySub[sub]||({rt:"residentOps",rw:"coordination",warga:"resident",identitas:"identity",kegiatan:"event",layanan:"service",desa:"villageOps",dokumen:"document",dataquality:"quality",smart:"indicator",gis:"spatial",whatsapp:"notification",sid:"integration",gpffe:"dataExchange",kecamatan:"regionalSummary",kabkota:"regionalSummary",admin:"governance",dashboard:"summary"}[module]||"caseRecord");
+ const family=familyByContext[`${module}:${sub}`]||familyBySub[sub]||({rt:"residentOps",rw:"coordination",warga:"resident",identitas:"identity",kegiatan:"event",layanan:"service",desa:"villageOps",dokumen:"document",dataquality:"quality",smart:"indicator",gis:"spatial",whatsapp:"notification",sid:"integration",gpffe:"dataExchange",kecamatan:"regionalSummary",kabkota:"regionalSummary",admin:"governance",dashboard:"summary"}[module]||"caseRecord");
  const S={
  resident:[["Nama Lengkap","text","Nama sesuai dokumen; batasi akses data pribadi"],["NIK/ID Internal","text","Isi hanya jika diperlukan dan berwenang"],["Nomor KK/Referensi","text","Referensi keluarga jika relevan"],["Tanggal Pemutakhiran","date","Tanggal pencatatan"],["Sumber/Bukti","text","Dokumen atau sumber verifikasi"],["Status Verifikasi","select","DRAFT|SUBMITTED|IN_REVIEW|VERIFIED|CORRECTION_REQUIRED"]],
  household:[["Nomor KK/Referensi KK","text","Nomor atau referensi sesuai kewenangan akses"],["Nama Kepala Keluarga","text","Nama kepala keluarga"],["Alamat Domisili","textarea","Alamat sesuai dokumen/sumber resmi"],["Daftar Anggota/Referensi","textarea","Nama/relasi; hindari menyalin data berlebih"],["Tanggal Pemutakhiran","date","Tanggal pencatatan"],["Status KK","select","DRAFT|SUBMITTED|IN_REVIEW|VERIFIED|CORRECTION_REQUIRED"]],
