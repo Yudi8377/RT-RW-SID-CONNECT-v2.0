@@ -48,6 +48,21 @@ join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and p.proname = 'st_estimatedextent';
 ```
 
+
+## Additional live Edge Function review (2026-10-24)
+
+A second live review retrieved the deployed source for the anonymous Edge Functions. These findings are tracked separately; public access may be a product requirement, so do not blindly turn JWT verification on.
+
+- **`village-preview` v2** (`verify_jwt=false`): uses the service-role key to query `platform_core`, `demo_requests`, `demo_documents`, `opensid_sync_batches`, and seven `village.*` tables for counts. It returns counts and selected platform metadata. Its helper captures raw database error text, although those helper error fields are not serialized in the current final response. It handles `OPTIONS` but does not explicitly reject other methods. Tracked in [issue #178](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/issues/178).
+- **`public-experience` v6** (`verify_jwt=false`): uses the service-role key for public agenda, announcement, and public business actions. Returned records include free-text `notes`; published announcements include `content`; caught errors are returned to callers as error messages. The request can select an active village by caller-supplied `territory_id`, rather than enforcing an explicit public-demo allowlist. Anonymous access may be intentional, but fields and territory selection need a defined public-data contract. Tracked in [issue #179](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/issues/179).
+- **`economic-evidence-ingest` v2** (`verify_jwt=false`): review of deployed source found an integration-specific HMAC signature, five-minute timestamp window, body-size cap, strict payload schema, tenant mapping lookup, idempotency check, and fixed error codes. Keep this endpoint's integration-secret and signature checks covered by negative tests; JWT being disabled alone is not evidence of a vulnerability.
+- The review did not modify or redeploy any production Edge Function. No service-role key value was read or exposed.
+
+## Latest workflow and gate tracking
+
+The user-provided GitHub Pages deploy #534, Android Test APK #254, and Supabase Local Migration Validation #52 succeeded. These are build/deployment/migration-validation evidence only and do not close authenticated authorization or data-minimization gates. Issue [#177](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/issues/177) remains open for the role/scope and tenant-isolation E2E matrix. Issues [#178](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/issues/178) and [#179](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/issues/179) remain open for public Edge Function reviews.
+
+
 ## Release decision
 
 **NOT CLEARED for commercial production.** Frontend/CI success is not proof of authenticated backend lifecycle, tenant isolation, or database security remediation. Do not run `DROP EXTENSION postgis CASCADE`, force extension ownership changes, or apply speculative production DDL to bypass provider-managed PostGIS objects.
