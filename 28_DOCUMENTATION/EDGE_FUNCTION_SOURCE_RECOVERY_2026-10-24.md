@@ -26,7 +26,7 @@ Snapshot date: 2026-10-24. This inventory was read from the connected Supabase p
 | `start-trial` | 2 | enabled | `c27e6970e9946396943e7597ec405085a06566f2a31e752305fa02041e39e85b` |
 | `register-device` | 2 | enabled | `9ebbf927ab53fbd02cf666cbe9ce93ae9c49b87d14f3fc88c94554c3cd5a7f9e` |
 
-All 19 active function slugs now have tracked `supabase/functions/<slug>/index.ts` files in this branch. Four previously missing source directories were recovered: `rw-review`, `admin-access-management`, `public-service-request`, and `citizen-room`.
+All 19 active function slugs now have tracked `supabase/functions/<slug>/index.ts` files in this branch. Four previously missing source directories were recovered: `rw-review`, `admin-access-management`, `public-service-request`, and `citizen-room`. A live-vs-repository comparison also found drift in `bootstrap-pilot`, `rt-transaction`, `assistance-rules-evaluate`, `assistance-workflow`, `start-trial`, and `register-device`; these source snapshots and required local dependencies were aligned to the deployed versions. `public-experience` intentionally differs from the deployed version in this PR because it contains proposed public-data minimization and territory restrictions; do not deploy it until frontend compatibility and anonymous contract tests pass.
 
 ## Environment variables
 
