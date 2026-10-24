@@ -19,3 +19,13 @@ assert.match(app, /return contextualFallbackSchema\(\)/, "unmapped regional subm
 const formKeys = [...app.matchAll(/\["([^"]+)",\s*"[^"]+",\s*"[^"]+"\]/g)].map((m) => m[1]);
 assert.ok(formKeys.length > 100, "expected substantial existing form registry to remain intact");
 console.log("Context-specific form checks passed.");
+
+
+// Every actual submenu in the product navigation must resolve through the dedicated registry.
+assert.match(app, /function submenuSpecificSchema\(\)/, "dedicated submenu form registry must exist");
+assert.match(app, /const submenuSchema=submenuSpecificSchema\(\); if\(submenuSchema\)return submenuSchema/, "submenu-specific schema must take priority over broad module fallback");
+const moduleBlock = app.match(/const modules=\{([\s\S]*?)\n\};/);
+assert.ok(moduleBlock, "navigation module registry must exist");
+const modulePairs = [...moduleBlock[1].matchAll(/\[\s*["']([^"']+)["']\s*,\s*["'][^"']+["']\s*\]/g)];
+assert.ok(modulePairs.length >= 100, "navigation should retain broad submenu coverage");
+assert.match(app, /familyBySub=/, "submenu IDs must be classified into task-specific form families");
