@@ -10,6 +10,7 @@ on:
       - "supabase/migrations/202610230001_server_authoritative_entitlements.sql"
       - "supabase/migrations/202610230002_device_entitlement_enforcement.sql"
       - "supabase/migrations/202610230005_trial_14_days.sql"
+      - "supabase/migrations/20261024100000_trial_7_day_reconciliation.sql"
       - "supabase/tests/**"
       - ".github/workflows/subscription-trial-quality.yml"
   push:
@@ -146,9 +147,13 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610230005_trial_14_days.sql
+      - name: Apply forward-only seven-day reconciliation to disposable database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20261024100000_trial_7_day_reconciliation.sql
       - name: Verify trial lifecycle, device limits, grants, and tenant isolation
         env:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/entitlements-migration-smoke.sql
-          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT duration_days FROM public.subscription_plans WHERE plan_code = 'TRIAL_7_DAY') <> 14 THEN RAISE EXCEPTION 'trial duration must be 14 days'; END IF; IF pg_get_functiondef('public.start_organization_trial(uuid,uuid,text)'::regprocedure) NOT LIKE '%duration_days = 14%' THEN RAISE EXCEPTION 'trial function is not configured for 14 days'; END IF; END \$\$;"
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT duration_days FROM public.subscription_plans WHERE plan_code = 'TRIAL_7_DAY') <> 7 THEN RAISE EXCEPTION 'trial duration must be 7 days'; END IF; IF pg_get_functiondef('public.start_organization_trial(uuid,uuid,text)'::regprocedure) NOT LIKE '%duration_days = 7%' THEN RAISE EXCEPTION 'trial function is not configured for 7 days'; END IF; END \$\$;"
