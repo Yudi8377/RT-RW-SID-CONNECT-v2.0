@@ -63,6 +63,10 @@ A second live review retrieved the deployed source for the anonymous Edge Functi
 The user-provided GitHub Pages deploy #534, Android Test APK #254, and Supabase Local Migration Validation #52 succeeded. These are build/deployment/migration-validation evidence only and do not close authenticated authorization or data-minimization gates. Issue [#177](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/issues/177) remains open for the role/scope and tenant-isolation E2E matrix. Issues [#178](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/issues/178) and [#179](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/issues/179) remain open for public Edge Function reviews.
 
 
+## Source-of-truth gap identified (2026-10-24)
+
+A recursive Git tree inspection of `main` did not find version-controlled paths for the live `village-preview`, `public-experience`, or `economic-evidence-ingest` functions under `supabase/functions/<slug>/index.ts`. Their deployed source can be inspected through Supabase, but repository CI cannot currently prove that reviewed source matches deployed source. Track reconciliation in [issue #180](https://github.com/Yudi8377/RT-RW-SID-CONNECT-v2.0/issues/180). Do not overwrite or redeploy production functions until source is reconciled, reviewed, and tested.
+
 ## Release decision
 
 **NOT CLEARED for commercial production.** Frontend/CI success is not proof of authenticated backend lifecycle, tenant isolation, or database security remediation. Do not run `DROP EXTENSION postgis CASCADE`, force extension ownership changes, or apply speculative production DDL to bypass provider-managed PostGIS objects.
