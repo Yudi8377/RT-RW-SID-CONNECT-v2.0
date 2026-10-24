@@ -14,6 +14,7 @@ on:
       - 'scripts/check-entitlements-migration.sh'
       - 'scripts/check-entitlements-release-gates.sh'
       - 'scripts/check-territory-workspaces.sh'
+      - 'scripts/check-regional-demo-entry.mjs'
       - 'docs/territory-specific-workspaces.md'
       - 'supabase/functions/rt-transaction/**'
       - 'supabase/functions/_shared/**'
@@ -73,6 +74,8 @@ jobs:
         run: bash scripts/check-entitlements-release-gates.sh
       - name: Check independent territory workspaces
         run: bash scripts/check-territory-workspaces.sh
+      - name: Check selected-region interactive demo isolation
+        run: node scripts/check-regional-demo-entry.mjs
       - name: Check regional migration safety markers
         shell: bash
         run: |
