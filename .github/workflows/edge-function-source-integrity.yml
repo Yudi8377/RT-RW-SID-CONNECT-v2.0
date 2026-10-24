@@ -13,6 +13,8 @@ on:
     paths:
       - "supabase/functions/**"
       - "scripts/check-edge-function-source.mjs"
+      - "scripts/check-public-rendering.mjs"
+      - "website/app.js"
       - ".github/workflows/edge-function-source-integrity.yml"
 
 permissions:
