@@ -1,11 +1,11 @@
 # Production Release Gate — RT/RW-SID CONNECT
 
 **Last checked:** 2026-10-24  
-**Current status (2026-10-24): NOT CLEARED FOR REAL-DATA NATIONAL PRODUCTION.** Regional dashboard preview and additive backend migrations exist, but authenticated regional E2E, data-protection and recovery/capacity evidence is incomplete. Commercial trial and AI Companion remain disabled.
+**Current status (2026-10-24): NOT CLEARED FOR COMMERCIAL LAUNCH OR REAL-DATA NATIONAL PRODUCTION.** GitHub Pages workflow #515 and Android Test APK #235 succeeded, but authenticated regional E2E, production PostGIS privilege remediation, data-protection, physical-device QA and recovery/capacity evidence remain incomplete. Commercial trial and AI Companion remain disabled.
 
 ## Confirmed
 
-- GitHub Pages deployment #513 and Android Test APK #233 both completed successfully on commit `ef9ea5fd2df591fe4ea85132f59791fadfdb1496` (2026-10-23 23:25 UTC). These confirm deployment/build only; they do not substitute for authenticated end-to-end or device-runtime acceptance tests.
+- Latest GitHub Pages deployment #515 succeeded on commit `d481243b880812d87430dbf289b8b3add2e02bdc`; Android Test APK #235 succeeded on the same commit. The APK artifact `rt-rw-sid-connect-android-test-v1` is 26,119,212 bytes with digest `sha256:6e0fad18b1d140ae6028678ca33ed342dfe87ac9d18935a91f9a95f032794c06` and expires 2026-11-07. These confirm deployment/build only; they do not substitute for authenticated end-to-end or device-runtime acceptance tests.
 - Disposable Supabase migration-chain validation and the relevant regional/trial CI checks passed before rollout.
 - The production database accepted the following reviewed additive migrations in order:
   - `regional_dashboard_roles` (production migration version `20261023075802`)
@@ -21,7 +21,7 @@
 - The production database was already populated before rollout; the changes above were additive and did not intentionally delete or auto-link existing resident records.
 - Legacy entitlement tables `sv_service_plans` and `sv_account_entitlements` still exist. The new organization subscription system is additive; no automatic conversion from legacy user-level entitlements has been performed.
 - Read-only production verification shows active assignments only for Platform Admin, RT Operator, and Warga. The RT Operator points to a VILLAGE territory and has no `organization_id`; RW, Desa/Kelurahan, Kecamatan, and Kabupaten/Kota have no active assignments. No automatic role grants were made.
-- Current Supabase Security Advisor findings include five RLS-enabled tables without policies, `public.spatial_ref_sys` without RLS and with unresolved direct write grants for API roles, PostGIS `st_estimatedextent` SECURITY DEFINER overloads executable by anon/authenticated, other SECURITY DEFINER function grants, PostGIS installed in `public`, and leaked-password protection disabled. Client API roles' membership in `postgres`/BYPASSRLS roles was remediated by migration `20261023150838` and reverified by a read-only catalog query on 2026-10-24. These findings require impact-based review; do not apply blanket revocations or RLS changes without dependency analysis.
+- Current Supabase Security Advisor findings include five RLS-enabled tables without policies, `public.spatial_ref_sys` without RLS and with unresolved direct write grants for API roles, PostGIS `st_estimatedextent` SECURITY DEFINER overloads executable by anon/authenticated, other SECURITY DEFINER function grants, PostGIS installed in `public`, and leaked-password protection disabled. The attempted production migration `restrict_spatial_ref_sys_write_grants` failed its postcondition because API write privileges remain; extension ownership is `supabase_admin`, so remediation requires an authorized platform-admin path or Supabase support. Client API roles' membership in `postgres`/BYPASSRLS roles was remediated by migration `20261023150838` and reverified by a read-only catalog query on 2026-10-24. These findings require impact-based review; do not apply blanket revocations or RLS changes without dependency analysis.
 
 ## Read-only audit procedure
 
