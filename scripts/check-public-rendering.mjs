@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 const source = readFileSync("website/app.js", "utf8");
 const required = [
   "function escapeHtml(value)",
-  'escapeHtml(x.id||x.agenda_id||""),',
+  'escapeHtml(x.id||x.agenda_id||"")',
   "escapeHtml(title)",
   "escapeHtml(type)",
   'escapeHtml(x.location||"Lokasi belum ditentukan")',
