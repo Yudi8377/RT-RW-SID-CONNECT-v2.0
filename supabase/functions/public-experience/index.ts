@@ -76,10 +76,10 @@ Deno.serve(async(req)=>{
   if(action==="announcement_list"||action==="news_list"){ const {data,error}=await admin.from("public_announcements").select("id,title,summary,category,published_at,image_url").eq("territory_id",territoryId).eq("status","PUBLISHED").order("published_at",{ascending:false}).limit(50); if(error)throw error; return json({ok:true,records:data||[]}); }
 
   if(action==="economy_list"){
-    const {data,error}=await admin.from("rt_business_profiles").select("id,business_name,business_type,sector,products_services,scale,worker_count,sales_channels,licensing_status,verification_status").eq("territory_id",territoryId).eq("public_visible",true).not("source","eq","DEMO_SEED").order("business_name").limit(100);
+    const {data,error}=await admin.from("rt_business_profiles").select("id,business_name,business_type,sector,products_services,verification_status").eq("territory_id",territoryId).eq("public_visible",true).not("source","eq","DEMO_SEED").order("business_name").limit(100);
     if(error)throw error;
     const rows=data||[], products=new Set(), sectors=new Set(); rows.forEach(x=>{String(x.products_services||"").split(/[,;\n]+/).map(v=>v.trim()).filter(Boolean).forEach(v=>products.add(v));if(x.sector)sectors.add(x.sector)});
-    return json({ok:true,stats:{businesses:rows.length,products:products.size,sectors:sectors.size},records:rows.map(x=>({id:x.id,business_name:x.business_name,business_type:x.business_type,sector:x.sector,products_services:x.products_services,scale:x.scale,worker_count:x.worker_count,sales_channels:x.sales_channels,verification_status:x.verification_status}))});
+    return json({ok:true,stats:{businesses:rows.length,products:products.size,sectors:sectors.size},records:rows.map(x=>({id:x.id,business_name:x.business_name,business_type:x.business_type,sector:x.sector,products_services:x.products_services,verification_status:x.verification_status}))});
   }
   throw new Error("Unsupported action");
  }catch(_e){return json({ok:false,error:"REQUEST_FAILED"},500);}
