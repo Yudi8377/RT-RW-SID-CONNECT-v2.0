@@ -1,0 +1,37 @@
+name: Edge Contract Smoke Quality
+
+on:
+  pull_request:
+    paths:
+      - "scripts/test-edge-contracts.mjs"
+      - "28_DOCUMENTATION/EDGE_FUNCTION_CONTRACT_SMOKE_TESTS.md"
+      - ".github/workflows/edge-contract-smoke-quality.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/test-edge-contracts.mjs"
+      - ".github/workflows/edge-contract-smoke-quality.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  syntax-and-safety-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check script syntax
+        run: node --check scripts/test-edge-contracts.mjs
+      - name: Confirm missing target fails closed
+        shell: bash
+        run: |
+          set +e
+          output="$(env -u SUPABASE_FUNCTIONS_URL -u SUPABASE_PROJECT_REF node scripts/test-edge-contracts.mjs 2>&1)"
+          status=$?
+          set -e
+          echo "$output"
+          test "$status" -eq 2
+          echo "$output" | grep -q "Set SUPABASE_FUNCTIONS_URL and SUPABASE_PROJECT_REF"
