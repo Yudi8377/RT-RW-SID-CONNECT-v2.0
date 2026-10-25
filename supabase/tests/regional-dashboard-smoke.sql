@@ -75,22 +75,22 @@ END;
 $$;
 
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000007',false);
-DO $
+DO $$
 BEGIN
   PERFORM public.regional_dashboard_summary('30000000-0000-4000-8000-000000000003');
   RAISE EXCEPTION 'future role assignment unexpectedly allowed';
 EXCEPTION WHEN insufficient_privilege THEN NULL;
 END;
-$;
+$$;
 
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000008',false);
-DO $
+DO $$
 BEGIN
   PERFORM public.regional_dashboard_summary('30000000-0000-4000-8000-000000000003');
   RAISE EXCEPTION 'expired role assignment unexpectedly allowed';
 EXCEPTION WHEN insufficient_privilege THEN NULL;
 END;
-$;
+$$;
 
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',false);
 DO $$
