@@ -16,6 +16,10 @@ All three workflow runs reported by GitHub for commit `3c93c46260a6cd2459a89a43f
 
 Subscription Trial Quality included successful type checks, trial/device policy tests, and disposable-database migration smoke tests covering trial lifecycle, device limits, grants, and tenant isolation. The `production-auth-boundary` job was skipped; this is not evidence that production authenticated authorization has passed.
 
+## Additional finding: village-preview public endpoint
+
+During source review, `village-preview` was found to use the service-role key to return platform metadata and unscoped counts across global tables, with no explicit method/input boundary. Because the endpoint is not called by the current `website/app.js`, the PR now proposes a fail-closed response (`503 PUBLIC_PREVIEW_NOT_CONFIGURED`; non-GET requests rejected) until an explicit demo-territory allowlist and approved aggregate contract exist. This is a proposed source change only; it has not been deployed. The source-integrity checker now rejects service-role client/query usage in this endpoint. Runtime verification is still required before any release decision.
+
 ## Read-only Supabase review
 
 Project: `gzdusguveeeflmlvvmwe` (ACTIVE_HEALTHY, ap-southeast-1, PostgreSQL 17.6.1).
