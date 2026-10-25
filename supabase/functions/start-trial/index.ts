@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isUuid } from "./policy.ts";
-import { hashDeviceId, normalizeDeviceLabel } from "../_shared/device.ts";
+import { hashDeviceId, normalizeDeviceLabel } from "./_shared/device.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

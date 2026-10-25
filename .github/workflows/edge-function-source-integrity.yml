@@ -1,0 +1,34 @@
+name: Edge Function Source Integrity
+
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/**"
+      - "scripts/check-edge-function-source.mjs"
+      - "scripts/check-public-rendering.mjs"
+      - "website/app.js"
+      - ".github/workflows/edge-function-source-integrity.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - "scripts/check-edge-function-source.mjs"
+      - "scripts/check-public-rendering.mjs"
+      - "website/app.js"
+      - ".github/workflows/edge-function-source-integrity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  source-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate tracked production function sources
+        run: node scripts/check-edge-function-source.mjs
+      - name: Guard public HTML rendering
+        run: node scripts/check-public-rendering.mjs
