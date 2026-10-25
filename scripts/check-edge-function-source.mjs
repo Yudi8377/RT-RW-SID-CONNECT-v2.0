@@ -51,6 +51,8 @@ assert.doesNotMatch(publicApi, /select\([^\n]*(?:owner_name|owner_phone|owner_em
 assert.doesNotMatch(publicApi, /organizer_person_id:x\.|organization_id:x\.|notes:x\.|content:x\./);
 assert.match(publicApi, /records:rows\.map\(x=>\(\{id:x\.id,business_name:x\.business_name/);
 assert.doesNotMatch(publicApi, /records:rows\.map\(x=>\(\{[^}]*owner_name|records:rows\.map\(x=>\(\{[^}]*phone_number/i);
+assert.match(publicApi, /select\("id,business_name,business_type,sector,products_services,verification_status"\)/);
+assert.doesNotMatch(publicApi, /scale:x\.scale|worker_count:x\.worker_count|sales_channels:x\.sales_channels|licensing_status:x\.licensing_status/);
 
 assert.match(ingest, /JOLIE_INTEGRATION_HMAC_SECRET/);
 assert.match(ingest, /TIMESTAMP_OUTSIDE_WINDOW/);
