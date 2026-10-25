@@ -1,4 +1,35 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
-const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"GET, OPTIONS"};
-Deno.serve(async(req:Request)=>{if(req.method==="OPTIONS")return new Response("ok",{headers:cors});const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false,autoRefreshToken:false}});const count=async(table:string,schema="public")=>{const{count,error}=await supabase.schema(schema).from(table).select("*",{count:"exact",head:true});return{count:count??0,available:!error,error:error?.message??null}};const[core,requests,documents,sync,profiles,officials,letters,services,assets,budgets,programs]=await Promise.all([supabase.from("platform_core").select("platform_name,platform_version,environment").limit(1).maybeSingle(),count("demo_requests"),count("demo_documents"),count("opensid_sync_batches"),count("profiles","village"),count("officials","village"),count("letters","village"),count("services","village"),count("assets","village"),count("budgets","village"),count("programs","village")]);return new Response(JSON.stringify({status:"ok",service:"Sistem Administrasi Desa Preview API",generated_at:new Date().toISOString(),supabase:{connected:true,platform:core.data??null,demo_requests:requests.count,demo_documents:documents.count,opensid_sync_batches:sync.count,village:{profiles:profiles.count,officials:officials.count,letters:letters.count,services:services.count,assets:assets.count,budgets:budgets.count,programs:programs.count}}}),{headers:{...cors,"Content-Type":"application/json; charset=utf-8"}})});
+
+const headers = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Content-Type": "application/json; charset=utf-8",
+  "Cache-Control": "no-store",
+  "Pragma": "no-cache",
+};
+
+/**
+ * Fail closed while the public demo aggregate contract is not configured.
+ *
+ * The previous implementation used the service-role key to count rows across
+ * global tables and returned platform metadata without a territory boundary.
+ * Do not re-enable data access until each source has an explicit demo
+ * allowlist, approved aggregate fields, and runtime contract tests.
+ */
+Deno.serve((req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers });
+  if (req.method !== "GET") {
+    return new Response(JSON.stringify({ ok: false, error: "METHOD_NOT_ALLOWED" }), {
+      status: 405,
+      headers,
+    });
+  }
+  return new Response(JSON.stringify({
+    ok: false,
+    error: "PUBLIC_PREVIEW_NOT_CONFIGURED",
+  }), {
+    status: 503,
+    headers,
+  });
+});
