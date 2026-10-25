@@ -118,6 +118,8 @@ VALUES
  ('00000000-0000-4000-8000-000000000004','regional-user-4@example.test','authenticated','authenticated','',now()),
  ('00000000-0000-4000-8000-000000000005','regional-user-5@example.test','authenticated','authenticated','',now()),
  ('00000000-0000-4000-8000-000000000006','regional-user-6@example.test','authenticated','authenticated','',now()),
+ ('00000000-0000-4000-8000-000000000007','regional-user-7@example.test','authenticated','authenticated','',now()),
+ ('00000000-0000-4000-8000-000000000008','regional-user-8@example.test','authenticated','authenticated','',now()),
  ('a1000000-0000-4000-8000-000000000008','rt-user@example.test','authenticated','authenticated','',now()),
  ('a1000000-0000-4000-8000-000000000009','rw-user@example.test','authenticated','authenticated','',now()),
  ('a1000000-0000-4000-8000-000000000010','village-user@example.test','authenticated','authenticated','',now()),

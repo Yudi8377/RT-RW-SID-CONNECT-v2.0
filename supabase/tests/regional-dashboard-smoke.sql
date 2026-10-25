@@ -30,6 +30,13 @@ FROM public.roles r WHERE r.role_code='REGENCY_CITY_ADMIN';
 INSERT INTO public.role_assignments (user_id, role_id, scope_territory_id, active)
 SELECT '00000000-0000-4000-8000-000000000006', r.id, '30000000-0000-4000-8000-000000000013', true
 FROM public.roles r WHERE r.role_code='DISTRICT_COORDINATOR';
+-- Time-bounded assignments must not authorize before their start or after expiry.
+INSERT INTO public.role_assignments (user_id, role_id, scope_territory_id, active, starts_at, ends_at)
+SELECT '00000000-0000-4000-8000-000000000007', r.id, '30000000-0000-4000-8000-000000000003', true, now() + interval '1 day', NULL
+FROM public.roles r WHERE r.role_code='DISTRICT_COORDINATOR';
+INSERT INTO public.role_assignments (user_id, role_id, scope_territory_id, active, starts_at, ends_at)
+SELECT '00000000-0000-4000-8000-000000000008', r.id, '30000000-0000-4000-8000-000000000003', true, now() - interval '2 days', now() - interval '1 day'
+FROM public.roles r WHERE r.role_code='DISTRICT_COORDINATOR';
 
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',false);
@@ -63,6 +70,24 @@ DO $$
 BEGIN
   PERFORM public.regional_dashboard_summary('30000000-0000-4000-8000-000000000003');
   RAISE EXCEPTION 'unassigned user unexpectedly allowed';
+EXCEPTION WHEN insufficient_privilege THEN NULL;
+END;
+$$;
+
+SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000007',false);
+DO $$
+BEGIN
+  PERFORM public.regional_dashboard_summary('30000000-0000-4000-8000-000000000003');
+  RAISE EXCEPTION 'future role assignment unexpectedly allowed';
+EXCEPTION WHEN insufficient_privilege THEN NULL;
+END;
+$$;
+
+SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000008',false);
+DO $$
+BEGIN
+  PERFORM public.regional_dashboard_summary('30000000-0000-4000-8000-000000000003');
+  RAISE EXCEPTION 'expired role assignment unexpectedly allowed';
 EXCEPTION WHEN insufficient_privilege THEN NULL;
 END;
 $$;
