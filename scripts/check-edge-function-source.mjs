@@ -59,5 +59,5 @@ for (const file of allSourceFiles) {
     assert.ok(existsSync(target), `broken relative import in ${file}: ${match[1]}`);
   }
 }
-assert.match(preview, /SUPABASE_SERVICE_ROLE_KEY/);
+assert.match(preview, /PUBLIC_PREVIEW_NOT_CONFIGURED/);\nassert.match(preview, /METHOD_NOT_ALLOWED/);\nassert.doesNotMatch(preview, /SUPABASE_SERVICE_ROLE_KEY|createClient|\.from\(/);
 console.log(`Source integrity checks passed for ${activeProductionSlugs.length} active functions and ${allSourceFiles.length} TypeScript files (static checks only; not runtime security tests).`);
