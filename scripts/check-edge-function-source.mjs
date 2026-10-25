@@ -38,6 +38,20 @@ assert.match(publicApi, /METHOD_NOT_ALLOWED/);
 assert.match(publicApi, /REQUEST_FAILED/);
 assert.doesNotMatch(publicApi, /notes:x\.notes/);
 assert.doesNotMatch(publicApi, /summary,content,category/);
+
+// Public-experience is anonymous and service-role-backed: keep its public contract
+// deliberately narrow, even if private columns are added to the underlying tables.
+assert.match(publicApi, /body\.territory_id!==PUBLIC_DEMO_TERRITORY_ID/);
+assert.match(publicApi, /\.eq\("territory_id",territoryId\)/);
+assert.match(publicApi, /\.eq\("public_visible",true\)/);
+assert.match(publicApi, /\.neq\("status","CANCELLED"\)/);
+assert.match(publicApi, /\.eq\("status","PUBLISHED"\)/);
+assert.match(publicApi, /select\("id,title,summary,category,published_at,image_url"\)/);
+assert.doesNotMatch(publicApi, /select\([^\n]*(?:owner_name|owner_phone|owner_email|phone_number|email_address|home_address|identity_number)/i);
+assert.doesNotMatch(publicApi, /organizer_person_id:x\.|organization_id:x\.|notes:x\.|content:x\./);
+assert.match(publicApi, /records:rows\.map\(x=>\(\{id:x\.id,business_name:x\.business_name/);
+assert.doesNotMatch(publicApi, /records:rows\.map\(x=>\(\{[^}]*owner_name|records:rows\.map\(x=>\(\{[^}]*phone_number/i);
+
 assert.match(ingest, /JOLIE_INTEGRATION_HMAC_SECRET/);
 assert.match(ingest, /TIMESTAMP_OUTSIDE_WINDOW/);
 assert.match(ingest, /INVALID_SIGNATURE/);
