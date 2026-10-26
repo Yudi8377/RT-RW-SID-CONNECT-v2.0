@@ -35,7 +35,7 @@ jobs:
           test -s website/kota-kabupaten/admin.html
           test -s website/kota-kabupaten/governance-flow.js
           test -s website/kota-kabupaten/website-registry.json
-          node -e 'const r=JSON.parse(require("fs").readFileSync("website/kota-kabupaten/website-registry.json","utf8")); if (!Array.isArray(r.websites)) throw new Error("registry.websites must be an array"); for (const x of r.websites) { if (x.status !== "verified" || typeof x.url !== "string" || !/^https:\\/\\//i.test(x.url)) throw new Error("registry contains an unverified or non-HTTPS URL"); }'
+          node -e 'const r=JSON.parse(require("fs").readFileSync("website/kota-kabupaten/website-registry.json","utf8")); if (!Array.isArray(r.websites)) throw new Error("registry.websites must be an array"); for (const x of r.websites) { if (x.status !== "verified" || typeof x.url !== "string" || !/^https:\/\//i.test(x.url)) throw new Error("registry contains an unverified or non-HTTPS URL"); }'
           test "$(grep -o 'class=\"cp-step cp-step-link\"' website/kota-kabupaten/index.html | wc -l)" -eq 3
           grep -q 'data-governance-types=\"RT,RW\"' website/kota-kabupaten/index.html
           grep -q 'data-governance-types=\"VILLAGE,DISTRICT\"' website/kota-kabupaten/index.html
