@@ -42,6 +42,7 @@ jobs:
           cp "$GITHUB_WORKSPACE/supabase/migrations/202610230002_device_entitlement_enforcement.sql" supabase/migrations/20261023000200_device_entitlement_enforcement.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/202610230005_trial_14_days.sql" supabase/migrations/20261023000500_trial_14_days.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/20261024125347_trial_7_day_reconciliation.sql" supabase/migrations/20261024125347_trial_7_day_reconciliation.sql
+          cp "$GITHUB_WORKSPACE/supabase/migrations/202610260001_restore_seven_day_trial.sql" supabase/migrations/20261026000100_restore_seven_day_trial.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/202610230003_scoped_resident_directory.sql" supabase/migrations/20261023000300_scoped_resident_directory.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/202610230004_household_membership_admin_workbench.sql" supabase/migrations/20261023000400_household_membership_admin_workbench.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/202610260002_fix_active_household_membership_window.sql" supabase/migrations/20261026000200_fix_active_household_membership_window.sql
