@@ -11,6 +11,7 @@ on:
       - "supabase/migrations/202610230002_device_entitlement_enforcement.sql"
       - "supabase/migrations/202610230005_trial_14_days.sql"
       - "supabase/migrations/20261024125347_trial_7_day_reconciliation.sql"
+      - "supabase/migrations/202610260001_restore_seven_day_trial.sql"
       - "supabase/tests/**"
       - ".github/workflows/subscription-trial-quality.yml"
   push:
@@ -20,8 +21,12 @@ on:
     paths:
       - "app.js"
       - "supabase/functions/start-trial/**"
+      - "supabase/functions/register-device/**"
       - "supabase/migrations/202610230001_server_authoritative_entitlements.sql"
+      - "supabase/migrations/202610230002_device_entitlement_enforcement.sql"
       - "supabase/migrations/202610230005_trial_14_days.sql"
+      - "supabase/migrations/20261024125347_trial_7_day_reconciliation.sql"
+      - "supabase/migrations/202610260001_restore_seven_day_trial.sql"
       - "supabase/tests/**"
       - ".github/workflows/subscription-trial-quality.yml"
 
@@ -60,6 +65,7 @@ jobs:
           grep -q 'SUPABASE_SERVICE_ROLE_KEY' "$file"
           migration="supabase/migrations/202610230001_server_authoritative_entitlements.sql"
           device_migration="supabase/migrations/202610230002_device_entitlement_enforcement.sql"
+          restore_migration="supabase/migrations/202610260001_restore_seven_day_trial.sql"
           grep -q 'admin.rpc("start_organization_trial_with_device"' "$file"
           grep -q 'organization_devices' "$device_migration"
           grep -q 'DEVICE_LIMIT_REACHED' "$device_migration"
@@ -75,7 +81,10 @@ jobs:
           grep -q "'SYSTEM_TRIAL'" "$migration"
           grep -q 'subscription_audit_events' "$migration"
           grep -q 'revoke all on function public.start_organization_trial(uuid, uuid, text) from public, anon, authenticated' "$migration"
-          grep -q 'grant execute on function public.start_organization_trial(uuid, uuid, text) to service_role' "$migration"
+          grep -q 'grant execute on function public.start_organization_trial(uuid, uuid, text) to service_role' "$restore_migration"
+          grep -q "display_name = 'Trial 7 Hari'" "$restore_migration"
+          grep -q "duration_days = 7" "$restore_migration"
+          grep -q "interval '7 days'" "$restore_migration"
           if grep -Eq 'body\.(plan_id|price_amount|status|trial_ends_at|activation_source)' "$file"; then
             echo "Client-controlled entitlement fields detected" >&2
             exit 1
@@ -151,9 +160,13 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/20261024125347_trial_7_day_reconciliation.sql
+      - name: Apply final seven-day trial restoration to disposable database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/migrations/202610260001_restore_seven_day_trial.sql
       - name: Verify trial lifecycle, device limits, grants, and tenant isolation
         env:
           PGPASSWORD: postgres
         run: |
           psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/entitlements-migration-smoke.sql
-          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT duration_days FROM public.subscription_plans WHERE plan_code = 'TRIAL_7_DAY') <> 7 THEN RAISE EXCEPTION 'trial duration must be 7 days'; END IF; IF pg_get_functiondef('public.start_organization_trial(uuid,uuid,text)'::regprocedure) NOT LIKE '%duration_days = 7%' THEN RAISE EXCEPTION 'trial function is not configured for 7 days'; END IF; END \$\$;"
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT duration_days FROM public.subscription_plans WHERE plan_code = 'TRIAL_7_DAY') <> 7 THEN RAISE EXCEPTION 'trial duration must be 7 days'; END IF; IF (SELECT display_name FROM public.subscription_plans WHERE plan_code = 'TRIAL_7_DAY') <> 'Trial 7 Hari' THEN RAISE EXCEPTION 'trial display name is not canonical'; END IF; IF pg_get_functiondef('public.start_organization_trial(uuid,uuid,text)'::regprocedure) NOT LIKE '%duration_days = 7%' THEN RAISE EXCEPTION 'trial function is not configured for 7 days'; END IF; END \$\$;"
