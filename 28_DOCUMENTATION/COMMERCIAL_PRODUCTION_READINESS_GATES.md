@@ -11,6 +11,7 @@
 - **BLOCKED** — known issue remains or provider/privileged action is required.
 - **NOT VERIFIED** — evidence has not yet been produced. Do not infer success.
 - **REVIEW** — requires a documented owner decision or product/security review.
+- **PARTIAL** — one part of a gate passed, but release evidence remains incomplete.
 
 ## Verified snapshot
 
@@ -19,14 +20,16 @@
 | Source changes for the seven-day offer | PR #188 merged to main at `62eba190c46af40854c5fa77bd1c091deae92e0b`; selected migration validation and regional dashboard quality checks passed. | PASS (source/CI only) |
 | Production trial plan | Read-only query on 2026-10-26 returned active `TRIAL_7_DAY`, display name `Trial 7 Hari`, duration 7 days, interval `TRIAL`, price 0. Production migration history includes `trial_7_day_reconciliation`. | PASS (plan row only) |
 | Trial RPC access | Read-only privilege check shows `anon_execute=false` and `auth_execute=false` for `public.start_organization_trial(uuid,uuid,text)`. | PASS (grant check only) |
-| Production trial end-to-end | No isolated authenticated test evidence yet for trial start, expiry, duplicate/replay, device limit, and audit event. The 2026-10-26 migration `202610260001_restore_seven_day_trial.sql` is not present in the latest production migration history snapshot; do not apply it blindly or assume its function definition is live. Compare it with the already-applied reconciliation first. | NOT VERIFIED |
+| Production trial end-to-end | No complete isolated authenticated E2E evidence yet for start, expiry, duplicate/replay, device limit, and audit event. Read-only recheck confirms the production plan is seven days, its feature description says one device, and `start_organization_trial` has the intended seven-day behavior with EXECUTE restricted to `service_role`. However, migration history does not include `202610260001_restore_seven_day_trial.sql` even though its key effects appear present; reconcile migration history/effects before applying subsequent migrations. | NOT VERIFIED |
 | PostGIS public exposure | Security Advisor at 2026-10-26 still reports ERROR `rls_disabled_in_public` for `public.spatial_ref_sys`, WARN `extension_in_public` for PostGIS, and three anonymous-executable `st_estimatedextent` SECURITY DEFINER overloads. Read-only privilege check still reports INSERT/UPDATE on `spatial_ref_sys` for both `anon` and `authenticated`. | BLOCKED |
 | Leaked-password protection | Security Advisor reports Supabase Auth leaked-password protection disabled. | BLOCKED |
 | SECURITY DEFINER RPC review | Advisor reports 10 authenticated-executable SECURITY DEFINER functions; each needs a reviewed caller/scope guard. Do not revoke grants in bulk because some RPCs may be required by regional workspaces. | REVIEW |
 | Regional authorization / tenant isolation | Dedicated synthetic identities and complete positive/negative runtime matrix across RT, RW, Desa/Kelurahan, Kecamatan, Kabupaten/Kota, and Platform Admin have not been evidenced. Existing production assignments are not valid fixtures. | NOT VERIFIED |
-| Edge Function release integrity | Canonical sources for the reviewed functions are in the repository, but full inventory/version-to-commit reconciliation and deployment provenance remain incomplete. Do not redeploy production functions from memory or an unreviewed working tree. | NOT VERIFIED |
+| Edge Function release integrity | Read-only inventory found 19 ACTIVE production Edge Functions; deployed files match canonical `main` files for the inspected inventory. `rt-transaction` v6 inlines the shared authorization helper, which matches the canonical helper exactly. Deployment commit provenance and runtime negative-case coverage remain incomplete. No production Edge Function was redeployed. | PARTIAL |
 | Backup and restore | No evidenced restore drill with measured recovery point/time and application smoke tests. | NOT VERIFIED |
 | Physical-device QA | CI Android APK build and browser/mobile checks do not replace a real Android device test; no completed production-like device acceptance record is attached here. | NOT VERIFIED |
+| Household membership validity | PR #195 merged at `22064b311951e4776c34a9cb9e311e7faaebcae9`; a regression test reproduced the future-`valid_to` duplicate-link bug on the old function, then the updated migration passed disposable regional RPC, Trial, dashboard-quality, and selected migration validation workflows. The follow-up migration is source-only and has not been applied to production; production behavior is NOT VERIFIED. | PARTIAL | 
+| Regional website discovery | PRs #191–#194 merged; governance cards link to level-filtered discovery, and CI verifies the three cards, registry schema, verified HTTPS-only entries, and safe external links. The registry is intentionally empty until official URLs are verified; post-merge GitHub Pages behavior was not independently confirmed in this audit. | PARTIAL | 
 | Regional data CRUD and exports | Menu/domain-specific create/read/update/delete, print/export, role boundary and audit tests remain to be evidenced across the full menu matrix. | NOT VERIFIED |
 
 ## Hard release blockers
