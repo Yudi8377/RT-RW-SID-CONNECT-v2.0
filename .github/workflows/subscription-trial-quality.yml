@@ -84,7 +84,7 @@ jobs:
           grep -q 'grant execute on function public.start_organization_trial(uuid, uuid, text) to service_role' "$restore_migration"
           grep -q "display_name = 'Trial 7 Hari'" "$restore_migration"
           grep -q "duration_days = 7" "$restore_migration"
-          grep -q "interval '7 days'" "$restore_migration"
+          grep -q 'make_interval(days => v_plan.duration_days)' "$restore_migration"
           if grep -Eq 'body\.(plan_id|price_amount|status|trial_ends_at|activation_source)' "$file"; then
             echo "Client-controlled entitlement fields detected" >&2
             exit 1
