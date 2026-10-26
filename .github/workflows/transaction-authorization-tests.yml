@@ -12,6 +12,7 @@ on:
     paths:
       - "supabase/functions/_shared/transaction-authorization.ts"
       - "supabase/functions/_shared/transaction-authorization.test.ts"
+      - "supabase/functions/rt-transaction/index.ts"
       - ".github/workflows/transaction-authorization-tests.yml"
 
 permissions:
