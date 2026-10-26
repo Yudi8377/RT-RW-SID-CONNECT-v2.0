@@ -5,12 +5,14 @@ on:
     paths:
       - "supabase/functions/_shared/transaction-authorization.ts"
       - "supabase/functions/_shared/transaction-authorization.test.ts"
+      - "supabase/functions/rt-transaction/index.ts"
       - ".github/workflows/transaction-authorization-tests.yml"
   push:
     branches: [main]
     paths:
       - "supabase/functions/_shared/transaction-authorization.ts"
       - "supabase/functions/_shared/transaction-authorization.test.ts"
+      - "supabase/functions/rt-transaction/index.ts"
       - ".github/workflows/transaction-authorization-tests.yml"
 
 permissions:
@@ -36,3 +38,5 @@ jobs:
         run: deno check supabase/functions/_shared/transaction-authorization.test.ts
       - name: Run authorization tests
         run: deno test --fail-fast supabase/functions/_shared/transaction-authorization.test.ts
+      - name: Type check Edge Function entrypoint
+        run: deno check supabase/functions/rt-transaction/index.ts
