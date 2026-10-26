@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "description": "Only publish website entries after an administrator has verified ownership and HTTPS URL. Add entries with name, territory_name, optional province, url, status=verified.",
+  "websites": []
+}
