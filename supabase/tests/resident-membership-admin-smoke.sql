@@ -64,6 +64,29 @@ BEGIN
     RAISE EXCEPTION 'linked person still appears in unlinked queue';
   END IF;
 
+  -- Future valid_to is still an active membership; do not link the same person twice.
+  INSERT INTO public.persons (id,full_name,classification,status)
+  VALUES ('72000000-0000-4000-8000-000000000005','Warga Uji Masa Berlaku','CONFIDENTIAL','ACTIVE');
+  INSERT INTO public.household_person_memberships
+    (id,household_id,person_id,relationship_label,is_head,status,valid_from,valid_to)
+  VALUES
+    ('73000000-0000-4000-8000-000000000004','71000000-0000-4000-8000-000000000001',
+     '72000000-0000-4000-8000-000000000005','ANAK',false,'ACTIVE',CURRENT_DATE,CURRENT_DATE+30);
+  BEGIN
+    PERFORM public.admin_link_person_to_household(
+      '30000000-0000-4000-8000-000000000003',
+      '72000000-0000-4000-8000-000000000005',
+      '71000000-0000-4000-8000-000000000002',
+      'ANAK',false,'Verifikasi masa berlaku keanggotaan'
+    );
+    RAISE EXCEPTION 'person with a future valid_to membership was linked twice';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
+  IF (SELECT count(*) FROM public.household_person_memberships
+      WHERE person_id='72000000-0000-4000-8000-000000000005') <> 1 THEN
+    RAISE EXCEPTION 'future-valid membership duplicate side effect detected';
+  END IF;
+
   BEGIN
     PERFORM public.admin_link_person_to_household(
       '30000000-0000-4000-8000-000000000003',

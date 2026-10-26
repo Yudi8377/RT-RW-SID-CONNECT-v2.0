@@ -44,6 +44,7 @@ jobs:
           cp "$GITHUB_WORKSPACE/supabase/migrations/20261024125347_trial_7_day_reconciliation.sql" supabase/migrations/20261024125347_trial_7_day_reconciliation.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/202610230003_scoped_resident_directory.sql" supabase/migrations/20261023000300_scoped_resident_directory.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/202610230004_household_membership_admin_workbench.sql" supabase/migrations/20261023000400_household_membership_admin_workbench.sql
+          cp "$GITHUB_WORKSPACE/supabase/migrations/202610260002_fix_active_household_membership_window.sql" supabase/migrations/20261026000200_fix_active_household_membership_window.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/20261023143000_revoke_client_postgres_membership.sql" supabase/migrations/20261023143000_revoke_client_postgres_membership.sql
           cp "$GITHUB_WORKSPACE/supabase/migrations/20261023144500_restrict_spatial_ref_sys_write_grants.sql" supabase/migrations/20261023144500_restrict_spatial_ref_sys_write_grants.sql
 
