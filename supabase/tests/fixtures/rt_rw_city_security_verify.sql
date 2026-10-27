@@ -7,7 +7,7 @@ DECLARE
   pii_key_count integer;
   missing_level_count integer;
   rls_enabled boolean;
-  anon_has_table_privilege boolean;
+  anon_or_public_policy boolean;
   scoped_select_policy boolean;
 BEGIN
   SELECT count(*),
@@ -39,8 +39,12 @@ BEGIN
   JOIN pg_namespace n ON n.oid = c.relnamespace
   WHERE n.nspname = 'public' AND c.relname = 'demo_operational_records';
 
-  SELECT has_table_privilege('anon','public.demo_operational_records','SELECT')
-    INTO anon_has_table_privilege;
+  SELECT EXISTS (
+    SELECT 1 FROM pg_policies p
+    WHERE p.schemaname = 'public' AND p.tablename = 'demo_operational_records'
+      AND p.cmd = 'SELECT'
+      AND ('anon' = ANY (p.roles::text[]) OR 'public' = ANY (p.roles::text[]))
+  ) INTO anon_or_public_policy;
 
   SELECT EXISTS (
     SELECT 1 FROM pg_policies p
@@ -56,10 +60,20 @@ BEGIN
   IF pii_key_count <> 0 THEN RAISE EXCEPTION 'Fixture payload contains personal-data keys: %', pii_key_count; END IF;
   IF missing_level_count <> 0 THEN RAISE EXCEPTION 'Missing synthetic fixture level(s): %', missing_level_count; END IF;
   IF rls_enabled IS DISTINCT FROM true THEN RAISE EXCEPTION 'RLS is not enabled on demo_operational_records'; END IF;
-  IF anon_has_table_privilege IS DISTINCT FROM false THEN RAISE EXCEPTION 'anon has SELECT table privilege on demo_operational_records'; END IF;
+  IF anon_or_public_policy IS DISTINCT FROM false THEN RAISE EXCEPTION 'An anon/PUBLIC SELECT policy exists on demo_operational_records'; END IF;
   IF scoped_select_policy IS DISTINCT FROM true THEN RAISE EXCEPTION 'Expected exact-territory SELECT policy for authenticated users was not found'; END IF;
 END
 $verify$;
+
+-- Runtime role check: the anon role must see zero fixture rows even though the
+-- table-level SELECT grant exists; RLS is the effective row-access boundary.
+BEGIN;
+SET LOCAL ROLE anon;
+SELECT count(*)::int AS anon_visible_security_fixture_rows
+FROM public.demo_operational_records
+WHERE payload->>'fixture' = 'RT_RW_CITY_SECURITY_20261027'
+  AND record_type = 'SECURITY_TEST';
+ROLLBACK;
 
 SELECT t.territory_type, t.code, count(d.id)::int AS fixture_rows,
        count(d.id) FILTER (WHERE d.payload->>'synthetic' = 'true')::int AS synthetic_rows
