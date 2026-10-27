@@ -22,7 +22,7 @@ function harness({ search = "", stored = null, now = 1_800_000_000_000 } = {}) {
     Date: { now: () => now },
   };
   vm.createContext(sandbox);
-  vm.runInContext(helpers + "\nthis.trialApi={requestedTrialDays,ensurePreviewTrial,previewTrialInfo,beginPreviewTrialIfMissing};", sandbox);
+  vm.runInContext('const PREVIEW_TRIAL_KEY = "rtrw_sid_preview_trial_v1";\n' + helpers + "\nthis.trialApi={requestedTrialDays,ensurePreviewTrial,previewTrialInfo,beginPreviewTrialIfMissing};", sandbox);
   return { api: sandbox.trialApi, values, setNow(value) { sandbox.Date = { now: () => value }; } };
 }
 
