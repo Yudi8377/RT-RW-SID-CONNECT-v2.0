@@ -45,3 +45,18 @@ jobs:
           echo "$output"
           test "$status" -eq 2
           echo "$output" | grep -q "Set SUPABASE_FUNCTIONS_URL and SUPABASE_PROJECT_REF"
+      - name: Smoke-test deployed public endpoints without data mutation
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$(sed -n 's/.*supabasePublishableKey:"\([^"]*\)".*/\1/p' config.js)"
+          test -n "$key"
+          base="https://gzdusguveeeflmlvvmwe.supabase.co/functions/v1"
+          code="$(curl --silent --show-error --output /tmp/public-experience.json --write-out '%{http_code}' -X POST "$base/public-experience" -H "apikey: $key" -H 'Content-Type: application/json' --data '{"territory_id":"00000000-0000-0000-0000-000000000000","action":"agenda_list"}')"
+          test "$code" = "403" || { echo "public-experience rejected-territory expected 403, got $code" >&2; cat /tmp/public-experience.json >&2; exit 1; }
+          grep -q '"TERRITORY_NOT_ALLOWED"' /tmp/public-experience.json
+          code="$(curl --silent --show-error --output /tmp/village-preview.json --write-out '%{http_code}' "$base/village-preview" -H "apikey: $key")"
+          test "$code" = "503" || { echo "village-preview fail-closed expected 503, got $code" >&2; cat /tmp/village-preview.json >&2; exit 1; }
+          grep -q '"PUBLIC_PREVIEW_NOT_CONFIGURED"' /tmp/village-preview.json
+          echo "Deployed public Edge Functions reject unapproved territory and keep aggregate preview fail-closed."
