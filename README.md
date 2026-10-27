@@ -15,12 +15,12 @@ Community, Village & Smart Village Digital Operating Platform.
 
 Project reference: gzdusguveeeflmlvvmwe
 
-1. Apply `supabase/migrations/202609280001_initial.sql` in the Supabase SQL Editor.
+1. Apply reviewed migrations in order using the documented release procedure; do not blindly replay migrations on production.
 2. Put the project's **publishable key** into `config.js`. Never commit a secret/service-role key.
 3. Enable GitHub Pages with Settings → Pages → Source: GitHub Actions.
 4. Pushes to `main` deploy automatically.
 
-Supabase recommends publishable keys for browser clients and requires Row Level Security on exposed tables. See the official documentation linked below.
+Supabase recommends publishable keys for browser clients and requires Row Level Security on exposed tables.
 
 ## Migration rule
 
@@ -29,31 +29,36 @@ Hatchable v13 is frozen as a reference only. Do not delete its project or data u
 ## Current implementation status
 
 - Canonical territory, identity and RBAC foundation migrated to Supabase.
-- Security baseline is present, but the live Supabase Security Advisor still reports findings; see `docs/PRODUCTION_RELEASE_GATE.md`.
-- Authenticated workspace reads active role/scope assignments when provisioned.
-- GitHub Pages deployment workflow is configured on `main`.
+- CI includes regional, Trial/device, source-integrity, and deployment checks; passing CI is not proof of authenticated production authorization.
+- GitHub Pages deployment is configured on `main`.
+- The public frontend and Supabase production backend are separate release surfaces.
+- Security Advisor and live authorization issues remain release blockers; see [Production Release Gate](docs/PRODUCTION_RELEASE_GATE.md).
+- National/international standards and future Web3 design principles are documented in [Web3 Readiness & Standards Baseline](docs/WEB3_READINESS_AND_STANDARDS.md).
 
 ## Production release gate
 
-The public GitHub Pages site and the production Supabase backend are separate release surfaces. A successful Pages deployment does not mean that subscription or regional operations are live.
+**Current decision: NOT CLEARED FOR COMMERCIAL LAUNCH OR REAL-DATA NATIONAL PRODUCTION.**
 
-As verified on 2026-10-23:
-- Frontend config still keeps `commercialTrialEnabled: false` and `aiCompanionEnabled: false`.
-- Production migration history includes `regional_dashboard_roles`, `regional_dashboard_summary_rpc`, `server_authoritative_entitlements`, `device_entitlement_enforcement`, `scoped_resident_directory`, and `household_membership_admin_workbench` (versions `20261023075802` through `20261023075825`). These were checked directly against `supabase_migrations.schema_migrations`.
-- Production Edge Functions `start-trial` and `register-device` are ACTIVE with JWT verification enabled. Subscription Trial Quality #130 passed the post-deploy anonymous-request smoke test (HTTP 401) for both endpoints; this validates only the unauthenticated boundary, not the signed-in trial lifecycle.
-- The active subscription catalog currently contains only `TRIAL_7_DAY` (7 days, IDR 0); there are no rows in `organization_subscriptions` or `organization_devices` yet.
-- Current active assignments are Platform Admin, RT Operator, and Warga. The RT Operator assignment points to a VILLAGE territory and has no organization mapping; RW, Desa/Kelurahan, Kecamatan, and Kabupaten/Kota have no active assignments. Do not auto-assign real users or infer scope.
-- Production contains existing synthetic/demo resident and household records; do not treat it as an empty database.
-- Security Advisor findings remain open, including deny-by-default RLS tables, PostGIS-related grants/table exposure, and leaked-password protection disabled. See `docs/PRODUCTION_RELEASE_GATE.md`.
+The current baseline retains `commercialTrialEnabled: false` and `aiCompanionEnabled: false` until:
+- Supabase PostGIS exposure/grants are remediated through a supported, verified path;
+- RLS-without-policy tables and SECURITY DEFINER grants have documented least-privilege decisions;
+- leaked-password protection is enabled and verified;
+- authenticated positive/negative regional authorization tests pass for all scopes;
+- RT operator role, organization, and territory mapping is corrected through an audited workflow;
+- Trial 7 Hari start, one-device limit, expiry, and audit lifecycle passes authenticated tests;
+- migration history and deployed function definitions are reconciled;
+- backup/restore, rollback, accessibility, performance, support, and privacy evidence are recorded.
 
-Do not enable commercial flags until the live authenticated trial/device lifecycle is verified, the RT role-to-territory and organization mismatch is corrected through the audited admin flow, dedicated test accounts cover all regional roles, and security findings are triaged. A successful Pages deploy proves frontend publication only—not commercial readiness.
+The active subscription catalog has a Trial 7 Hari plan, but there is no production subscription lifecycle evidence yet. Do not auto-assign real users or infer territory scope. Production contains synthetic/demo resident and household records; do not treat it as an empty database.
 
 Detailed checklist: [Production Release Gate](docs/PRODUCTION_RELEASE_GATE.md).
 
+## National, international and Web3 direction
+
+The project will remain chain-neutral at its core. Future Web3 use is restricted initially to optional integrity proofs (e.g. Merkle-root anchoring) after privacy/security review; resident PII, NIK, addresses, household records, and confidential case data must never be written on-chain. Ordinary services must remain usable without wallets or tokens. See [Web3 Readiness & Standards Baseline](docs/WEB3_READINESS_AND_STANDARDS.md).
+
 ## Next implementation targets
 
-Auth → real CRUD → progressive verification → Admin Center → Document Engine → GPFFE exchange → GIS → Smart Village → testing → pilot.
+Auth → real CRUD → progressive verification → Admin Center → Document Engine → GPFFE exchange → GIS → Smart Village → authenticated testing → controlled pilot → commercial release.
 
-
-
-Deployment trigger verified: main branch is configured for GitHub Pages Actions.
+Deployment success proves publication only, not commercial readiness.
