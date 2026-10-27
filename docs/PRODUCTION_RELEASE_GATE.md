@@ -1,7 +1,9 @@
 # Production Release Gate — RT/RW-SID CONNECT
 
-**Last checked:** 2026-10-24  
-**Current status (2026-10-24): NOT CLEARED FOR COMMERCIAL LAUNCH OR REAL-DATA NATIONAL PRODUCTION.** GitHub Pages workflow #520, Android Test APK #240, Subscription Trial Quality #176, Supabase Local Migration Validation #46, and Regional dashboard quality #221 succeeded on commit `22970ad71e196d7aae58c37bbc146d0746eca09b`. Authenticated regional/trial E2E, production PostGIS privilege remediation, data-protection, physical-device QA and recovery/capacity evidence remain incomplete. Commercial trial and AI Companion remain disabled.
+**Last checked:** 2026-10-27  
+**Current status (2026-10-27): NOT CLEARED FOR COMMERCIAL LAUNCH OR REAL-DATA NATIONAL PRODUCTION.** Pages deployment #556, Android Test APK #276, and Subscription Trial Quality #233 succeeded on commit `fce29ef44a9e6ee44a0c900776baa28ac6d02569`. These are build, publication, static/auth-boundary and disposable migration tests; authenticated regional/trial E2E, production PostGIS remediation, data-protection, physical-device QA, restore/recovery and capacity evidence remain incomplete. Commercial Trial and AI Companion remain disabled.
+
+New engineering baseline: [National, International & Web3 Readiness](WEB3_READINESS_AND_STANDARDS.md). This is a design/control baseline, not proof of certification or compliance. Web3 remains disabled and must not receive resident PII or confidential government data.
 
 ## Confirmed
 
