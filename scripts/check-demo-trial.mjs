@@ -19,11 +19,11 @@ function harness({ search = "", stored = null, now = 1_800_000_000_000 } = {}) {
       setItem: (key, value) => values.set(key, String(value)),
       removeItem: (key) => values.delete(key),
     },
-    Date: class extends Date { static now() { return now; } },
+    Date: { now: () => now },
   };
   vm.createContext(sandbox);
   vm.runInContext(helpers + "\nthis.trialApi={requestedTrialDays,ensurePreviewTrial,previewTrialInfo,beginPreviewTrialIfMissing};", sandbox);
-  return { api: sandbox.trialApi, values, setNow(value) { sandbox.Date = class extends Date { static now() { return value; } }; } };
+  return { api: sandbox.trialApi, values, setNow(value) { sandbox.Date = { now: () => value }; } };
 }
 
 {
